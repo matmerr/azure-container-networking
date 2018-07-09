@@ -230,3 +230,66 @@ func DeletePortFromOVS(bridgeName string, interfaceName string) error {
 
 	return nil
 }
+
+func AddOverlayFakeArpReply(bridgeName string, containerOverlayIP net.IP, mac string) error {
+	intacip := common.IpToInt(containerOverlayIP)
+	macAddrHex := strings.Replace(mac, ":", "", -1)
+	cmd := fmt.Sprintf(`ovs-ofctl add-flow %s arp,arp_op=1,arp_tpa=%s,priority=20,actions='load:0x2->NXM_OF_ARP_OP[],
+		move:NXM_OF_ETH_SRC[]->NXM_OF_ETH_DST[],mod_dl_src:%s,
+		move:NXM_NX_ARP_SHA[]->NXM_NX_ARP_THA[],move:NXM_OF_ARP_TPA[]->NXM_OF_ARP_SPA[],
+		load:0x%s->NXM_NX_ARP_SHA[],load:0x%x->NXM_OF_ARP_TPA[],IN_PORT'`,
+		bridgeName, containerOverlayIP.String(), mac, macAddrHex, intacip)
+	_, err := platform.ExecuteCommand(cmd)
+	if err != nil {
+		log.Printf("[ovs] Adding Overlay ARP reply rule failed with error %v", err)
+		return err
+	}
+	return nil
+}
+
+func AddOverlayIPSnatRule(bridgeName string, containerBridgePort string, overlayAddressSpace string, containerOverlayIP net.IP) error {
+	cmd := fmt.Sprintf("ovs-ofctl add-flow %v ip,in_port=%s,nw_dst=%s,actions=mod_nw_src:%s,normal",
+		bridgeName, containerBridgePort, overlayAddressSpace, containerOverlayIP.String())
+	_, err := platform.ExecuteCommand(cmd)
+	if err != nil {
+		log.Printf("Error while adding overlay IP SNAT rule with error %v", err)
+	}
+	return nil
+}
+
+func AddOverlayIPDnatRule(bridgeName string, containerOverlayIP net.IP, containerActualIP net.IP, vlanid int, containerBridgePort string) error {
+	cmd := fmt.Sprintf("ovs-ofctl add-flow %v ip,nw_dst=%s,actions=mod_nw_dst:%s,mod_vlan_vid:%d,%s",
+		bridgeName, containerOverlayIP.String(), containerActualIP.String(), vlanid, containerBridgePort)
+	_, err := platform.ExecuteCommand(cmd)
+	if err != nil {
+		log.Printf("Error while adding overlay IP DNAT rule with error %v", err)
+	}
+	return nil
+}
+
+func DeleteOverlayFakeArpReply(bridgeName string, containerOverlayIP net.IP) error {
+	cmd := fmt.Sprintf(`ovs-ofctl del-flows %s arp,arp_op=1,arp_tpa=%s,`, bridgeName, containerOverlayIP.String())
+	_, err := platform.ExecuteCommand(cmd)
+	if err != nil {
+		log.Printf("Error while deleting overlay ARP reply rule with error %v", err)
+	}
+	return nil
+}
+
+func DeleteOverlayIPDnatRule(bridgeName string, containerBridgePort string, containerOverlayIP net.IP) error {
+	cmd := fmt.Sprintf("ovs-ofctl del-flows %v ip,nw_dst=%s", bridgeName, containerOverlayIP.String())
+	_, err := platform.ExecuteCommand(cmd)
+	if err != nil {
+		log.Printf("Error while deleting overlay IP DNAT rule with error %v", err)
+	}
+	return nil
+}
+
+func DeleteOverlayIPSnatRule(bridgeName string, containerBridgePort string, overlayAddressSpace string) error {
+	cmd := fmt.Sprintf("ovs-ofctl del-flows %v ip,in_port=%s,nw_dst=%s", bridgeName, containerBridgePort, overlayAddressSpace)
+	_, err := platform.ExecuteCommand(cmd)
+	if err != nil {
+		log.Printf("Error while deleting overlay IP SNAT rule with error %v", err)
+	}
+	return nil
+}

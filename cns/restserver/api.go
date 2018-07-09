@@ -21,4 +21,5 @@ const (
 	UnknownContainerID           = 18
 	UnsupportedOrchestratorType  = 19
 	UnexpectedError              = 99
+	UnsupportedNephilaType       = 20
 )
