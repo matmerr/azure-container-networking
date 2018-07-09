@@ -28,7 +28,7 @@ type SetEnvironmentRequest struct {
 type OverlayConfiguration struct {
 	NodeCount     int
 	LocalNodeIP   string
-	OverlaySubent Subnet
+	OverlaySubnet Subnet
 	NodeConfig    []NodeConfiguration
 }
 

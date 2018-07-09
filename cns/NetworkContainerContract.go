@@ -5,6 +5,7 @@ import "encoding/json"
 // Container Network Service DNC Contract
 const (
 	SetOrchestratorType                      = "/network/setorchestratortype"
+	SetNephilaConfig                         = "/network/setnephilaconfig"
 	CreateOrUpdateNetworkContainer           = "/network/createorupdatenetworkcontainer"
 	DeleteNetworkContainer                   = "/network/deletenetworkcontainer"
 	GetNetworkContainerStatus                = "/network/getnetworkcontainerstatus"
@@ -29,6 +30,12 @@ const (
 const (
 	Vlan  = "Vlan"
 	Vxlan = "Vxlan"
+)
+
+// Nephila Types
+const (
+	Flannel  = "Flannel"
+	Disabled = "Disabled"
 )
 
 // CreateNetworkContainerRequest specifies request to create a network container or network isolation boundary.
