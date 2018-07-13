@@ -1,6 +1,8 @@
 package cns
 
-import "encoding/json"
+import (
+	"encoding/json"
+)
 
 // Container Network Service DNC Contract
 const (
@@ -36,6 +38,11 @@ const (
 	Disabled = "Disabled"
 )
 
+// Nephila key for endpoint info
+const (
+	NephilaKey = "NephilaKey"
+)
+
 // CreateNetworkContainerRequest specifies request to create a network container or network isolation boundary.
 type CreateNetworkContainerRequest struct {
 	Version                    string
@@ -49,6 +56,7 @@ type CreateNetworkContainerRequest struct {
 	MultiTenancyInfo           MultiTenancyInfo
 	CnetAddressSpace           []IPSubnet // To setup SNAT (should include service endpoint vips).
 	Routes                     []Route
+	NephilaNCConfig            NephilaNetworkContainerConfig
 }
 
 // KubernetesPodInfo is an OrchestratorContext that holds PodName and PodNamespace.
@@ -121,6 +129,7 @@ type GetNetworkContainerResponse struct {
 	PrimaryInterfaceIdentifier string
 	LocalIPConfiguration       IPConfiguration
 	Response                   Response
+	NephilaNCConfig            NephilaNetworkContainerConfig
 }
 
 // DeleteNetworkContainerRequest specifies the details about the request to delete a specifc network container.

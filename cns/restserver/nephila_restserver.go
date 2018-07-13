@@ -36,6 +36,19 @@ func GetFlannelConfiguration() (*cns.FlannelNodeConfig, error) {
 			fenvs[ev[0]] = ev[1]
 		}
 
+		// read allocatable space for the overlay
+		if v, exists := fenvs["FLANNEL_NETWORK"]; exists {
+			props := strings.Split(v, "/") // ex 169.254.22.1/24
+			flannel.OverlaySubnet.IPAddress = props[0]
+			prefix, err := strconv.ParseInt(props[1], 10, 32)
+			if err != nil {
+				return nil, fmt.Errorf("[Azure CNS Flannel] Error. Flannel Network env failed to parse node subnet prefix.")
+			}
+			flannel.OverlaySubnet.PrefixLength = uint8(prefix)
+		} else {
+			return nil, fmt.Errorf("[Azure CNS Flannel] Error. Flannel Subnet env not found.")
+		}
+
 		// read allocatable space for the subnet on node
 		if v, exists := fenvs["FLANNEL_SUBNET"]; exists {
 			props := strings.Split(v, "/") // ex 169.254.22.1/24
@@ -77,7 +90,7 @@ func GetFlannelConfiguration() (*cns.FlannelNodeConfig, error) {
 func (service *httpRestService) setNephilaConfig(w http.ResponseWriter, r *http.Request) {
 	log.Printf("[Azure CNS] setNephilaConfig")
 
-	var req cns.NephilaConfig
+	var req cns.NephilaDNCConfig
 	var res cns.NephilaConfigResponse
 
 	returnMessage := ""
@@ -109,7 +122,7 @@ func (service *httpRestService) setNephilaConfig(w http.ResponseWriter, r *http.
 			returnMessage = fmt.Sprintf("[Azure CNS Nephila] Failed to get Flannel config with error: %s", err.Error())
 			break
 		}
-		res.NodeConfig = *flannelConf
+		res.NodeConfig.Config = *flannelConf
 
 		service.saveState()
 		break

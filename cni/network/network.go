@@ -154,7 +154,7 @@ func (plugin *netPlugin) Add(args *cniSkel.CmdArgs) error {
 		if result == nil {
 			result = &cniTypesCurr.Result{}
 		}
-		
+
 		// Add Interfaces to result.
 		if result == nil {
 			result = &cniTypesCurr.Result{}

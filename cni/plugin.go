@@ -85,7 +85,7 @@ func (plugin *Plugin) Execute(api PluginApi) (err error) {
 	pluginInfo := cniVers.PluginSupports(supportedVersions...)
 
 	// Parse args and call the appropriate cmd handler.
-	cniErr := cniSkel.PluginMainWithError(api.Add, api.Get, api.Delete, pluginInfo, plugin.version)
+	cniErr := cniSkel.PluginMainWithError(api.Add, api.Delete, pluginInfo)
 	if cniErr != nil {
 		cniErr.Print()
 		return cniErr
@@ -104,7 +104,7 @@ func (plugin *Plugin) DelegateAdd(pluginName string, nwCfg *NetworkConfig) (*cni
 
 	os.Setenv(Cmd, CmdAdd)
 
-	res, err := cniInvoke.DelegateAdd(pluginName, nwCfg.Serialize(), nil)
+	res, err := cniInvoke.DelegateAdd(pluginName, nwCfg.Serialize())
 	if err != nil {
 		return nil, fmt.Errorf("Failed to delegate: %v", err)
 	}
@@ -126,7 +126,7 @@ func (plugin *Plugin) DelegateDel(pluginName string, nwCfg *NetworkConfig) error
 
 	os.Setenv(Cmd, CmdDel)
 
-	err = cniInvoke.DelegateDel(pluginName, nwCfg.Serialize(), nil)
+	err = cniInvoke.DelegateDel(pluginName, nwCfg.Serialize())
 	if err != nil {
 		return fmt.Errorf("Failed to delegate: %v", err)
 	}

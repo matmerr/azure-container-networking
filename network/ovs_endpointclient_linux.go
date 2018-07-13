@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/Azure/azure-container-networking/cns"
 	"github.com/Azure/azure-container-networking/log"
 	"github.com/Azure/azure-container-networking/netlink"
 	"github.com/Azure/azure-container-networking/ovsctl"
@@ -58,7 +59,10 @@ func NewOVSEndpointClient(
 }
 
 func (client *OVSEndpointClient) AddEndpoints(epInfo *EndpointInfo) error {
-	if err := createEndpoint(client.hostVethName, client.containerVethName); err != nil {
+
+	nephmgr := epInfo.Data[cns.NephilaKey].(NephilaNetworkContainerManager)
+
+	if err := createEndpoint(client.hostVethName, client.containerVethName, nephmgr); err != nil {
 		return err
 	}
 
@@ -93,7 +97,7 @@ func (client *OVSEndpointClient) AddEndpoints(epInfo *EndpointInfo) error {
 		hostIfName := fmt.Sprintf("%s%s", snatVethInterfacePrefix, epInfo.Id[:7])
 		contIfName := fmt.Sprintf("%s%s-2", snatVethInterfacePrefix, epInfo.Id[:7])
 
-		if err := createEndpoint(hostIfName, contIfName); err != nil {
+		if err := createEndpoint(hostIfName, contIfName, nephmgr); err != nil {
 			return err
 		}
 
