@@ -3,6 +3,7 @@ package network
 import (
 	"net"
 
+	"github.com/Azure/azure-container-networking/cns"
 	"github.com/Azure/azure-container-networking/ebtables"
 	"github.com/Azure/azure-container-networking/log"
 	"github.com/Azure/azure-container-networking/netlink"
@@ -38,7 +39,10 @@ func NewLinuxBridgeEndpointClient(
 }
 
 func (client *LinuxBridgeEndpointClient) AddEndpoints(epInfo *EndpointInfo) error {
-	if err := createEndpoint(client.hostVethName, client.containerVethName); err != nil {
+
+	nephmgr := epInfo.Data[cns.NephilaKey].(NephilaNetworkContainerManager)
+
+	if err := createEndpoint(client.hostVethName, client.containerVethName, nephmgr); err != nil {
 		return err
 	}
 
