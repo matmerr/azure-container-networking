@@ -55,6 +55,21 @@ func (fnp FlannelNephilaProvider) AddNetworkContainerRules(ovs NephilaOVSEndpoin
 }
 
 func (fnp FlannelNephilaProvider) DeleteNetworkContainerRules(ovs NephilaOVSEndpoint, ncConfig interface{}) error {
+	fncc := ncConfig.(NephilaNetworkContainerConfig)
+	config := fncc.Config.(FlannelNetworkContainerConfig)
+	nodeConfig := fncc.NodeConfig.(FlannelNodeConfig)
+
+	overlayAddressSpace := nodeConfig.OverlaySubnet.IPAddress + "/" + string(nodeConfig.OverlaySubnet.PrefixLength)
+
+	containerPort, err := ovsctl.GetOVSPortNumber(ovs.HostVethName)
+	hostPort, err := ovsctl.GetOVSPortNumber(ovs.HostPrimaryIfName)
+	if err != nil {
+		return err
+	}
+
+	ovsctl.DeleteOverlayIPDnatRule(ovs.BridgeName, hostPort, config.OverlayIP)
+	ovsctl.DeleteOverlayIPSnatRule(ovs.BridgeName, containerPort, overlayAddressSpace)
+	ovsctl.DeleteOverlayFakeArpReply(ovs.BridgeName, config.OverlayIP)
 
 	return nil
 }

@@ -92,7 +92,7 @@ func (nw *network) newEndpointImpl(epInfo *EndpointInfo) (*endpoint, error) {
 				DNS:              epInfo.DNS,
 				VlanID:           vlanid,
 				EnableSnatOnHost: epInfo.EnableSnatOnHost,
-				NephilaNCConfig: epInfo.NephilaNCConfig
+				NephilaNCConfig:  epInfo.NephilaNCConfig,
 			}
 
 			if containerIf != nil {
@@ -169,7 +169,7 @@ func (nw *network) newEndpointImpl(epInfo *EndpointInfo) (*endpoint, error) {
 		DNS:              epInfo.DNS,
 		VlanID:           vlanid,
 		EnableSnatOnHost: epInfo.EnableSnatOnHost,
-		NephilaNCConfig: epInfo.NephilaNCConfig
+		NephilaNCConfig:  epInfo.NephilaNCConfig,
 	}
 
 	for _, route := range epInfo.Routes {
