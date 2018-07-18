@@ -47,9 +47,6 @@ func setEndpointOptions(cnsNwConfig *cns.GetNetworkContainerResponse, epInfo *ne
 		epInfo.Data[network.SnatBridgeIPKey] = cnsNwConfig.LocalIPConfiguration.GatewayIPAddress + "/" + strconv.Itoa(int(cnsNwConfig.LocalIPConfiguration.IPSubnet.PrefixLength))
 	}
 
-	epInfo.Data[cns.NephilaType] = cnsNwConfig.NephilaNCConfig.Type
-	epInfo.Data[cns.NephilaConfig] = cnsNwConfig.NephilaNCConfig.Config
-
 	epInfo.Data[network.OptVethName] = vethName
 }
 

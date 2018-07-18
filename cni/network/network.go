@@ -356,6 +356,7 @@ func (plugin *netPlugin) Add(args *cniSkel.CmdArgs) error {
 		NetNsPath:        args.Netns,
 		IfName:           args.IfName,
 		EnableSnatOnHost: nwCfg.EnableSnatOnHost,
+		NephilaNCConfig:  cnsNetworkConfig.NephilaNCConfig,
 	}
 	epInfo.Data = make(map[string]interface{})
 

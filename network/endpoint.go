@@ -139,6 +139,7 @@ func (ep *endpoint) getInfo() *EndpointInfo {
 		IfIndex:          0, // Azure CNI supports only one interface
 		DNS:              ep.DNS,
 		EnableSnatOnHost: ep.EnableSnatOnHost,
+		NephilaNCConfig:  ep.NephilaNCConfig,
 	}
 
 	for _, route := range ep.Routes {
