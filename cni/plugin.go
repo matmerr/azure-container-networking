@@ -21,6 +21,7 @@ import (
 )
 
 // Plugin is the parent class for CNI plugins.
+
 type Plugin struct {
 	*common.Plugin
 	version string

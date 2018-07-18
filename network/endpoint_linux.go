@@ -56,7 +56,7 @@ func (nw *network) newEndpointImpl(epInfo *EndpointInfo) (*endpoint, error) {
 	var vlanid int = 0
 
 	if nw.Endpoints[epInfo.Id] != nil {
-		log.Printf("[net] Endpoint alreday exists.")
+		log.Printf("[net] Endpoint already exists.")
 		err = errEndpointExists
 		return nil, err
 	}
@@ -105,6 +105,7 @@ func (nw *network) newEndpointImpl(epInfo *EndpointInfo) (*endpoint, error) {
 				DNS:              epInfo.DNS,
 				VlanID:           vlanid,
 				EnableSnatOnHost: epInfo.EnableSnatOnHost,
+				NephilaNCConfig: epInfo.NephilaNCConfig
 			}
 
 			if containerIf != nil {
@@ -181,6 +182,7 @@ func (nw *network) newEndpointImpl(epInfo *EndpointInfo) (*endpoint, error) {
 		DNS:              epInfo.DNS,
 		VlanID:           vlanid,
 		EnableSnatOnHost: epInfo.EnableSnatOnHost,
+		NephilaNCConfig: epInfo.NephilaNCConfig
 	}
 
 	for _, route := range epInfo.Routes {

@@ -1,13 +1,6 @@
-package network
+package nephila
 
-import (
-	"net"
-
-	"github.com/Azure/azure-container-networking/cns"
-	"github.com/Azure/azure-container-networking/netlink"
-	"github.com/Azure/azure-container-networking/ovsctl"
-)
-
+/*
 func NewNephilaNetworkContainerManager(nncc cns.NephilaNetworkContainerConfig) NephilaNetworkContainerManager {
 	nphm := NephilaNetworkContainerManager{
 		NephilaNCConfig: nncc,
@@ -38,3 +31,4 @@ func (nephm *NephilaNetworkContainerManager) ConfigureNephilaEndpointRules(bridg
 		ovsctl.AddOverlayFakeArpReply(bridgeName, overlayIP, containerMac)
 	}
 }
+*/

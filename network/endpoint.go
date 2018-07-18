@@ -6,6 +6,8 @@ package network
 import (
 	"net"
 
+	"github.com/Azure/azure-container-networking/nephila"
+
 	"github.com/Azure/azure-container-networking/log"
 	"github.com/Azure/azure-container-networking/network/policy"
 )
@@ -24,6 +26,7 @@ type endpoint struct {
 	Routes           []RouteInfo
 	VlanID           int
 	EnableSnatOnHost bool
+	NephilaNCConfig  nephila.NephilaNetworkContainerConfig
 }
 
 // EndpointInfo contains read-only information about an endpoint.
@@ -42,6 +45,7 @@ type EndpointInfo struct {
 	Gateways         []net.IP
 	EnableSnatOnHost bool
 	Data             map[string]interface{}
+	NephilaNCConfig  nephila.NephilaNetworkContainerConfig
 }
 
 // RouteInfo contains information about an IP route.

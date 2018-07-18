@@ -3,6 +3,8 @@
 
 package cns
 
+import "github.com/Azure/azure-container-networking/nephila"
+
 // Container Network Service remote API Contract
 const (
 	SetEnvironmentPath          = "/network/environment"
@@ -97,6 +99,11 @@ type NodeConfiguration struct {
 type Response struct {
 	ReturnCode int
 	Message    string
+}
+
+type NephilaNodeConfigResponse struct {
+	Response Response
+	Config   nephila.NephilaNodeConfig
 }
 
 // OptionMap describes generic options that can be passed to CNS.
