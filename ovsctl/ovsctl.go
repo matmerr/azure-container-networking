@@ -221,6 +221,7 @@ func DeleteMacDnatRule(bridgeName string, port string, ip net.IP, vlanid int) {
 
 func DeletePortFromOVS(bridgeName string, interfaceName string) error {
 	// Disconnect external interface from its bridge.
+
 	cmd := fmt.Sprintf("ovs-vsctl del-port %s %s", bridgeName, interfaceName)
 	_, err := platform.ExecuteCommand(cmd)
 	if err != nil {
@@ -248,7 +249,7 @@ func AddOverlayFakeArpReply(bridgeName string, containerOverlayIP net.IP, mac st
 }
 
 func AddOverlayIPSnatRule(bridgeName string, containerBridgePort string, overlayAddressSpace string, containerOverlayIP net.IP) error {
-	cmd := fmt.Sprintf("ovs-ofctl add-flow %v ip,in_port=%s,nw_dst=%s,actions=mod_nw_src:%s,normal",
+	cmd := fmt.Sprintf("ovs-ofctl add-flow %v ip,in_port=%s,nw_dst=%s,actions=mod_nw_src:%s,strip_vlan,normal",
 		bridgeName, containerBridgePort, overlayAddressSpace, containerOverlayIP.String())
 	_, err := platform.ExecuteCommand(cmd)
 	if err != nil {
@@ -257,9 +258,9 @@ func AddOverlayIPSnatRule(bridgeName string, containerBridgePort string, overlay
 	return nil
 }
 
-func AddOverlayIPDnatRule(bridgeName string, containerOverlayIP net.IP, containerActualIP net.IP, vlanid int, containerBridgePort string) error {
+func AddOverlayIPDnatRule(bridgeName string, containerOverlayIP net.IP, containerActualIP string, vlanid int, containerBridgePort string) error {
 	cmd := fmt.Sprintf("ovs-ofctl add-flow %v ip,nw_dst=%s,actions=mod_nw_dst:%s,mod_vlan_vid:%d,%s",
-		bridgeName, containerOverlayIP.String(), containerActualIP.String(), vlanid, containerBridgePort)
+		bridgeName, containerOverlayIP.String(), containerActualIP, vlanid, containerBridgePort)
 	_, err := platform.ExecuteCommand(cmd)
 	if err != nil {
 		log.Printf("Error while adding overlay IP DNAT rule with error %v", err)

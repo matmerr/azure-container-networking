@@ -5,10 +5,11 @@ import (
 	"strings"
 
 	"github.com/Azure/azure-container-networking/log"
+	"github.com/Azure/azure-container-networking/nephila"
 	"github.com/Azure/azure-container-networking/netlink"
 )
 
-func createEndpoint(hostVethName string, containerVethName string, nephm NephilaNetworkContainerManager) error {
+func createEndpoint(hostVethName string, containerVethName string, nephilaProvider nephila.NephilaProvider) error {
 	log.Printf("[net] Creating veth pair %v %v.", hostVethName, containerVethName)
 
 	link := netlink.VEthLink{
@@ -20,7 +21,7 @@ func createEndpoint(hostVethName string, containerVethName string, nephm Nephila
 	}
 
 	// In some cases we need to make other changes to the link
-	nephm.ConfigureNephilaLink(&link)
+	nephilaProvider.ConfigureNetworkContainerLink(&link)
 
 	err := netlink.AddLink(&link)
 	if err != nil {

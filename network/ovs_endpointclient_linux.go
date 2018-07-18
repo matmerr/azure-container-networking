@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/Azure/azure-container-networking/cns"
 	"github.com/Azure/azure-container-networking/log"
+	"github.com/Azure/azure-container-networking/nephila"
 	"github.com/Azure/azure-container-networking/netlink"
 	"github.com/Azure/azure-container-networking/ovsctl"
 )
@@ -60,9 +60,10 @@ func NewOVSEndpointClient(
 
 func (client *OVSEndpointClient) AddEndpoints(epInfo *EndpointInfo) error {
 
-	nephmgr := epInfo.Data[cns.NephilaKey].(NephilaNetworkContainerManager)
+	nephilaType, _ := epInfo.NephilaNCConfig.Type
+	nephilaProvider, err := nephila.NewNephilaProvider(nephilaType)
 
-	if err := createEndpoint(client.hostVethName, client.containerVethName, nephmgr); err != nil {
+	if err := createEndpoint(client.hostVethName, client.containerVethName, nephilaProvider); err != nil {
 		return err
 	}
 
@@ -97,7 +98,7 @@ func (client *OVSEndpointClient) AddEndpoints(epInfo *EndpointInfo) error {
 		hostIfName := fmt.Sprintf("%s%s", snatVethInterfacePrefix, epInfo.Id[:7])
 		contIfName := fmt.Sprintf("%s%s-2", snatVethInterfacePrefix, epInfo.Id[:7])
 
-		if err := createEndpoint(hostIfName, contIfName, nephmgr); err != nil {
+		if err := createEndpoint(hostIfName, contIfName, nephilaProvider); err != nil {
 			return err
 		}
 
@@ -151,10 +152,39 @@ func (client *OVSEndpointClient) AddEndpointRules(epInfo *EndpointInfo) error {
 		}
 	}
 
+	// add Nephila rules
+	nephilaType := epInfo.NephilaNCConfig.Type
+	nephilaConfig := epInfo.NephilaNCConfig
+	nephilaProvider, err := nephila.NewNephilaProvider(nephilaType)
+
+	nvo := nephila.NephilaOVSEndpoint{
+		BridgeName:        client.bridgeName,
+		HostPrimaryIfName: client.hostPrimaryIfName,
+		HostVethName:      client.hostVethName,
+		ContainerMac:      client.containerMac,
+		VlanID:            client.vlanID,
+	}
+
+	nephilaProvider.AddNetworkContainerRules(nvo, nephilaConfig)
 	return nil
 }
 
 func (client *OVSEndpointClient) DeleteEndpointRules(ep *endpoint) {
+
+	nephilaType := ep.NephilaNCConfig.Type
+	nephilaConfig := ep.NephilaNCConfig
+	nephilaProvider, err := nephila.NewNephilaProvider(nephilaType)
+
+	nvo := nephila.NephilaOVSEndpoint{
+		BridgeName:        client.bridgeName,
+		HostPrimaryIfName: client.hostPrimaryIfName,
+		HostVethName:      client.hostVethName,
+		ContainerMac:      client.containerMac,
+		VlanID:            client.vlanID,
+	}
+
+	nephilaProvider.DeleteNetworkContainerRules(nvo, nephilaConfig)
+
 	log.Printf("[ovs] Get ovs port for interface %v.", ep.HostIfName)
 	containerPort, err := ovsctl.GetOVSPortNumber(client.hostVethName)
 	if err != nil {
@@ -182,6 +212,7 @@ func (client *OVSEndpointClient) DeleteEndpointRules(ep *endpoint) {
 	// Delete port from ovs bridge
 	log.Printf("[ovs] Deleting interface %v from bridge %v", client.hostVethName, client.bridgeName)
 	ovsctl.DeletePortFromOVS(client.bridgeName, client.hostVethName)
+
 }
 
 func (client *OVSEndpointClient) MoveEndpointsToContainerNS(epInfo *EndpointInfo, nsID uintptr) error {

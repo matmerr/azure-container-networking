@@ -2,6 +2,8 @@ package cns
 
 import (
 	"encoding/json"
+
+	"github.com/Azure/azure-container-networking/nephila"
 )
 
 // Container Network Service DNC Contract
@@ -32,17 +34,6 @@ const (
 	Vxlan = "Vxlan"
 )
 
-// Nephila Types
-const (
-	Flannel  = "Flannel"
-	Disabled = "Disabled"
-)
-
-// Nephila key for endpoint info
-const (
-	NephilaKey = "NephilaKey"
-)
-
 // CreateNetworkContainerRequest specifies request to create a network container or network isolation boundary.
 type CreateNetworkContainerRequest struct {
 	Version                    string
@@ -56,7 +47,7 @@ type CreateNetworkContainerRequest struct {
 	MultiTenancyInfo           MultiTenancyInfo
 	CnetAddressSpace           []IPSubnet // To setup SNAT (should include service endpoint vips).
 	Routes                     []Route
-	NephilaNCConfig            NephilaNetworkContainerConfig
+	NephilaNCConfig            nephila.NephilaNetworkContainerConfig
 }
 
 // KubernetesPodInfo is an OrchestratorContext that holds PodName and PodNamespace.
@@ -129,7 +120,7 @@ type GetNetworkContainerResponse struct {
 	PrimaryInterfaceIdentifier string
 	LocalIPConfiguration       IPConfiguration
 	Response                   Response
-	NephilaNCConfig            NephilaNetworkContainerConfig
+	NephilaNCConfig            nephila.NephilaNetworkContainerConfig
 }
 
 // DeleteNetworkContainerRequest specifies the details about the request to delete a specifc network container.
