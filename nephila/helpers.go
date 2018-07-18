@@ -2,15 +2,80 @@ package nephila
 
 import (
 	"bufio"
+	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
+	"net"
 	"os"
 	"strconv"
 	"strings"
+	"time"
+
+	"github.com/coreos/etcd/client"
+	"github.com/coreos/flannel/pkg/ip"
 )
 
-func StartFlannel(flannelConfig FlannelDNCConfig) error {
+const (
+	flannelKeyPath = "/coreos.com/network/config"
+	vxlan          = "vxlan"
+)
 
+type flannelEtcdBackendConfig struct {
+	Type string
+}
+
+type flannelEtcdConfig struct {
+	Network   ip.IP4Net
+	SubnetLen uint
+	Backend   flannelEtcdBackendConfig
+}
+
+func StartFlannel(flannelDNCConfig FlannelDNCConfig) error {
+
+	_, ovnet, _ := net.ParseCIDR(flannelDNCConfig.OverlaySubnet)
+	ip4 := ip.FromIPNet(ovnet)
+	ovnetSize, _ := ovnet.Mask.Size()
+	fc := flannelEtcdConfig{
+		Network: ip.IP4Net{
+			IP:        ip4.IP,
+			PrefixLen: uint(ovnetSize),
+		},
+		SubnetLen: uint(flannelDNCConfig.PerNodePrefixLength),
+		Backend: flannelEtcdBackendConfig{
+			Type: vxlan,
+		},
+	}
+	setFlannelEtcdConfig(fc)
+	return nil
+}
+
+func setFlannelEtcdConfig(overlayConf flannelEtcdConfig) error {
+
+	b, err := json.Marshal(overlayConf)
+	value := string(b)
+
+	cfg := client.Config{
+		Endpoints: []string{"http://127.0.0.1:2379"},
+		Transport: client.DefaultTransport,
+		// set timeout per request to fail fast when the target endpoint is unavailable
+		HeaderTimeoutPerRequest: time.Second,
+	}
+	c, err := client.New(cfg)
+	if err != nil {
+		log.Printf("[Azure CNS Flannel] Failed to create new etcd client with error %s", err)
+		return err
+	}
+	kapi := client.NewKeysAPI(c)
+	// set "/foo" key with "bar" value
+	log.Printf("[Azure CNS Flannel] Setting %s key in etcd with %s value.", flannelKeyPath, value)
+
+	resp, err := kapi.Set(context.Background(), flannelKeyPath, value, nil)
+	if err != nil {
+		return err
+	}
+	log.Printf("[Azure CNS Nephila] Set Flannel config in etcd with response %v.", resp)
 	return nil
 }
 

@@ -77,7 +77,7 @@ func (fnp FlannelNephilaProvider) DeleteNetworkContainerRules(ovs NephilaOVSEndp
 func (fnp FlannelNephilaProvider) ConfigureNode(dncConfig interface{}) (NephilaNodeConfig, error) {
 	var nodeConfig NephilaNodeConfig
 
-	StartFlannel(dncConfig.(FlannelDNCConfig))
+	err := StartFlannel(dncConfig.(FlannelDNCConfig))
 	flannelConf, err := GetFlannelConfiguration() // get the env's set by flannel
 	nodeConfig.Config = flannelConf
 
