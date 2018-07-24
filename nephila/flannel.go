@@ -8,7 +8,8 @@ import (
 )
 
 const (
-	Flannel = "Flannel"
+	Flannel  = "Flannel"
+	Disabled = "Disabled"
 )
 
 // IPSubnet contains ip subnet.
@@ -78,6 +79,9 @@ func (fnp FlannelNephilaProvider) ConfigureNode(dncConfig interface{}) (NephilaN
 	var nodeConfig NephilaNodeConfig
 
 	err := StartFlannel(dncConfig.(FlannelDNCConfig))
+	if err != nil {
+
+	}
 	flannelConf, err := GetFlannelConfiguration() // get the env's set by flannel
 	nodeConfig.Config = flannelConf
 

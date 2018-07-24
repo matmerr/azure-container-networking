@@ -34,7 +34,10 @@ type flannelEtcdConfig struct {
 
 func StartFlannel(flannelDNCConfig FlannelDNCConfig) error {
 
-	_, ovnet, _ := net.ParseCIDR(flannelDNCConfig.OverlaySubnet)
+	_, ovnet, err := net.ParseCIDR(flannelDNCConfig.OverlaySubnet)
+	if err != nil {
+		return err
+	}
 	ip4 := ip.FromIPNet(ovnet)
 	ovnetSize, _ := ovnet.Mask.Size()
 	fc := flannelEtcdConfig{
@@ -73,6 +76,7 @@ func setFlannelEtcdConfig(overlayConf flannelEtcdConfig) error {
 
 	resp, err := kapi.Set(context.Background(), flannelKeyPath, value, nil)
 	if err != nil {
+		log.Printf("[Azure CNS Flannel] Failed to set  %s", err)
 		return err
 	}
 	log.Printf("[Azure CNS Nephila] Set Flannel config in etcd with response %v.", resp)
