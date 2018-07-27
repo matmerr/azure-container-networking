@@ -34,16 +34,10 @@ type flannelEtcdConfig struct {
 
 func StartFlannel(flannelDNCConfig FlannelDNCConfig) error {
 
-	_, ovnet, err := net.ParseCIDR(flannelDNCConfig.OverlaySubnet)
-	if err != nil {
-		return err
-	}
-	ip4 := ip.FromIPNet(ovnet)
-	ovnetSize, _ := ovnet.Mask.Size()
 	fc := flannelEtcdConfig{
 		Network: ip.IP4Net{
-			IP:        ip4.IP,
-			PrefixLen: uint(ovnetSize),
+			IP:        ip.FromIP(net.ParseIP(flannelDNCConfig.OverlaySubnet.IPAddress)),
+			PrefixLen: uint(flannelDNCConfig.OverlaySubnet.PrefixLength),
 		},
 		SubnetLen: uint(flannelDNCConfig.PerNodePrefixLength),
 		Backend: flannelEtcdBackendConfig{

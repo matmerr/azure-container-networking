@@ -23,7 +23,6 @@ func (n *NephilaNetworkContainerConfig) UnmarshalJSON(b []byte) error {
 	}
 
 	confType := m[Type].(string)
-	fmt.Println("Unmarshalling NephilaConfig")
 	if confType == Flannel {
 		n.Type = confType
 		var ncc FlannelNetworkContainerConfig

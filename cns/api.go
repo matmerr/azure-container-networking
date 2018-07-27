@@ -101,6 +101,11 @@ type Response struct {
 	Message    string
 }
 
+type NephilaNodeConfigRequest struct {
+	Type       string
+	NodeConfig nephila.NephilaNodeConfig
+	DNCConfig  nephila.NephilaDNCConfig
+}
 type NephilaNodeConfigResponse struct {
 	Response Response
 	Config   nephila.NephilaNodeConfig

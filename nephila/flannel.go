@@ -19,7 +19,7 @@ type IPSubnet struct {
 }
 
 type FlannelDNCConfig struct {
-	OverlaySubnet       string //IPSubnet // 169.254.0.0
+	OverlaySubnet       IPSubnet //IPSubnet // 169.254.0.0
 	PerNodePrefixLength uint8
 }
 
