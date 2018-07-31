@@ -16,7 +16,7 @@ type NephilaProvider interface {
 	AddNetworkContainerRules(ovs NephilaOVSEndpoint, ncConfig interface{}) error
 	DeleteNetworkContainerRules(ovs NephilaOVSEndpoint, ncConfig interface{}) error
 	ConfigureNetworkContainerLink(*netlink.VEthLink)
-	ConfigureNode(dncConfig interface{}) (NephilaNodeConfig, error)
+	ConfigureNode(nodeConf NephilaNodeConfig, dncConf NephilaDNCConfig) (NephilaNodeConfig, error)
 }
 
 type NephilaOVSEndpoint struct {

@@ -32,11 +32,14 @@ type flannelEtcdConfig struct {
 	Backend   flannelEtcdBackendConfig
 }
 
-func StartFlannel(flannelDNCConfig FlannelDNCConfig) error {
-
-	fc := flannelEtcdConfig{
+func SetFlannelKey(flannelDNCConfig FlannelDNCConfig) error {
+	pip := net.ParseIP(flannelDNCConfig.OverlaySubnet.IPAddress)
+	if pip == nil {
+		return fmt.Errorf("Failed to parse flannel overlay IP: %v", flannelDNCConfig.OverlaySubnet.IPAddress)
+	}
+	fetcd := flannelEtcdConfig{
 		Network: ip.IP4Net{
-			IP:        ip.FromIP(net.ParseIP(flannelDNCConfig.OverlaySubnet.IPAddress)),
+			IP:        ip.FromIP(pip),
 			PrefixLen: uint(flannelDNCConfig.OverlaySubnet.PrefixLength),
 		},
 		SubnetLen: uint(flannelDNCConfig.PerNodePrefixLength),
@@ -44,13 +47,8 @@ func StartFlannel(flannelDNCConfig FlannelDNCConfig) error {
 			Type: vxlan,
 		},
 	}
-	setFlannelEtcdConfig(fc)
-	return nil
-}
 
-func setFlannelEtcdConfig(overlayConf flannelEtcdConfig) error {
-
-	b, err := json.Marshal(overlayConf)
+	b, err := json.Marshal(fetcd)
 	value := string(b)
 
 	cfg := client.Config{
@@ -61,19 +59,17 @@ func setFlannelEtcdConfig(overlayConf flannelEtcdConfig) error {
 	}
 	c, err := client.New(cfg)
 	if err != nil {
-		log.Printf("[Azure CNS Flannel] Failed to create new etcd client with error %s", err)
-		return err
+		return fmt.Errorf("Failed to create new etcd client with error %s", err)
 	}
 	kapi := client.NewKeysAPI(c)
 	// set "/foo" key with "bar" value
-	log.Printf("[Azure CNS Flannel] Setting %s key in etcd with %s value.", flannelKeyPath, value)
+	log.Printf("[Azure CNS Nephila: Flannel] Setting %s key in etcd with %s value.", flannelKeyPath, value)
 
 	resp, err := kapi.Set(context.Background(), flannelKeyPath, value, nil)
 	if err != nil {
-		log.Printf("[Azure CNS Flannel] Failed to set  %s", err)
-		return err
+		return fmt.Errorf("Failed to set keys in etcd with error: %s", err)
 	}
-	log.Printf("[Azure CNS Nephila] Set Flannel config in etcd with response %v.", resp)
+	log.Printf("[Azure CNS Nephila: Flannel] Set Flannel config in etcd with response %v.", resp)
 	return nil
 }
 
@@ -84,7 +80,7 @@ func GetFlannelConfiguration() (*FlannelNodeConfig, error) {
 	var flannel FlannelNodeConfig
 
 	if err != nil {
-		return nil, fmt.Errorf("[Azure CNS Flannel] Error. Loading Flannel subnet file failed with error: %v", err)
+		return nil, fmt.Errorf("Loading Flannel subnet file failed with error: %v", err)
 	} else {
 		defer fp.Close()
 
@@ -101,11 +97,11 @@ func GetFlannelConfiguration() (*FlannelNodeConfig, error) {
 			flannel.OverlaySubnet.IPAddress = props[0]
 			prefix, err := strconv.ParseInt(props[1], 10, 32)
 			if err != nil {
-				return nil, fmt.Errorf("[Azure CNS Flannel] Error. Flannel Network env failed to parse node subnet prefix.")
+				return nil, fmt.Errorf("Flannel Network env failed to parse node subnet prefix.")
 			}
 			flannel.OverlaySubnet.PrefixLength = uint8(prefix)
 		} else {
-			return nil, fmt.Errorf("[Azure CNS Flannel] Error. Flannel Subnet env not found.")
+			return nil, fmt.Errorf("Flannel Subnet env not found.")
 		}
 
 		// read allocatable space for the subnet on node
@@ -114,32 +110,32 @@ func GetFlannelConfiguration() (*FlannelNodeConfig, error) {
 			flannel.NodeSubnet.IPAddress = props[0]
 			prefix, err := strconv.ParseInt(props[1], 10, 32)
 			if err != nil {
-				return nil, fmt.Errorf("[Azure CNS Flannel] Error. Flannel Network env failed to parse node subnet prefix.")
+				return nil, fmt.Errorf("Flannel Network env failed to parse node subnet prefix.")
 			}
 			flannel.NodeSubnet.PrefixLength = uint8(prefix)
 		} else {
-			return nil, fmt.Errorf("[Azure CNS Flannel] Error. Flannel Subnet env not found.")
+			return nil, fmt.Errorf("Flannel Subnet env not found.")
 		}
 
 		if v, exists := fenvs["FLANNEL_MTU"]; exists {
 			mtu, err := strconv.ParseInt(v, 10, 32)
 			if err != nil {
 
-				return nil, errors.New("[Azure CNS Flannel] Error. Flannel Network env failed to parse node MTU.")
+				return nil, errors.New("Flannel Network env failed to parse node MTU.")
 			}
 			flannel.InterfaceMTU = mtu
 		} else {
-			return nil, fmt.Errorf("[Azure CNS Flannel] Error. Flannel MTU env not found.")
+			return nil, fmt.Errorf("Flannel MTU env not found.")
 		}
 
 		if v, exists := fenvs["FLANNEL_IPMASQ"]; exists {
 			ipmasq, err := strconv.ParseBool(v)
 			if err != nil {
-				return nil, fmt.Errorf("[Azure CNS Flannel] Error. Flannel Network env failed to parse IPMASQ.")
+				return nil, fmt.Errorf("Error. Flannel Network env failed to parse IPMASQ.")
 			}
 			flannel.IPMASQ = ipmasq
 		} else {
-			return nil, fmt.Errorf("[Azure CNS Flannel] Error. Flannel IPMASQ env not found.")
+			return nil, fmt.Errorf("Error. Flannel IPMASQ env not found.")
 		}
 	}
 

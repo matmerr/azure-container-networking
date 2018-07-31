@@ -12,48 +12,47 @@ import (
 func (service *httpRestService) setNephilaConfig(w http.ResponseWriter, r *http.Request) {
 	log.Printf("[Azure CNS] setNephilaConfig")
 
-	var dnc nephila.NephilaDNCConfig
-	var nodeConfigResponse cns.NephilaNodeConfigResponse
+	var res cns.NephilaNodeConfigResponse
+	var req cns.NephilaNodeConfigRequest
 	var nodeConfig nephila.NephilaNodeConfig
 
 	returnMessage := ""
 	returnCode := 0
 
-	err := service.Listener.Decode(w, r, &dnc)
+	err := service.Listener.Decode(w, r, &req)
 	if err != nil {
 		return
 	}
 
 	service.lock.Lock()
 
-	provider, err := nephila.NewNephilaProvider(dnc.Type)
+	provider, err := nephila.NewNephilaProvider(req.Type)
 	if err != nil {
 		returnCode = UnexpectedError
-		returnMessage = fmt.Sprintf("[Azure CNS Nephila] Failed to configure provider with error: %s", err.Error())
+		returnMessage = fmt.Sprintf("Failed to configure provider with error: %s", err.Error())
 		goto Respond
 	}
-	nodeConfig, err = provider.ConfigureNode(dnc.Config)
+	nodeConfig, err = provider.ConfigureNode(req.NodeConfig, req.DNCConfig)
 	if err != nil {
 		returnCode = UnexpectedError
-		returnMessage = fmt.Sprintf("[Azure CNS Nephila] Failed to configure node with error: %s", err.Error())
+		returnMessage = fmt.Sprintf("Failed to configure node with error: %s", err.Error())
 		goto Respond
 	}
 
-	service.state.NephilaType = dnc.Type
+	service.state.NephilaType = req.Type
 
 Respond:
-	nodeConfigResponse.Config = nodeConfig
+	res.Config = nodeConfig
 	service.saveState()
 	service.lock.Unlock()
 
-	resp := cns.Response{
+	response := cns.Response{
 		ReturnCode: returnCode,
 		Message:    returnMessage,
 	}
 
 	// add cns response to Nephila config response
-	nodeConfigResponse.Response = resp
-
-	err = service.Listener.Encode(w, &nodeConfigResponse)
-	log.Response(service.Name, resp, err)
+	res.Response = response
+	err = service.Listener.Encode(w, &res)
+	log.Response(service.Name, res, err)
 }

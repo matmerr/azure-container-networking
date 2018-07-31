@@ -1,6 +1,7 @@
 package nephila
 
 import (
+	"log"
 	"net"
 
 	"github.com/Azure/azure-container-networking/netlink"
@@ -75,14 +76,16 @@ func (fnp FlannelNephilaProvider) DeleteNetworkContainerRules(ovs NephilaOVSEndp
 	return nil
 }
 
-func (fnp FlannelNephilaProvider) ConfigureNode(dncConfig interface{}) (NephilaNodeConfig, error) {
+func (fnp FlannelNephilaProvider) ConfigureNode(nodeConf NephilaNodeConfig, dncConf NephilaDNCConfig) (NephilaNodeConfig, error) {
 	var nodeConfig NephilaNodeConfig
 
-	err := StartFlannel(dncConfig.(FlannelDNCConfig))
+	// dependency on etcd, need mock to test
+	err := SetFlannelKey(dncConf.Config.(FlannelDNCConfig))
 	if err != nil {
-
+		log.Printf("[Azure CNS Nephila: Flannel] Failed to set flannel etcd key with error %s\n", err.Error())
 	}
 	flannelConf, err := GetFlannelConfiguration() // get the env's set by flannel
+	nodeConfig.Type = Flannel
 	nodeConfig.Config = flannelConf
 
 	return nodeConfig, err
@@ -92,6 +95,4 @@ func (fnp FlannelNephilaProvider) ConfigureDNC(config interface{}) error {
 	return nil
 }
 
-func (fnp FlannelNephilaProvider) ConfigureNetworkContainerLink(*netlink.VEthLink) {
-
-}
+func (fnp FlannelNephilaProvider) ConfigureNetworkContainerLink(*netlink.VEthLink) {}

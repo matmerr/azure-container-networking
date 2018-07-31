@@ -10,10 +10,12 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"runtime"
 	"testing"
 
 	"github.com/Azure/azure-container-networking/cns"
 	"github.com/Azure/azure-container-networking/cns/common"
+	"github.com/Azure/azure-container-networking/nephila"
 )
 
 var service HTTPService
@@ -485,6 +487,94 @@ func TestSetOrchestratorType(t *testing.T) {
 		t.Errorf("setOrchestratorType failed Err:%+v", err)
 		t.Fatal(err)
 	}
+}
+
+func TestNephilaConfig(t *testing.T) {
+	fmt.Println("Test: TestNephilaConfig")
+	setEnv(t)
+	setNephilaConfig(t)
+}
+
+func setNephilaConfig(t *testing.T) {
+
+	if runtime.GOOS != "linux" {
+		t.Logf("GOOS %v for test %v not implemented\n", runtime.GOOS, t.Name())
+		return
+	}
+
+	var body bytes.Buffer
+
+	info := &cns.NephilaNodeConfigRequest{
+		Type: nephila.Flannel,
+		NodeConfig: nephila.NephilaNodeConfig{
+			Type:   nephila.Flannel,
+			Config: nephila.FlannelNodeConfig{},
+		},
+		DNCConfig: nephila.NephilaDNCConfig{
+			Type: nephila.Flannel,
+			Config: nephila.FlannelDNCConfig{
+				OverlaySubnet: nephila.IPSubnet{
+					IPAddress:    "192.168.0.0",
+					PrefixLength: 16,
+				},
+				PerNodePrefixLength: 21,
+			},
+		},
+	}
+
+	json.NewEncoder(&body).Encode(info)
+
+	testSubEnv := fmt.Sprintf("FLANNEL_NETWORK=192.168.0.0/16\nFLANNEL_SUBNET=192.168.50.1/21\nFLANNEL_MTU=1400\nFLANNEL_IPMASQ=false\n")
+
+	flanneldir := "/var/run/flannel/"
+	flannelenv := "subnet.env"
+
+	os.MkdirAll(flanneldir, os.ModePerm)
+	f, err := os.Create(flanneldir + flannelenv)
+
+	_, err = f.WriteString(testSubEnv)
+	defer f.Close()
+	defer func() {
+		os.Remove(flanneldir + flannelenv)
+	}()
+	if err != nil {
+		t.Errorf("Failed to write out test Flannel subnet file")
+		t.Fatal(err)
+	}
+
+	req, err := http.NewRequest(http.MethodPost, cns.SetNephilaConfig, &body)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+
+	var resp cns.NephilaNodeConfigResponse
+	if resp.Response.ReturnCode != 0 {
+		t.Error(resp.Response.Message)
+	}
+	err = decodeResponse(w, &resp)
+
+	//ToDo: verify response matches struct:
+	/*testConf := nephila.NephilaNodeConfig{
+		Type: nephila.Flannel,
+		Config: nephila.NephilaNodeConfig{
+			Type: nephila.Flannel,
+			Config: nephila.FlannelNodeConfig{
+				NodeSubnet: nephila.IPSubnet{
+					IPAddress:    "192.168.50.1",
+					PrefixLength: 21,
+				},
+				InterfaceMTU: 1400,
+				IPMASQ:       false,
+				OverlaySubnet: nephila.IPSubnet{
+					IPAddress:    "192.168.0.0/16",
+					PrefixLength: 16,
+				},
+			},
+		},
+	}*/
 }
 
 func TestCreateNetworkContainer(t *testing.T) {
