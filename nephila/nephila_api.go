@@ -15,10 +15,11 @@ const (
 type NephilaProvider interface {
 	AddNetworkContainerRules(ovs NephilaOVSEndpoint, ncConfig interface{}) error
 	DeleteNetworkContainerRules(ovs NephilaOVSEndpoint, ncConfig interface{}) error
-	ConfigureNetworkContainerLink(*netlink.VEthLink)
+	ConfigureNetworkContainerLink(link *netlink.VEthLink, ncConfig NephilaNetworkContainerConfig) error
 	ConfigureNode(nodeConf NephilaNodeConfig, dncConf NephilaDNCConfig) (NephilaNodeConfig, error)
 }
 
+// NephilaOVSEndpoint is used exclusively for writing the required OVS rules
 type NephilaOVSEndpoint struct {
 	BridgeName        string
 	HostPrimaryIfName string
@@ -30,16 +31,17 @@ type NephilaOVSEndpoint struct {
 
 type NephilaDNCConfig struct {
 	Type   string
-	Config interface{} //FlannelDNCConfig // TODO: interface this and override marshall/unmarshall
+	Config interface{}
 }
 
+// NephilaNodeConfig contains the nephila type, and the NephilaConfig
 type NephilaNodeConfig struct {
 	Type   string
-	Config interface{} //FlannelNodeConfig
+	Config interface{}
 }
 
 type NephilaNetworkContainerConfig struct {
 	Type       string
-	Config     interface{} //FlannelNetworkContainerConfig `json:"Config"`
-	NodeConfig interface{} //FlannelNodeConfig             `json:"NodeConfig"`
+	Config     interface{}
+	NodeConfig interface{}
 }

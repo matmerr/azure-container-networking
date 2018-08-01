@@ -31,12 +31,13 @@ type FlannelNodeConfig struct {
 	OverlaySubnet IPSubnet
 }
 
+// FlannelNetworkContainerConfig contains the overlay IP which has been assigned
 type FlannelNetworkContainerConfig struct {
 	OverlayIP net.IP
 }
 
-type FlannelNephilaProvider struct {
-}
+// FlannelNephilaProvider is just a struct to match the NephilaProvider interface
+type FlannelNephilaProvider struct{}
 
 func (fnp FlannelNephilaProvider) AddNetworkContainerRules(ovs NephilaOVSEndpoint, ncConfig interface{}) error {
 	fncc := ncConfig.(NephilaNetworkContainerConfig)
@@ -91,8 +92,8 @@ func (fnp FlannelNephilaProvider) ConfigureNode(nodeConf NephilaNodeConfig, dncC
 	return nodeConfig, err
 }
 
-func (fnp FlannelNephilaProvider) ConfigureDNC(config interface{}) error {
+func (fnp FlannelNephilaProvider) ConfigureNetworkContainerLink(link *netlink.VEthLink, ncConfig NephilaNetworkContainerConfig) error {
+	fNodeConf := ncConfig.NodeConfig.(FlannelNodeConfig)
+	link.LinkInfo.MTU = uint(fNodeConf.InterfaceMTU)
 	return nil
 }
-
-func (fnp FlannelNephilaProvider) ConfigureNetworkContainerLink(*netlink.VEthLink) {}

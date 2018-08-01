@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -342,6 +343,57 @@ func creatOrUpdateNetworkContainerWithName(t *testing.T, name string, ip string,
 	return nil
 }
 
+func creatOrUpdateNephilaNetworkContainerWithName(t *testing.T, name string, ip string, containerType string) error {
+	var body bytes.Buffer
+	var ipConfig cns.IPConfiguration
+	ipConfig.DNSServers = []string{"8.8.8.8", "8.8.4.4"}
+	ipConfig.GatewayIPAddress = "11.0.0.1"
+	var ipSubnet cns.IPSubnet
+	ipSubnet.IPAddress = ip
+	ipSubnet.PrefixLength = 24
+	ipConfig.IPSubnet = ipSubnet
+	podInfo := cns.KubernetesPodInfo{PodName: "testpod", PodNamespace: "testpodnamespace"}
+	context, _ := json.Marshal(podInfo)
+
+	info := &cns.CreateNetworkContainerRequest{
+		Version:                    "0.1",
+		NetworkContainerType:       containerType,
+		NetworkContainerid:         name,
+		OrchestratorContext:        context,
+		IPConfiguration:            ipConfig,
+		PrimaryInterfaceIdentifier: "11.0.0.7",
+		NephilaNCConfig: nephila.NephilaNetworkContainerConfig{
+			Type: nephila.Flannel,
+			Config: nephila.FlannelNetworkContainerConfig{
+				OverlayIP: net.ParseIP("192.168.50.2"),
+			},
+		},
+	}
+
+	json.NewEncoder(&body).Encode(info)
+
+	req, err := http.NewRequest(http.MethodPost, cns.CreateOrUpdateNetworkContainer, &body)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+	var resp cns.CreateNetworkContainerResponse
+	err = decodeResponse(w, &resp)
+	fmt.Printf("Raw response: %+v", w.Body)
+
+	if err != nil || resp.Response.ReturnCode != 0 {
+		t.Errorf("CreateNetworkContainerRequest failed with response %+v Err:%+v", resp, err)
+		t.Fatal(err)
+	} else {
+		fmt.Printf("CreateNetworkContainerRequest passed with response %+v Err:%+v", resp, err)
+	}
+
+	fmt.Printf("CreateNetworkContainerRequest succeeded with response %+v\n", resp)
+	return nil
+}
+
 func deleteNetworkAdapterWithName(t *testing.T, name string) error {
 	var body bytes.Buffer
 	var resp cns.DeleteNetworkContainerResponse
@@ -489,7 +541,7 @@ func TestSetOrchestratorType(t *testing.T) {
 	}
 }
 
-func TestNephilaConfig(t *testing.T) {
+func TestSetNephilaConfig(t *testing.T) {
 	fmt.Println("Test: TestNephilaConfig")
 	setEnv(t)
 	setNephilaConfig(t)
@@ -592,6 +644,12 @@ func TestCreateNetworkContainer(t *testing.T) {
 	err = creatOrUpdateNetworkContainerWithName(t, "ethWebApp", "11.0.0.6", "WebApps")
 	if err != nil {
 		t.Errorf("Updating interface failed Err:%+v", err)
+		t.Fatal(err)
+	}
+
+	err = creatOrUpdateNephilaNetworkContainerWithName(t, "ethWebApp", "11.0.0.7", cns.Kubernetes)
+	if err != nil {
+		t.Errorf("creatOrUpdateNephilaContainerWithName :%+v", err)
 		t.Fatal(err)
 	}
 

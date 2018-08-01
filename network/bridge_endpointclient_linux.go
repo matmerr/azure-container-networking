@@ -5,7 +5,6 @@ import (
 
 	"github.com/Azure/azure-container-networking/ebtables"
 	"github.com/Azure/azure-container-networking/log"
-	"github.com/Azure/azure-container-networking/nephila"
 	"github.com/Azure/azure-container-networking/netlink"
 )
 
@@ -40,10 +39,7 @@ func NewLinuxBridgeEndpointClient(
 
 func (client *LinuxBridgeEndpointClient) AddEndpoints(epInfo *EndpointInfo) error {
 
-	nephilaType := epInfo.NephilaNCConfig.Type
-	nephilaProvider, err := nephila.NewNephilaProvider(nephilaType)
-
-	if err := createEndpoint(client.hostVethName, client.containerVethName, nephilaProvider); err != nil {
+	if err := createEndpoint(client.hostVethName, client.containerVethName, epInfo.NephilaNCConfig); err != nil {
 		return err
 	}
 

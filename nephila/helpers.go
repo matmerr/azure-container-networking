@@ -73,9 +73,25 @@ func SetFlannelKey(flannelDNCConfig FlannelDNCConfig) error {
 	return nil
 }
 
+func fileExists(filepath string) bool {
+	_, err := os.Stat(filepath)
+	return !os.IsNotExist(err)
+}
+
 // Handles retrieval of over
 func GetFlannelConfiguration() (*FlannelNodeConfig, error) {
-	fp, err := os.Open("/var/run/flannel/subnet.env")
+
+	subenv := "/var/run/flannel/subnet.env"
+
+	// run 5 attempts for flannel to write out file
+	for i := 0; i < 5; i++ {
+		if fileExists(subenv) {
+			break
+		}
+		time.Sleep(time.Second * 5)
+	}
+
+	fp, err := os.Open(subenv)
 
 	var flannel FlannelNodeConfig
 

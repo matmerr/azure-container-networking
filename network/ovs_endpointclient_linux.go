@@ -60,10 +60,7 @@ func NewOVSEndpointClient(
 
 func (client *OVSEndpointClient) AddEndpoints(epInfo *EndpointInfo) error {
 
-	nephilaType := epInfo.NephilaNCConfig.Type
-	nephilaProvider, err := nephila.NewNephilaProvider(nephilaType)
-
-	if err := createEndpoint(client.hostVethName, client.containerVethName, nephilaProvider); err != nil {
+	if err := createEndpoint(client.hostVethName, client.containerVethName, epInfo.NephilaNCConfig); err != nil {
 		return err
 	}
 
@@ -98,7 +95,7 @@ func (client *OVSEndpointClient) AddEndpoints(epInfo *EndpointInfo) error {
 		hostIfName := fmt.Sprintf("%s%s", snatVethInterfacePrefix, epInfo.Id[:7])
 		contIfName := fmt.Sprintf("%s%s-2", snatVethInterfacePrefix, epInfo.Id[:7])
 
-		if err := createEndpoint(hostIfName, contIfName, nephilaProvider); err != nil {
+		if err := createEndpoint(hostIfName, contIfName, epInfo.NephilaNCConfig); err != nil {
 			return err
 		}
 
