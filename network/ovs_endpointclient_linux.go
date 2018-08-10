@@ -150,38 +150,43 @@ func (client *OVSEndpointClient) AddEndpointRules(epInfo *EndpointInfo) error {
 	}
 
 	// add Nephila rules
-	nephilaType := epInfo.NephilaNCConfig.Type
-	nephilaConfig := epInfo.NephilaNCConfig
-	nephilaProvider, err := nephila.NewNephilaProvider(nephilaType)
+	if (epInfo.NephilaNCConfig.Type) != nephila.Disabled {
 
-	nvo := nephila.NephilaOVSEndpoint{
-		BridgeName:        client.bridgeName,
-		HostPrimaryIfName: client.hostPrimaryIfName,
-		HostVethName:      client.hostVethName,
-		ContainerMac:      client.containerMac,
-		VlanID:            client.vlanID,
+		nephilaProvider, _ := nephila.NewNephilaProvider(epInfo.NephilaNCConfig.Type)
+		nvo := nephila.NephilaOVSEndpoint{
+			BridgeName:        client.bridgeName,
+			HostPrimaryIfName: client.hostPrimaryIfName,
+			HostVethName:      client.hostVethName,
+			ContainerMac:      client.containerMac,
+			ContainerIP:       epInfo.IPAddresses[0].IP.String(),
+			VlanID:            client.vlanID,
+		}
+		nephilaProvider.AddNetworkContainerRules(nvo, epInfo.NephilaNCConfig)
+
+		//}
+
 	}
 
-	nephilaProvider.AddNetworkContainerRules(nvo, nephilaConfig)
 	return nil
 }
 
 func (client *OVSEndpointClient) DeleteEndpointRules(ep *endpoint) {
+	/*
+		nephilaType := ep.NephilaNCConfig.Type
+		nephilaConfig := ep.NephilaNCConfig
+		nephilaProvider, err := nephila.NewNephilaProvider(nephilaType)
 
-	nephilaType := ep.NephilaNCConfig.Type
-	nephilaConfig := ep.NephilaNCConfig
-	nephilaProvider, err := nephila.NewNephilaProvider(nephilaType)
+		nvo := nephila.NephilaOVSEndpoint{
+			BridgeName:        client.bridgeName,
+			HostPrimaryIfName: client.hostPrimaryIfName,
+			HostVethName:      client.hostVethName,
+			ContainerMac:      client.containerMac,
+			ContainerIP:       client.snatBridgeIP,
+			VlanID:            client.vlanID,
+		}
 
-	nvo := nephila.NephilaOVSEndpoint{
-		BridgeName:        client.bridgeName,
-		HostPrimaryIfName: client.hostPrimaryIfName,
-		HostVethName:      client.hostVethName,
-		ContainerMac:      client.containerMac,
-		VlanID:            client.vlanID,
-	}
-
-	nephilaProvider.DeleteNetworkContainerRules(nvo, nephilaConfig)
-
+		//nephilaProvider.DeleteNetworkContainerRules(nvo, nephilaConfig)
+	*/
 	log.Printf("[ovs] Get ovs port for interface %v.", ep.HostIfName)
 	containerPort, err := ovsctl.GetOVSPortNumber(client.hostVethName)
 	if err != nil {

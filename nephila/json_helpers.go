@@ -25,20 +25,22 @@ func (n *NephilaNetworkContainerConfig) UnmarshalJSON(b []byte) error {
 	confType := m[Type].(string)
 	if confType == Flannel {
 		n.Type = confType
-		var ncc FlannelNetworkContainerConfig
-		b, err := json.Marshal(m[Config])
+
+		var ncconf FlannelNetworkContainerConfig
+		b1, err := json.Marshal(m[Config])
 		if err != nil {
 			return fmt.Errorf("Failed to unmarshal Nephila NC config with error: %v", err)
 		}
-		json.Unmarshal(b, &ncc)
-		n.Config = ncc
-		var nnc FlannelNodeConfig
-		b, err = json.Marshal(m[NodeConfig])
+		json.Unmarshal(b1, &ncconf)
+		n.Config = ncconf
+
+		var nodeconf FlannelNodeConfig
+		b2, err := json.Marshal(m[NodeConfig])
 		if err != nil {
 			return fmt.Errorf("Failed to unmarshal Nephila NC config with error: %v", err)
 		}
-		json.Unmarshal(b, &ncc)
-		n.NodeConfig = nnc
+		json.Unmarshal(b2, &nodeconf)
+		n.NodeConfig = nodeconf
 		return nil
 	}
 	return nil
@@ -54,7 +56,6 @@ func (n *NephilaNodeConfig) MarshalJSON() ([]byte, error) {
 func (n *NephilaNodeConfig) UnmarshalJSON(b []byte) error {
 	m := make(map[string]interface{})
 	json.Unmarshal(b, &m)
-
 	// if type doesn't exist, set disabled
 	if val, _ := m[Type]; val == "" {
 		n.Type = Disabled

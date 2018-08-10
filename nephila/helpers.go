@@ -88,7 +88,8 @@ func GetFlannelConfiguration() (*FlannelNodeConfig, error) {
 		if fileExists(subenv) {
 			break
 		}
-		time.Sleep(time.Second * 5)
+		log.Printf("Checking for subnet file (Attempt %v/5)\n", i+1)
+		time.Sleep(time.Second * 1)
 	}
 
 	fp, err := os.Open(subenv)
@@ -98,6 +99,7 @@ func GetFlannelConfiguration() (*FlannelNodeConfig, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Loading Flannel subnet file failed with error: %v", err)
 	} else {
+		log.Printf("Subnet file loaded\n")
 		defer fp.Close()
 
 		fenvs := make(map[string]string)

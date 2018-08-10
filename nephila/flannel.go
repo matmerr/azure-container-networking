@@ -3,13 +3,17 @@ package nephila
 import (
 	"log"
 	"net"
+	"strconv"
 
 	"github.com/Azure/azure-container-networking/netlink"
 	"github.com/Azure/azure-container-networking/ovsctl"
 )
 
 const (
-	Flannel  = "Flannel"
+	// Flannel type
+	Flannel = "Flannel"
+
+	// Disabled type
 	Disabled = "Disabled"
 )
 
@@ -39,18 +43,23 @@ type FlannelNetworkContainerConfig struct {
 // FlannelNephilaProvider is just a struct to match the NephilaProvider interface
 type FlannelNephilaProvider struct{}
 
+func (fnp FlannelNephilaProvider) GetType() string {
+	return Flannel
+}
+
 func (fnp FlannelNephilaProvider) AddNetworkContainerRules(ovs NephilaOVSEndpoint, ncConfig interface{}) error {
+	log.Printf("HERE ADD RULES\n")
 	fncc := ncConfig.(NephilaNetworkContainerConfig)
 	config := fncc.Config.(FlannelNetworkContainerConfig)
 	nodeConfig := fncc.NodeConfig.(FlannelNodeConfig)
 
-	overlayAddressSpace := nodeConfig.OverlaySubnet.IPAddress + "/" + string(nodeConfig.OverlaySubnet.PrefixLength)
+	overlayAddressSpace := nodeConfig.OverlaySubnet.IPAddress + "/" + strconv.Itoa(int(nodeConfig.OverlaySubnet.PrefixLength))
 
 	containerPort, err := ovsctl.GetOVSPortNumber(ovs.HostVethName)
 	if err != nil {
 		return err
 	}
-
+	log.Printf("HERE Overlay Address Space: %v\n", overlayAddressSpace)
 	ovsctl.AddOverlayIPDnatRule(ovs.BridgeName, config.OverlayIP, ovs.ContainerIP, ovs.VlanID, containerPort)
 	ovsctl.AddOverlayIPSnatRule(ovs.BridgeName, containerPort, overlayAddressSpace, config.OverlayIP)
 	ovsctl.AddOverlayFakeArpReply(ovs.BridgeName, config.OverlayIP, ovs.ContainerMac)
@@ -58,22 +67,23 @@ func (fnp FlannelNephilaProvider) AddNetworkContainerRules(ovs NephilaOVSEndpoin
 }
 
 func (fnp FlannelNephilaProvider) DeleteNetworkContainerRules(ovs NephilaOVSEndpoint, ncConfig interface{}) error {
-	fncc := ncConfig.(NephilaNetworkContainerConfig)
-	config := fncc.Config.(FlannelNetworkContainerConfig)
-	nodeConfig := fncc.NodeConfig.(FlannelNodeConfig)
+	/*
+		fncc := ncConfig.(NephilaNetworkContainerConfig)
+		config := fncc.Config.(FlannelNetworkContainerConfig)
+		nodeConfig := fncc.NodeConfig.(FlannelNodeConfig)
 
-	overlayAddressSpace := nodeConfig.OverlaySubnet.IPAddress + "/" + string(nodeConfig.OverlaySubnet.PrefixLength)
+		overlayAddressSpace := nodeConfig.OverlaySubnet.IPAddress + "/" + string(nodeConfig.OverlaySubnet.PrefixLength)
 
-	containerPort, err := ovsctl.GetOVSPortNumber(ovs.HostVethName)
-	hostPort, err := ovsctl.GetOVSPortNumber(ovs.HostPrimaryIfName)
-	if err != nil {
-		return err
-	}
+		containerPort, err := ovsctl.GetOVSPortNumber(ovs.HostVethName)
+		hostPort, err := ovsctl.GetOVSPortNumber(ovs.HostPrimaryIfName)
+		if err != nil {
+			return err
+		}
 
-	ovsctl.DeleteOverlayIPDnatRule(ovs.BridgeName, hostPort, config.OverlayIP)
-	ovsctl.DeleteOverlayIPSnatRule(ovs.BridgeName, containerPort, overlayAddressSpace)
-	ovsctl.DeleteOverlayFakeArpReply(ovs.BridgeName, config.OverlayIP)
-
+		ovsctl.DeleteOverlayIPDnatRule(ovs.BridgeName, hostPort, config.OverlayIP)
+		ovsctl.DeleteOverlayIPSnatRule(ovs.BridgeName, containerPort, overlayAddressSpace)
+		ovsctl.DeleteOverlayFakeArpReply(ovs.BridgeName, config.OverlayIP)
+	*/
 	return nil
 }
 

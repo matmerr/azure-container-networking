@@ -13,6 +13,7 @@ const (
 //Keys in the NephilaNCMap
 
 type NephilaProvider interface {
+	GetType() string
 	AddNetworkContainerRules(ovs NephilaOVSEndpoint, ncConfig interface{}) error
 	DeleteNetworkContainerRules(ovs NephilaOVSEndpoint, ncConfig interface{}) error
 	ConfigureNetworkContainerLink(link *netlink.VEthLink, ncConfig NephilaNetworkContainerConfig) error

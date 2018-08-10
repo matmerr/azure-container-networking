@@ -367,6 +367,18 @@ func creatOrUpdateNephilaNetworkContainerWithName(t *testing.T, name string, ip 
 			Config: nephila.FlannelNetworkContainerConfig{
 				OverlayIP: net.ParseIP("192.168.50.2"),
 			},
+			NodeConfig: nephila.FlannelNodeConfig{
+				IPMASQ:       false,
+				InterfaceMTU: 1450,
+				NodeSubnet: nephila.IPSubnet{
+					IPAddress:    "192.168.216.1",
+					PrefixLength: 21,
+				},
+				OverlaySubnet: nephila.IPSubnet{
+					IPAddress:    "192.168.0.0",
+					PrefixLength: 16,
+				},
+			},
 		},
 	}
 
@@ -635,7 +647,13 @@ func TestCreateNetworkContainer(t *testing.T) {
 
 	setEnv(t)
 
-	err := creatOrUpdateNetworkContainerWithName(t, "ethWebApp", "11.0.0.5", "WebApps")
+	err := creatOrUpdateNephilaNetworkContainerWithName(t, "ethWebApp", "11.0.0.7", cns.Kubernetes)
+	if err != nil {
+		t.Errorf("creatOrUpdateNephilaContainerWithName :%+v", err)
+		t.Fatal(err)
+	}
+
+	err = creatOrUpdateNetworkContainerWithName(t, "ethWebApp", "11.0.0.5", "WebApps")
 	if err != nil {
 		t.Errorf("creatOrUpdateWebAppContainerWithName failed Err:%+v", err)
 		t.Fatal(err)
@@ -644,12 +662,6 @@ func TestCreateNetworkContainer(t *testing.T) {
 	err = creatOrUpdateNetworkContainerWithName(t, "ethWebApp", "11.0.0.6", "WebApps")
 	if err != nil {
 		t.Errorf("Updating interface failed Err:%+v", err)
-		t.Fatal(err)
-	}
-
-	err = creatOrUpdateNephilaNetworkContainerWithName(t, "ethWebApp", "11.0.0.7", cns.Kubernetes)
-	if err != nil {
-		t.Errorf("creatOrUpdateNephilaContainerWithName :%+v", err)
 		t.Fatal(err)
 	}
 

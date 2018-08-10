@@ -12,8 +12,6 @@ import (
 func createEndpoint(hostVethName string, containerVethName string, ncConf nephila.NephilaNetworkContainerConfig) error {
 	log.Printf("[net] Creating veth pair %v %v.", hostVethName, containerVethName)
 
-	nephilaProvider, err := nephila.NewNephilaProvider(ncConf.Type)
-
 	link := netlink.VEthLink{
 		LinkInfo: netlink.LinkInfo{
 			Type: netlink.LINK_TYPE_VETH,
@@ -22,10 +20,19 @@ func createEndpoint(hostVethName string, containerVethName string, ncConf nephil
 		PeerName: containerVethName,
 	}
 
-	// In some cases we need to make other changes to the link
-	nephilaProvider.ConfigureNetworkContainerLink(&link, ncConf)
+	if ncConf.Type != nephila.Disabled && ncConf.Type != "" {
+		nephilaProvider, err := nephila.NewNephilaProvider(ncConf.Type)
 
-	err = netlink.AddLink(&link)
+		if err != nil {
+			log.Printf("[net] Failed to create new nephila provider, err:%v.", err)
+			return err
+		}
+		// In some cases we need to make other changes to the link
+		nephilaProvider.ConfigureNetworkContainerLink(&link, ncConf)
+
+	}
+
+	err := netlink.AddLink(&link)
 	if err != nil {
 		log.Printf("[net] Failed to create veth pair, err:%v.", err)
 		return err
