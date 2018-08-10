@@ -11,22 +11,26 @@ import (
 )
 
 type OVSEndpointClient struct {
-	bridgeName        string
-	hostPrimaryIfName string
-	hostVethName      string
-	hostPrimaryMac    string
-	containerVethName string
-	containerMac      string
-	snatVethName      string
-	snatBridgeIP      string
-	localIP           string
-	vlanID            int
-	enableSnatOnHost  bool
+	bridgeName               string
+	hostPrimaryIfName        string
+	hostVethName             string
+	hostPrimaryMac           string
+	containerVethName        string
+	containerMac             string
+	snatVethName             string
+	snatBridgeIP             string
+	localIP                  string
+	vlanID                   int
+	enableSnatOnHost         bool
+	nephilaHostVethname      string
+	nephilaContainerVethname string
 }
 
 const (
-	snatVethInterfacePrefix = commonInterfacePrefix + "vint"
-	azureSnatIfName         = "eth1"
+	snatVethInterfacePrefix    = commonInterfacePrefix + "vint"
+	nephilaVethInterfacePrefix = commonInterfacePrefix + "neph"
+	azureSnatIfName            = "eth1"
+	nephilaIfName              = "eth2"
 )
 
 func NewOVSEndpointClient(
@@ -60,7 +64,7 @@ func NewOVSEndpointClient(
 
 func (client *OVSEndpointClient) AddEndpoints(epInfo *EndpointInfo) error {
 
-	if err := createEndpoint(client.hostVethName, client.containerVethName, epInfo.NephilaNCConfig); err != nil {
+	if err := createEndpoint(client.hostVethName, client.containerVethName, 0); err != nil {
 		return err
 	}
 
@@ -95,7 +99,7 @@ func (client *OVSEndpointClient) AddEndpoints(epInfo *EndpointInfo) error {
 		hostIfName := fmt.Sprintf("%s%s", snatVethInterfacePrefix, epInfo.Id[:7])
 		contIfName := fmt.Sprintf("%s%s-2", snatVethInterfacePrefix, epInfo.Id[:7])
 
-		if err := createEndpoint(hostIfName, contIfName, epInfo.NephilaNCConfig); err != nil {
+		if err := createEndpoint(hostIfName, contIfName, 0); err != nil {
 			return err
 		}
 
@@ -106,6 +110,20 @@ func (client *OVSEndpointClient) AddEndpoints(epInfo *EndpointInfo) error {
 		client.snatVethName = contIfName
 	}
 
+	if epInfo.NephilaNCConfig.Type == nephila.Flannel {
+		hostIfName := fmt.Sprintf("%s%s", nephilaVethInterfacePrefix, epInfo.Id[:7])
+		contIfName := fmt.Sprintf("%s%s-2", nephilaVethInterfacePrefix, epInfo.Id[:7])
+		fNodeConf := epInfo.NephilaNCConfig.NodeConfig.(nephila.FlannelNodeConfig)
+
+		// Flannel sets a specific MTU based on the node
+		if err := createEndpoint(hostIfName, contIfName, uint(fNodeConf.InterfaceMTU)); err != nil {
+			return err
+		}
+
+		client.nephilaHostVethname = hostIfName
+		client.nephilaContainerVethname = contIfName
+	}
+
 	return nil
 }
 
@@ -113,6 +131,12 @@ func (client *OVSEndpointClient) AddEndpointRules(epInfo *EndpointInfo) error {
 	log.Printf("[ovs] Setting link %v master %v.", client.hostVethName, client.bridgeName)
 	if err := ovsctl.AddPortOnOVSBridge(client.hostVethName, client.bridgeName, client.vlanID); err != nil {
 		return err
+	}
+
+	if epInfo.NephilaNCConfig.Type == nephila.Flannel {
+		if err := ovsctl.AddPortOnOVSBridge(client.nephilaHostVethname, client.bridgeName, 0); err != nil {
+			return err
+		}
 	}
 
 	log.Printf("[ovs] Get ovs port for interface %v.", client.hostVethName)
@@ -148,45 +172,11 @@ func (client *OVSEndpointClient) AddEndpointRules(epInfo *EndpointInfo) error {
 			return err
 		}
 	}
-
-	// add Nephila rules
-	if (epInfo.NephilaNCConfig.Type) != nephila.Disabled {
-
-		nephilaProvider, _ := nephila.NewNephilaProvider(epInfo.NephilaNCConfig.Type)
-		nvo := nephila.NephilaOVSEndpoint{
-			BridgeName:        client.bridgeName,
-			HostPrimaryIfName: client.hostPrimaryIfName,
-			HostVethName:      client.hostVethName,
-			ContainerMac:      client.containerMac,
-			ContainerIP:       epInfo.IPAddresses[0].IP.String(),
-			VlanID:            client.vlanID,
-		}
-		nephilaProvider.AddNetworkContainerRules(nvo, epInfo.NephilaNCConfig)
-
-		//}
-
-	}
-
 	return nil
 }
 
 func (client *OVSEndpointClient) DeleteEndpointRules(ep *endpoint) {
-	/*
-		nephilaType := ep.NephilaNCConfig.Type
-		nephilaConfig := ep.NephilaNCConfig
-		nephilaProvider, err := nephila.NewNephilaProvider(nephilaType)
 
-		nvo := nephila.NephilaOVSEndpoint{
-			BridgeName:        client.bridgeName,
-			HostPrimaryIfName: client.hostPrimaryIfName,
-			HostVethName:      client.hostVethName,
-			ContainerMac:      client.containerMac,
-			ContainerIP:       client.snatBridgeIP,
-			VlanID:            client.vlanID,
-		}
-
-		//nephilaProvider.DeleteNetworkContainerRules(nvo, nephilaConfig)
-	*/
 	log.Printf("[ovs] Get ovs port for interface %v.", ep.HostIfName)
 	containerPort, err := ovsctl.GetOVSPortNumber(client.hostVethName)
 	if err != nil {
@@ -211,10 +201,15 @@ func (client *OVSEndpointClient) DeleteEndpointRules(ep *endpoint) {
 	log.Printf("[ovs] Deleting MAC DNAT rule for IP address %v and vlan %v.", ep.IPAddresses[0].IP.String(), ep.VlanID)
 	ovsctl.DeleteMacDnatRule(client.bridgeName, hostPort, ep.IPAddresses[0].IP, ep.VlanID)
 
+	if ep.NephilaNCConfig.Type == nephila.Flannel {
+		// Delete port from ovs bridge
+		log.Printf("[ovs] Deleting interface %v from bridge %v", client.nephilaHostVethname, client.bridgeName)
+		ovsctl.DeletePortFromOVS(client.bridgeName, client.nephilaHostVethname)
+	}
+
 	// Delete port from ovs bridge
 	log.Printf("[ovs] Deleting interface %v from bridge %v", client.hostVethName, client.bridgeName)
 	ovsctl.DeletePortFromOVS(client.bridgeName, client.hostVethName)
-
 }
 
 func (client *OVSEndpointClient) MoveEndpointsToContainerNS(epInfo *EndpointInfo, nsID uintptr) error {
@@ -227,6 +222,13 @@ func (client *OVSEndpointClient) MoveEndpointsToContainerNS(epInfo *EndpointInfo
 	if client.enableSnatOnHost {
 		log.Printf("[ovs] Setting link %v netns %v.", client.snatVethName, epInfo.NetNsPath)
 		if err := netlink.SetLinkNetNs(client.snatVethName, nsID); err != nil {
+			return err
+		}
+	}
+
+	if epInfo.NephilaNCConfig.Type == nephila.Flannel {
+		log.Printf("[ovs] Setting link %v netns %v.", client.nephilaContainerVethname, epInfo.NetNsPath)
+		if err := netlink.SetLinkNetNs(client.nephilaContainerVethname, nsID); err != nil {
 			return err
 		}
 	}
@@ -265,6 +267,15 @@ func (client *OVSEndpointClient) ConfigureContainerInterfacesAndRoutes(epInfo *E
 		}
 	}
 
+	if epInfo.NephilaNCConfig.Type == nephila.Flannel {
+		flannelNCConfig := epInfo.NephilaNCConfig.Config.(nephila.FlannelNetworkContainerConfig)
+		log.Printf("[ovs] Configuring Flannel IP on link %v.", flannelNCConfig.OverlayIP, client.snatVethName)
+		ip, intIpAddr, _ := net.ParseCIDR(flannelNCConfig.OverlayIP.To4().String() + "/32")
+		if err := netlink.AddIpAddress(client.snatVethName, ip, intIpAddr); err != nil {
+			return err
+		}
+	}
+
 	if err := addRoutes(client.containerVethName, epInfo.Routes); err != nil {
 		return err
 	}
@@ -283,6 +294,16 @@ func (client *OVSEndpointClient) DeleteEndpoints(ep *endpoint) error {
 	if client.enableSnatOnHost {
 		hostIfName := fmt.Sprintf("%s%s", snatVethInterfacePrefix, ep.Id[:7])
 		log.Printf("[ovs] Deleting snat veth pair %v.", hostIfName)
+		err = netlink.DeleteLink(hostIfName)
+		if err != nil {
+			log.Printf("[ovs] Failed to delete veth pair %v: %v.", hostIfName, err)
+			return err
+		}
+	}
+
+	if ep.NephilaNCConfig.Type == nephila.Flannel {
+		hostIfName := fmt.Sprintf("%s%s", nephilaVethInterfacePrefix, ep.Id[:7])
+		log.Printf("[ovs] Deleting nephila veth pair %v.", hostIfName)
 		err = netlink.DeleteLink(hostIfName)
 		if err != nil {
 			log.Printf("[ovs] Failed to delete veth pair %v: %v.", hostIfName, err)

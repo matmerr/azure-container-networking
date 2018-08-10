@@ -5,11 +5,10 @@ import (
 	"strings"
 
 	"github.com/Azure/azure-container-networking/log"
-	"github.com/Azure/azure-container-networking/nephila"
 	"github.com/Azure/azure-container-networking/netlink"
 )
 
-func createEndpoint(hostVethName string, containerVethName string, ncConf nephila.NephilaNetworkContainerConfig) error {
+func createEndpoint(hostVethName string, containerVethName string, interfaceMTU uint) error {
 	log.Printf("[net] Creating veth pair %v %v.", hostVethName, containerVethName)
 
 	link := netlink.VEthLink{
@@ -20,16 +19,9 @@ func createEndpoint(hostVethName string, containerVethName string, ncConf nephil
 		PeerName: containerVethName,
 	}
 
-	if ncConf.Type != nephila.Disabled && ncConf.Type != "" {
-		nephilaProvider, err := nephila.NewNephilaProvider(ncConf.Type)
-
-		if err != nil {
-			log.Printf("[net] Failed to create new nephila provider, err:%v.", err)
-			return err
-		}
-		// In some cases we need to make other changes to the link
-		nephilaProvider.ConfigureNetworkContainerLink(&link, ncConf)
-
+	// In the case of Flannel, we need to set the MTU on the link, to be used for the overlay
+	if interfaceMTU > 0 {
+		link.MTU = interfaceMTU
 	}
 
 	err := netlink.AddLink(&link)
