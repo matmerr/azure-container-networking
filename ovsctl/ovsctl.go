@@ -221,7 +221,6 @@ func DeleteMacDnatRule(bridgeName string, port string, ip net.IP, vlanid int) {
 
 func DeletePortFromOVS(bridgeName string, interfaceName string) error {
 	// Disconnect external interface from its bridge.
-
 	cmd := fmt.Sprintf("ovs-vsctl del-port %s %s", bridgeName, interfaceName)
 	_, err := platform.ExecuteCommand(cmd)
 	if err != nil {

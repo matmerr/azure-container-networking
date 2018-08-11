@@ -13,7 +13,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Azure/azure-container-networking/netlink"
 	"github.com/coreos/etcd/client"
 	"github.com/coreos/flannel/pkg/ip"
 )
@@ -76,12 +75,6 @@ func (fnp FlannelNephilaProvider) ConfigureNode(nodeConf NephilaNodeConfig, dncC
 	nodeConfig.Config = flannelConf
 
 	return nodeConfig, err
-}
-
-func (fnp FlannelNephilaProvider) ConfigureNetworkContainerLink(link *netlink.VEthLink, ncConfig NephilaNetworkContainerConfig) error {
-	fNodeConf := ncConfig.NodeConfig.(FlannelNodeConfig)
-	link.LinkInfo.MTU = uint(fNodeConf.InterfaceMTU)
-	return nil
 }
 
 func SetFlannelKey(flannelDNCConfig FlannelDNCConfig) error {

@@ -119,7 +119,6 @@ func (client *OVSEndpointClient) AddEndpoints(epInfo *EndpointInfo) error {
 		if err := createEndpoint(hostIfName, contIfName, uint(fNodeConf.InterfaceMTU)); err != nil {
 			return err
 		}
-
 		client.nephilaHostVethname = hostIfName
 		client.nephilaContainerVethname = contIfName
 	}

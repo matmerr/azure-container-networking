@@ -87,7 +87,6 @@ func (nw *network) newEndpointImpl(epInfo *EndpointInfo) (*endpoint, error) {
 			hostIfName,
 			contIfName,
 			vlanid)
-
 	} else {
 		epClient = NewLinuxBridgeEndpointClient(nw.extIf, hostIfName, contIfName, nw.Mode)
 	}

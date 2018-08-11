@@ -19,6 +19,7 @@ import (
 	"github.com/Azure/azure-container-networking/cns/networkcontainers"
 	"github.com/Azure/azure-container-networking/cns/routes"
 	"github.com/Azure/azure-container-networking/log"
+	"github.com/Azure/azure-container-networking/nephila"
 	"github.com/Azure/azure-container-networking/platform"
 	"github.com/Azure/azure-container-networking/store"
 )
@@ -914,11 +915,19 @@ func (service *httpRestService) createOrUpdateNetworkContainer(w http.ResponseWr
 	switch r.Method {
 	case "POST":
 		if req.NetworkContainerType == cns.WebApps {
-			nc := service.networkContainer
-			if err := nc.Create(req); err != nil {
-				returnMessage = fmt.Sprintf("[Azure CNS] Error. CreateOrUpdateNetworkContainer failed %v", err.Error())
-				returnCode = UnexpectedError
-				break
+			// try to get the saved nc state if it exists
+			service.lock.Lock()
+			existing, ok := service.state.ContainerStatus[req.NetworkContainerid]
+			service.lock.Unlock()
+
+			// create/update nc only if it doesn't exist or it exists and the requested version is different from the saved version
+			if !ok || (ok && existing.VMVersion != req.Version) {
+				nc := service.networkContainer
+				if err = nc.Create(req); err != nil {
+					returnMessage = fmt.Sprintf("[Azure CNS] Error. CreateOrUpdateNetworkContainer failed %v", err.Error())
+					returnCode = UnexpectedError
+					break
+				}
 			}
 		}
 		returnCode, returnMessage = service.saveNetworkContainerGoalState(req)
@@ -966,6 +975,9 @@ func (service *httpRestService) getNetworkContainerResponse(req cns.GetNetworkCo
 	var containerID string
 	var getNetworkContainerResponse cns.GetNetworkContainerResponse
 
+	service.lock.Lock()
+	defer service.lock.Unlock()
+
 	switch service.state.OrchestratorType {
 	case cns.Kubernetes, cns.ServiceFabric:
 		var podInfo cns.KubernetesPodInfo
@@ -976,7 +988,7 @@ func (service *httpRestService) getNetworkContainerResponse(req cns.GetNetworkCo
 			return getNetworkContainerResponse
 		}
 
-		log.Printf("azure container instance info %+v", podInfo)
+		log.Printf("pod info %+v", podInfo)
 		containerID = service.state.ContainerIDByOrchestratorContext[podInfo.PodName+podInfo.PodNamespace]
 		log.Printf("containerid %v", containerID)
 		break
@@ -1050,9 +1062,10 @@ func (service *httpRestService) deleteNetworkContainer(w http.ResponseWriter, r 
 		var ok bool
 
 		service.lock.Lock()
-		defer service.lock.Unlock()
+		containerStatus, ok = service.state.ContainerStatus[req.NetworkContainerid]
+		service.lock.Unlock()
 
-		if containerStatus, ok = service.state.ContainerStatus[req.NetworkContainerid]; !ok {
+		if !ok {
 			log.Printf("Not able to retrieve network container details for this container id %v", req.NetworkContainerid)
 			break
 		}
@@ -1065,6 +1078,9 @@ func (service *httpRestService) deleteNetworkContainer(w http.ResponseWriter, r 
 				break
 			}
 		}
+
+		service.lock.Lock()
+		defer service.lock.Unlock()
 
 		if service.state.ContainerStatus != nil {
 			delete(service.state.ContainerStatus, req.NetworkContainerid)
@@ -1259,4 +1275,52 @@ func (service *httpRestService) restoreNetworkState() error {
 	}
 
 	return nil
+}
+
+func (service *httpRestService) setNephilaConfig(w http.ResponseWriter, r *http.Request) {
+	log.Printf("[Azure CNS] setNephilaConfig")
+
+	var res cns.NephilaNodeConfigResponse
+	var req cns.NephilaNodeConfigRequest
+	var nodeConfig nephila.NephilaNodeConfig
+
+	returnMessage := ""
+	returnCode := 0
+
+	err := service.Listener.Decode(w, r, &req)
+	if err != nil {
+		return
+	}
+
+	service.lock.Lock()
+
+	provider, err := nephila.NewNephilaProvider(req.Type)
+	if err != nil {
+		returnCode = UnexpectedError
+		returnMessage = fmt.Sprintf("Failed to configure provider with error: %s", err.Error())
+		goto Respond
+	}
+	nodeConfig, err = provider.ConfigureNode(req.NodeConfig, req.DNCConfig)
+	if err != nil {
+		returnCode = UnexpectedError
+		returnMessage = fmt.Sprintf("Failed to configure node with error: %s", err.Error())
+		goto Respond
+	}
+
+	service.state.NephilaType = req.Type
+
+Respond:
+	res.Config = nodeConfig
+	service.saveState()
+	service.lock.Unlock()
+
+	response := cns.Response{
+		ReturnCode: returnCode,
+		Message:    returnMessage,
+	}
+
+	// add cns response to Nephila config response
+	res.Response = response
+	err = service.Listener.Encode(w, &res)
+	log.Response(service.Name, res, err)
 }
