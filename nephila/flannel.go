@@ -115,13 +115,10 @@ func SetFlannelKey(flannelDNCConfig FlannelDNCConfig) error {
 	}
 	kapi := client.NewKeysAPI(c)
 	// set "/foo" key with "bar" value
-	log.Printf("[Azure CNS Nephila: Flannel] Setting %s key in etcd with %s value.", flannelKeyPath, value)
-
 	resp, err := kapi.Set(context.Background(), flannelKeyPath, value, nil)
 	if err != nil {
-		return fmt.Errorf("Failed to set keys in etcd with error: %s", err)
+		return fmt.Errorf("Failed to set keys in etcd with error: %s, and response %+v", err, resp)
 	}
-	log.Printf("[Azure CNS Nephila: Flannel] Set Flannel config in etcd with response %v.", resp)
 	return nil
 }
 

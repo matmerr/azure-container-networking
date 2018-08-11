@@ -251,6 +251,13 @@ func (client *OVSEndpointClient) SetupContainerInterfaces(epInfo *EndpointInfo) 
 		client.snatVethName = azureSnatIfName
 	}
 
+	if epInfo.NephilaNCConfig.Type == nephila.Flannel {
+		if err := setupContainerInterface(client.nephilaContainerVethname, nephilaIfName); err != nil {
+			return err
+		}
+		client.nephilaContainerVethname = nephilaIfName
+	}
+
 	return nil
 }
 
@@ -271,7 +278,7 @@ func (client *OVSEndpointClient) ConfigureContainerInterfacesAndRoutes(epInfo *E
 		flannelNCConfig := epInfo.NephilaNCConfig.Config.(nephila.FlannelNetworkContainerConfig)
 		log.Printf("[ovs] Configuring Flannel IP on link %v.", flannelNCConfig.OverlayIP, client.snatVethName)
 		ip, intIpAddr, _ := net.ParseCIDR(flannelNCConfig.OverlayIP.To4().String() + "/32")
-		if err := netlink.AddIpAddress(client.snatVethName, ip, intIpAddr); err != nil {
+		if err := netlink.AddIpAddress(client.nephilaContainerVethname, ip, intIpAddr); err != nil {
 			return err
 		}
 	}
