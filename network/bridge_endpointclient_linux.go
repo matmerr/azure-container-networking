@@ -38,7 +38,6 @@ func NewLinuxBridgeEndpointClient(
 }
 
 func (client *LinuxBridgeEndpointClient) AddEndpoints(epInfo *EndpointInfo) error {
-
 	if err := createEndpoint(client.hostVethName, client.containerVethName, 0); err != nil {
 		return err
 	}

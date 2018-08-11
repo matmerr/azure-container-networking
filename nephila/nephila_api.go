@@ -18,7 +18,6 @@ type NephilaDNCConfig struct {
 	Config interface{}
 }
 
-// NephilaNodeConfig contains the nephila type, and the NephilaConfig
 type NephilaNodeConfig struct {
 	Type   string
 	Config interface{}

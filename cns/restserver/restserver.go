@@ -876,7 +876,7 @@ func (service *httpRestService) saveNetworkContainerGoalState(req cns.CreateNetw
 				return UnexpectedError, errBuf
 			}
 
-			log.Printf("Azure container instance info %v", podInfo)
+			log.Printf("Pod info %v", podInfo)
 
 			if service.state.ContainerIDByOrchestratorContext == nil {
 				service.state.ContainerIDByOrchestratorContext = make(map[string]string)
