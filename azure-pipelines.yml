@@ -11,7 +11,7 @@ trigger:
 resources:
   containers:
   - container: dev1
-    image: quay.io/deis/go-dev:v1.19.1
+    image: golang:1.12
 
 jobs:
 - job: unit_tests
