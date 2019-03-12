@@ -43,9 +43,11 @@ jobs:
       echo '##vso[task.prependpath]$(GOBIN)'
       echo '##vso[task.prependpath]$(GOROOT)/bin'
     displayName: 'Set up the Go workspace'
-    
+
   - script: |
       go version
+      ls
+      pwd
       go get -v -t -d ./...
       if [ -f Gopkg.toml ]; then
           curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
