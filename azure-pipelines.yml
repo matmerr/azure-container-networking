@@ -26,11 +26,11 @@ jobs:
     modulePath: '$(GOPATH)/src/github.com/azure/azure-container-networking' # $(build.repository.name)' # Path to the module's code
 
   steps:
-  - script: |
-      apt-get update
-      apt-get install -y ebtables ipset python3-dev gcc
-      pip install coverage
-    displayName: 'Install OS dependencies'
+#  - script: |
+#      apt-get update
+#      apt-get install -y ebtables ipset python3-dev gcc
+#      pip install coverage
+#    displayName: 'Install OS dependencies'
   - script: |
       mkdir -p $(GOBIN)
       mkdir -p $(GOPATH)/pkg
