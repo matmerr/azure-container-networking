@@ -21,7 +21,7 @@ jobs:
 
   variables:
     GOBIN:  '$(GOPATH)/bin' # Go binaries path
-    GOROOT: '/usr/local/go1.11' # Go installation path
+    GOROOT: '/usr/local/go' # Go installation path
     GOPATH: '$(system.defaultWorkingDirectory)/gopath' # Go workspace path
     modulePath: '$(GOPATH)/src/github.com/Azure/azure-container-networking' # $(build.repository.name)' # Path to the module's code
 
@@ -48,6 +48,8 @@ jobs:
       go version
       ls
       pwd
+      echo '$(GOPATH)'
+      echo '$(GOROOT)'
       go get -v -t -d ./...
       if [ -f Gopkg.toml ]; then
           curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
@@ -62,6 +64,8 @@ jobs:
   - script: |
       ls
       pwd
+      echo '$(GOPATH)'
+      echo '$(GOROOT)'
       sudo go test ./ipam/ -coverprofile coverage-ipam.out
       sudo go test ./log/ -coverprofile coverage-log.out
       sudo go test ./netlink/ -coverprofile coverage-netlink.out
