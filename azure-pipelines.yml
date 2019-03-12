@@ -58,7 +58,10 @@ jobs:
       go get golang.org/x/tools/cmd/cover
     workingDirectory: '$(modulePath)'
     displayName: 'Install Go dependencies'
+
   - script: |
+      ls
+      pwd
       sudo go test ./ipam/ -coverprofile coverage-ipam.out
       sudo go test ./log/ -coverprofile coverage-log.out
       sudo go test ./netlink/ -coverprofile coverage-netlink.out
