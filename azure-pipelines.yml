@@ -15,7 +15,6 @@ resources:
 
 pool:
   vmImage: 'Ubuntu-16.04'
-
   variables:
     GOBIN:  '$(GOPATH)/bin' # Go binaries path
     GOROOT: '/usr/local/go' # Go installation path
@@ -38,6 +37,7 @@ steps:
     echo '##vso[task.prependpath]$(GOROOT)/bin'
   displayName: 'Set up the Go workspace'
 - script: |
+    export GOPATH='$(GOPATH)''
     go get ./...
     go get github.com/docker/libnetwork/driverapi
     go get github.com/gorilla/mux
