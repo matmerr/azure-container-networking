@@ -54,7 +54,17 @@ jobs:
     workingDirectory: '$(modulePath)'
     displayName: 'Install Go dependencies'
   - script: |
-      sudo bash -c "./run-tests.sh"
+      sudo go test ./ipam/ -coverprofile coverage-ipam.out
+      sudo go test ./log/ -coverprofile coverage-log.out
+      sudo go test ./netlink/ -coverprofile coverage-netlink.out
+      sudo go test ./store/ -coverprofile coverage-store.out
+      sudo go test ./telemetry/ -coverprofile coverage-telemetry.out
+      sudo go test ./cnm/network/ -coverprofile coverage-network.out
+      sudo go test ./cni/ipam/ -coverprofile coverage-ipam.out
+      sudo go test ./cns/ipamclient/ -coverprofile coverage-ipamclient.out
+      sudo go test ./npm/iptm/ -coverprofile coverage-iptm.out
+      sudo go test ./npm/ipsm/ -coverprofile coverage-ipsm.out
+      sudo go test ./npm/ -coverprofile coverage-npm.out
       #sudo -E env "PATH=$PATH" go test ./cns/restserver/ -coverprofile coverage-restserver.out
       bash <(curl -s https://codecov.io/bash)
     workingDirectory: '$(modulePath)'
