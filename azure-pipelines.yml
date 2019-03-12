@@ -42,7 +42,7 @@ steps:
     go get github.com/docker/libnetwork/driverapi
     go get github.com/gorilla/mux
     go get golang.org/x/tools/cmd/cover
-    workingDirectory: '$(modulePath)'
+  workingDirectory: '$(modulePath)'
   displayName: 'Install Go dependencies'
 - script: |
     go test ./ipam/ -coverprofile coverage-ipam.out
