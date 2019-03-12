@@ -4,28 +4,40 @@
 # https://aka.ms/yaml
 
 trigger:
-- master
+  branches:
+    include:
+    - azure-pipelines-*
+
+resources:
+  containers:
+  - container: dev1
+    image: quay.io/deis/go-dev:v1.19.1
 
 pool:
   vmImage: 'Ubuntu-16.04'
 
+  container: dev1
+
+  variables:
+    GOBIN:  '$(GOPATH)/bin' # Go binaries path
+    GOROOT: '/usr/local/go' # Go installation path
+    GOPATH: '$(system.defaultWorkingDirectory)/gopath' # Go workspace path
+    modulePath: '$(GOPATH)/src/github.com/$(build.repository.name)' # Path to the module's code
+
 steps:
 - script: |
-    sudo -E env "PATH=$PATH" apt-get update
-    sudo -E env "PATH=$PATH" apt-get install -y ebtables
-    sudo -E env "PATH=$PATH" apt-get install -y ipset
-    sudo -E env "PATH=$PATH" apt-get install -y python3-dev gcc
-    sudo -E env "PATH=$PATH" pip install coverage
-    mkdir -p /home/circleci/go1-10
-    mkdir --parents /home/circleci/.goproject/src/github.com/Azure/azure-container-networking
-    wget https://storage.googleapis.com/golang/go1.10.2.linux-amd64.tar.gz
-    tar -C /home/circleci/go1-10 -xvf go1.10.2.linux-amd64.tar.gz
-    rm go1.10.2.linux-amd64.tar.gz
-    mv * /home/circleci/.goproject/src/github.com/Azure/azure-container-networking
-    cd /home/circleci/.goproject/src/github.com/Azure/azure-container-networking
-    export GOROOT='/home/circleci/go1-10/go'
-    export GOPATH='/home/circleci/.goproject'
-    export PATH=$GOROOT/bin:$PATH
+    mkdir -p '$(GOBIN)'
+    mkdir -p '$(GOPATH)/pkg'
+    mkdir -p '$(modulePath)'
+    shopt -s extglob
+    mv !(gopath) '$(modulePath)'
+    echo '##vso[task.prependpath]$(GOBIN)'
+    echo '##vso[task.prependpath]$(GOROOT)/bin'
+  displayName: 'Set up the Go workspace'
+- script: |
+    apt-get update
+    apt-get install -y ebtables ipset python3-dev gcc
+    pip install coverage
     go get ./...
     go get github.com/docker/libnetwork/driverapi
     go get github.com/gorilla/mux
@@ -43,4 +55,5 @@ steps:
     sudo -E env "PATH=$PATH" go test ./npm/ -coverprofile coverage-npm.out
     #sudo -E env "PATH=$PATH" go test ./cns/restserver/ -coverprofile coverage-restserver.out
     bash <(curl -s https://codecov.io/bash)
+  workingDirectory: $(modulePath)
   displayName: 'Run setup and test'
