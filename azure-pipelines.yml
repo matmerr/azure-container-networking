@@ -4,43 +4,94 @@
 # https://aka.ms/yaml
 
 trigger:
-- master
+  branches:
+    include:
+    - azure-pipelines-*
 
-pool:
-  vmImage: 'Ubuntu-16.04'
+jobs:
+- job: BuildAndTest
+  pool:
+    vmImage: 'Ubuntu-16.04'
 
-steps:
-- script: |
-    sudo -E env "PATH=$PATH" apt-get update
-    sudo -E env "PATH=$PATH" apt-get install -y ebtables
-    sudo -E env "PATH=$PATH" apt-get install -y ipset
-    sudo -E env "PATH=$PATH" apt-get install -y python3-dev gcc
-    sudo -E env "PATH=$PATH" pip install coverage
-    mkdir -p /home/circleci/go1-10
-    mkdir --parents /home/circleci/.goproject/src/github.com/Azure/azure-container-networking
-    wget https://storage.googleapis.com/golang/go1.10.2.linux-amd64.tar.gz
-    tar -C /home/circleci/go1-10 -xvf go1.10.2.linux-amd64.tar.gz
-    rm go1.10.2.linux-amd64.tar.gz
-    mv * /home/circleci/.goproject/src/github.com/Azure/azure-container-networking
-    cd /home/circleci/.goproject/src/github.com/Azure/azure-container-networking
-    export GOROOT='/home/circleci/go1-10/go'
-    export GOPATH='/home/circleci/.goproject'
-    export PATH=$GOROOT/bin:$PATH
-    go get ./...
-    go get github.com/docker/libnetwork/driverapi
-    go get github.com/gorilla/mux
-    go get golang.org/x/tools/cmd/cover
-    sudo -E env "PATH=$PATH" go test ./ipam/ -coverprofile coverage-ipam.out
-    sudo -E env "PATH=$PATH" go test ./log/ -coverprofile coverage-log.out
-    sudo -E env "PATH=$PATH" go test ./netlink/ -coverprofile coverage-netlink.out
-    sudo -E env "PATH=$PATH" go test ./store/ -coverprofile coverage-store.out
-    sudo -E env "PATH=$PATH" go test ./telemetry/ -coverprofile coverage-telemetry.out
-    sudo -E env "PATH=$PATH" go test ./cni/ipam/ -coverprofile coverage-ipam.out
-    sudo -E env "PATH=$PATH" go test ./cnm/network/ -coverprofile coverage-network.out
-    sudo -E env "PATH=$PATH" go test ./cns/ipamclient/ -coverprofile coverage-ipamclient.out
-    sudo -E env "PATH=$PATH" go test ./npm/iptm/ -coverprofile coverage-iptm.out
-    sudo -E env "PATH=$PATH" go test ./npm/ipsm/ -coverprofile coverage-ipsm.out
-    sudo -E env "PATH=$PATH" go test ./npm/ -coverprofile coverage-npm.out
-    #sudo -E env "PATH=$PATH" go test ./cns/restserver/ -coverprofile coverage-restserver.out
-    bash <(curl -s https://codecov.io/bash)
-  displayName: 'Run setup and test'
+  variables:
+    GOBIN:  '$(GOPATH)/bin' # Go binaries path
+    GOROOT: '/usr/local/go1.11' # Go installation path 
+    GOPATH: '$(system.defaultWorkingDirectory)/gopath' # Go workspace path
+    modulePath: '$(GOPATH)/src/github.com/Azure/azure-container-networking' # $(build.repository.name)' # Path to the module's code
+
+  steps:
+  - script: |
+      echo $UID
+      sudo apt-get update
+      sudo apt-get install -y ebtables ipset python3-dev gcc zip
+      sudo pip install coverage
+    displayName: 'Install OS dependencies'
+
+  - script: |
+      go version
+      mkdir -p '$(GOBIN)'
+      mkdir -p '$(GOPATH)/pkg'
+      mkdir -p '$(modulePath)'
+      shopt -s extglob
+      shopt -s dotglob
+      mv !(gopath) '$(modulePath)'
+      echo '##vso[task.prependpath]$(GOBIN)'
+      echo '##vso[task.prependpath]$(GOROOT)/bin'
+    displayName: 'Set up the Go workspace'
+
+  - script: |
+      go get -v -t -d ./...
+      if [ -f Gopkg.toml ]; then
+          curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+          dep ensure
+      fi
+      go get github.com/docker/libnetwork/driverapi
+      go get github.com/gorilla/mux
+      go get github.com/jstemmer/go-junit-report
+    workingDirectory: '$(modulePath)'
+    displayName: 'Install Go dependencies'
+
+  - script: |
+      # sudo -E env "PATH=$PATH" go test -v ./cns/restserver/ -coverprofile coverage-restserver.out
+      set -o pipefail
+      set -e
+      sudo -E env "PATH=$PATH" go test -covermode count -coverprofile=coverage.out \
+        ./ipam/ \
+        ./log/ \
+        ./netlink/ \
+        ./store/ \
+        ./telemetry/ \
+        ./cnm/network/ \
+        ./cni/ipam/ \
+        ./cns/ipamclient/ \
+        ./npm/iptm/ \
+        ./npm/ipsm/ \
+        ./npm | tee >(go-junit-report > report.xml) # 2>&1 | go-junit-report > report.xml
+      bash <(curl -s https://codecov.io/bash)
+    workingDirectory: '$(modulePath)'
+    displayName: 'RunTest'
+
+  - task: PublishTestResults@2
+    inputs:
+      testRunner: JUnit
+      testResultsFiles: $(System.DefaultWorkingDirectory)/**/report.xml
+    condition: always()
+
+  - script: |
+      export GOOS=linux
+      sudo -E env "PATH=$PATH" make all-binaries
+      export GOOS=windows
+      sudo -E env "PATH=$PATH" make all-binaries
+    workingDirectory: '$(modulePath)'
+    displayName: 'Build'
+
+  - task: CopyFiles@2
+    inputs:
+      sourceFolder: '$(modulePath)/output' # Optional
+      #contents: '**' 
+      targetFolder: $(Build.ArtifactStagingDirectory)
+
+  - task: PublishBuildArtifacts@1
+    inputs:
+      artifactName: 'output'
+      pathtoPublish: '$(Build.ArtifactStagingDirectory)'
