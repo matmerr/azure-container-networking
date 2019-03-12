@@ -1,0 +1,90 @@
+pr:
+- master
+
+trigger:
+  branches:
+    include:
+    - master
+
+jobs:
+- job: Test
+  pool:
+    vmImage: 'Ubuntu-16.04'
+
+  variables:
+    GOBIN:  '$(GOPATH)/bin' # Go binaries path
+    GOROOT: '/usr/local/go1.11' # Go installation path 
+    GOPATH: '$(system.defaultWorkingDirectory)/gopath' # Go workspace path
+    modulePath: '$(GOPATH)/src/github.com/Azure/azure-container-networking' # $(build.repository.name)' # Path to the module's code
+
+  steps:
+  - script: |
+      echo $UID
+      sudo apt-get update
+      sudo apt-get install -y ebtables ipset python3-dev gcc zip
+      sudo pip install coverage
+    displayName: 'Install OS dependencies'
+
+  - script: |
+      go version
+      mkdir -p '$(GOBIN)'
+      mkdir -p '$(GOPATH)/pkg'
+      mkdir -p '$(modulePath)'
+      shopt -s extglob
+      shopt -s dotglob
+      mv !(gopath) '$(modulePath)'
+      echo '##vso[task.prependpath]$(GOBIN)'
+      echo '##vso[task.prependpath]$(GOROOT)/bin'
+    displayName: 'Set up the Go workspace'
+
+  - script: |
+      go get -v -t -d ./...
+      if [ -f Gopkg.toml ]; then
+          curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+          dep ensure
+      fi
+      go get github.com/docker/libnetwork/driverapi
+      go get github.com/gorilla/mux
+      go get github.com/jstemmer/go-junit-report
+    workingDirectory: '$(modulePath)'
+    displayName: 'Install Go dependencies'
+
+  - script: |
+      # sudo -E env "PATH=$PATH" go test -v ./cns/restserver/ -coverprofile coverage-restserver.out
+      set -o pipefail
+      set -e
+      sudo -E env "PATH=$PATH" make test-all 2>&1 | tee >(go-junit-report > report.xml)
+      bash <(curl -s https://codecov.io/bash)
+    workingDirectory: '$(modulePath)'
+    displayName: 'RunTest'
+
+  - task: PublishTestResults@2
+    inputs:
+      testRunner: JUnit
+      testResultsFiles: $(System.DefaultWorkingDirectory)/**/report.xml
+    condition: always()
+
+  - script: |
+      export GOOS=linux
+      sudo -E env "PATH=$PATH" make all-binaries
+      export GOOS=windows
+      sudo -E env "PATH=$PATH" make all-binaries
+      cd output 
+      sudo find . -mindepth 2 -type f -print -exec mv {} . \;
+      sudo rm -R -- */
+      sudo find . -type f -regextype posix-extended ! -iregex '.*\.(zip|tgz)$' -delete
+    workingDirectory: '$(modulePath)'
+    displayName: 'Build'
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
+
+  - task: CopyFiles@2
+    inputs:
+      sourceFolder: '$(modulePath)/output'
+      targetFolder: $(Build.ArtifactStagingDirectory)
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
+
+  - task: PublishBuildArtifacts@1
+    inputs:
+      artifactName: 'output'
+      pathtoPublish: '$(Build.ArtifactStagingDirectory)'
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
