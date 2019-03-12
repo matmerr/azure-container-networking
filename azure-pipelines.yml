@@ -16,8 +16,6 @@ resources:
 pool:
   vmImage: 'Ubuntu-16.04'
 
-  container: dev1
-
   variables:
     GOBIN:  '$(GOPATH)/bin' # Go binaries path
     GOROOT: '/usr/local/go' # Go installation path
