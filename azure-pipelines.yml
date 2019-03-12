@@ -13,50 +13,56 @@ resources:
   - container: dev1
     image: quay.io/deis/go-dev:v1.19.1
 
-pool:
-  vmImage: 'Ubuntu-16.04'
+jobs:
+- job: unit_tests
+  pool:
+    vmImage: 'Ubuntu-16.04'
+  container: dev1
+  
   variables:
     GOBIN:  '$(GOPATH)/bin' # Go binaries path
     GOROOT: '/usr/local/go' # Go installation path
     GOPATH: '$(system.defaultWorkingDirectory)/gopath' # Go workspace path
     modulePath: '$(GOPATH)/src/github.com/azure/azure-container-networking' # $(build.repository.name)' # Path to the module's code
-  container: dev1
-steps:
-- script: |
-    sudo apt-get update
-    sudo apt-get install -y ebtables ipset python3-dev gcc
-    pip install coverage
-  displayName: 'Install OS dependencies'
-- script: |
-    mkdir -p $(GOBIN)
-    mkdir -p $(GOPATH)/pkg
-    mkdir -p $(modulePath)
-    shopt -s extglob
-    mv !(gopath) '$(modulePath)'
-    echo '##vso[task.prependpath]$(GOBIN)'
-    echo '##vso[task.prependpath]$(GOROOT)/bin'
-  displayName: 'Set up the Go workspace'
-- script: |
-    export GOPATH='$(GOPATH)'
-    go get ./...
-    go get github.com/docker/libnetwork/driverapi
-    go get github.com/gorilla/mux
-    go get golang.org/x/tools/cmd/cover
-  workingDirectory: '$(modulePath)'
-  displayName: 'Install Go dependencies'
-- script: |
-    go test ./ipam/ -coverprofile coverage-ipam.out
-    go test ./log/ -coverprofile coverage-log.out
-    go test ./netlink/ -coverprofile coverage-netlink.out
-    go test ./store/ -coverprofile coverage-store.out
-    go test ./telemetry/ -coverprofile coverage-telemetry.out
-    go test ./cnm/network/ -coverprofile coverage-network.out
-    go test ./cni/ipam/ -coverprofile coverage-ipam.out
-    go test ./cns/ipamclient/ -coverprofile coverage-ipamclient.out
-    go test ./npm/iptm/ -coverprofile coverage-iptm.out
-    go test ./npm/ipsm/ -coverprofile coverage-ipsm.out
-    go test ./npm/ -coverprofile coverage-npm.out
-    #sudo -E env "PATH=$PATH" go test ./cns/restserver/ -coverprofile coverage-restserver.out
-    bash <(curl -s https://codecov.io/bash)
-  workingDirectory: '$(modulePath)'
-  displayName: 'Run test'
+
+  steps:
+  - script: |
+      sudo apt-get update
+      sudo apt-get install -y ebtables ipset python3-dev gcc
+      pip install coverage
+    workingDirectory: '$(modulePath)'
+    displayName: 'Install OS dependencies'
+  - script: |
+      mkdir -p $(GOBIN)
+      mkdir -p $(GOPATH)/pkg
+      mkdir -p $(modulePath)
+      shopt -s extglob
+      mv !(gopath) '$(modulePath)'
+      echo '##vso[task.prependpath]$(GOBIN)'
+      echo '##vso[task.prependpath]$(GOROOT)/bin'
+    workingDirectory: '$(modulePath)'
+    displayName: 'Set up the Go workspace'
+  - script: |
+      export GOPATH='$(GOPATH)'
+      go get ./...
+      go get github.com/docker/libnetwork/driverapi
+      go get github.com/gorilla/mux
+      go get golang.org/x/tools/cmd/cover
+    workingDirectory: '$(modulePath)'
+    displayName: 'Install Go dependencies'
+  - script: |
+      go test ./ipam/ -coverprofile coverage-ipam.out
+      go test ./log/ -coverprofile coverage-log.out
+      go test ./netlink/ -coverprofile coverage-netlink.out
+      go test ./store/ -coverprofile coverage-store.out
+      go test ./telemetry/ -coverprofile coverage-telemetry.out
+      go test ./cnm/network/ -coverprofile coverage-network.out
+      go test ./cni/ipam/ -coverprofile coverage-ipam.out
+      go test ./cns/ipamclient/ -coverprofile coverage-ipamclient.out
+      go test ./npm/iptm/ -coverprofile coverage-iptm.out
+      go test ./npm/ipsm/ -coverprofile coverage-ipsm.out
+      go test ./npm/ -coverprofile coverage-npm.out
+      #sudo -E env "PATH=$PATH" go test ./cns/restserver/ -coverprofile coverage-restserver.out
+      bash <(curl -s https://codecov.io/bash)
+    workingDirectory: '$(modulePath)'
+    displayName: 'Run test'
