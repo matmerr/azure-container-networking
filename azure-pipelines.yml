@@ -18,7 +18,7 @@ jobs:
   pool:
     vmImage: 'Ubuntu-16.04'
   container: dev1
-  
+
   variables:
     GOBIN:  '$(GOPATH)/bin' # Go binaries path
     GOROOT: '/usr/local/go' # Go installation path
@@ -30,7 +30,6 @@ jobs:
       sudo apt-get update
       sudo apt-get install -y ebtables ipset python3-dev gcc
       pip install coverage
-    workingDirectory: '$(modulePath)'
     displayName: 'Install OS dependencies'
   - script: |
       mkdir -p $(GOBIN)
