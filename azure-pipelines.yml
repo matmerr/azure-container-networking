@@ -24,23 +24,25 @@ pool:
 
 steps:
 - script: |
-    mkdir -p '$(GOBIN)'
-    mkdir -p '$(GOPATH)/pkg'
-    mkdir -p '$(modulePath)'
+    mkdir -p $(GOBIN)
+    mkdir -p $(GOPATH)/pkg
+    mkdir -p $(modulePath)
     shopt -s extglob
     mv !(gopath) '$(modulePath)'
     echo '##vso[task.prependpath]$(GOBIN)'
     echo '##vso[task.prependpath]$(GOROOT)/bin'
   displayName: 'Set up the Go workspace'
 - script: |
-    apt-get update
-    apt-get install -y ebtables ipset python3-dev gcc
+    sudo apt-get update
+    sudo apt-get install -y ebtables ipset python3-dev gcc
     pip install coverage
+  displayName: 'Install OS dependencies'
+- script: |
     go get ./...
     go get github.com/docker/libnetwork/driverapi
     go get github.com/gorilla/mux
     go get golang.org/x/tools/cmd/cover
-  displayName: 'Install dependencies'
+  displayName: 'Install Go dependencies'
 - script: |
     go test ./ipam/ -coverprofile coverage-ipam.out
     go test ./log/ -coverprofile coverage-log.out
