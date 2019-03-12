@@ -1,0 +1,11 @@
+go test ./ipam/ -coverprofile coverage-ipam.out
+go test ./log/ -coverprofile coverage-log.out
+go test ./netlink/ -coverprofile coverage-netlink.out
+go test ./store/ -coverprofile coverage-store.out
+go test ./telemetry/ -coverprofile coverage-telemetry.out
+go test ./cnm/network/ -coverprofile coverage-network.out
+go test ./cni/ipam/ -coverprofile coverage-ipam.out
+go test ./cns/ipamclient/ -coverprofile coverage-ipamclient.out
+go test ./npm/iptm/ -coverprofile coverage-iptm.out
+go test ./npm/ipsm/ -coverprofile coverage-ipsm.out
+go test ./npm/ -coverprofile coverage-npm.out
