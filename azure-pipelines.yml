@@ -32,6 +32,7 @@ jobs:
       sudo apt-get install -y ebtables ipset python3-dev gcc
       sudo pip install coverage
     displayName: 'Install OS dependencies'
+
   - script: |
       mkdir -p '$(GOBIN)'
       mkdir -p '$(GOPATH)/pkg'
@@ -42,7 +43,9 @@ jobs:
       echo '##vso[task.prependpath]$(GOBIN)'
       echo '##vso[task.prependpath]$(GOROOT)/bin'
     displayName: 'Set up the Go workspace'
+    
   - script: |
+      go version
       go get -v -t -d ./...
       if [ -f Gopkg.toml ]; then
           curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
