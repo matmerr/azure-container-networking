@@ -11,26 +11,27 @@ trigger:
 resources:
   containers:
   - container: dev1
-    image: golang:1.12
+    image: quay.io/deis/go-dev:v1.19.1
 
 jobs:
 - job: unit_tests
   pool:
     vmImage: 'Ubuntu-16.04'
-  container: dev1
+  #container: dev1
 
   variables:
     GOBIN:  '$(GOPATH)/bin' # Go binaries path
     GOROOT: '/usr/local/go' # Go installation path
     GOPATH: '$(system.defaultWorkingDirectory)/gopath' # Go workspace path
-    modulePath: '$(GOPATH)/src/github.com/azure/azure-container-networking' # $(build.repository.name)' # Path to the module's code
+    modulePath: '$(GOPATH)/src/github.com/Azure/azure-container-networking' # $(build.repository.name)' # Path to the module's code
 
   steps:
   - script: |
       echo $UID
-#      apt-get update
-#      apt-get install -y ebtables ipset python3-dev gcc
-#      pip install coverage
+      apt-get update
+      apt-get install -y ebtables ipset python3-dev gcc
+      pip install coverage
+    runAsRoot: true
     displayName: 'Install OS dependencies'
   - script: |
       mkdir -p $(GOBIN)
