@@ -8,10 +8,10 @@ trigger:
     include:
     - azure-pipelines-*
 
-resources:
-  containers:
-  - container: dev1
-    image: quay.io/deis/go-dev:v1.19.1
+#resources:
+#  containers:
+#  - container: dev1
+#    image: quay.io/deis/go-dev:v1.19.1
 
 pool:
   vmImage: 'Ubuntu-16.04'
