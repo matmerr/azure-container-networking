@@ -54,7 +54,7 @@ jobs:
     workingDirectory: '$(modulePath)'
     displayName: 'Install Go dependencies'
   - script: |
-      sudo ./run-tests.sh
+      sudo bash -c "./run-tests.sh"
       #sudo -E env "PATH=$PATH" go test ./cns/restserver/ -coverprofile coverage-restserver.out
       bash <(curl -s https://codecov.io/bash)
     workingDirectory: '$(modulePath)'
