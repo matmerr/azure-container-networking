@@ -24,6 +24,11 @@ pool:
 
 steps:
 - script: |
+    sudo apt-get update
+    sudo apt-get install -y ebtables ipset python3-dev gcc
+    pip install coverage
+  displayName: 'Install OS dependencies'
+- script: |
     mkdir -p $(GOBIN)
     mkdir -p $(GOPATH)/pkg
     mkdir -p $(modulePath)
@@ -33,15 +38,11 @@ steps:
     echo '##vso[task.prependpath]$(GOROOT)/bin'
   displayName: 'Set up the Go workspace'
 - script: |
-    sudo apt-get update
-    sudo apt-get install -y ebtables ipset python3-dev gcc
-    pip install coverage
-  displayName: 'Install OS dependencies'
-- script: |
     go get ./...
     go get github.com/docker/libnetwork/driverapi
     go get github.com/gorilla/mux
     go get golang.org/x/tools/cmd/cover
+    workingDirectory: '$(modulePath)'
   displayName: 'Install Go dependencies'
 - script: |
     go test ./ipam/ -coverprofile coverage-ipam.out
@@ -57,5 +58,5 @@ steps:
     go test ./npm/ -coverprofile coverage-npm.out
     #sudo -E env "PATH=$PATH" go test ./cns/restserver/ -coverprofile coverage-restserver.out
     bash <(curl -s https://codecov.io/bash)
-  workingDirectory: $(modulePath)
+  workingDirectory: '$(modulePath)'
   displayName: 'Run test'
