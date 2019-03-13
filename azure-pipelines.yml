@@ -73,7 +73,7 @@ jobs:
       #sudo -E env "PATH=$PATH" go test ./npm/ipsm/ -coverprofile coverage-ipsm.out
       #sudo -E env "PATH=$PATH" go test ./npm/ -coverprofile coverage-npm.out
       #sudo -E env "PATH=$PATH" go test ./cns/restserver/ -coverprofile coverage-restserver.out
-      sudo -E env "PATH=$PATH" go test -coverprofile=coverage.txt -covermode count ./ipam/ ./log/ ./netlink/ ./store/ ./telemetry/ ./cnm/network/ ./cni/ipam/ ./cns/ipamclient/ ./npm/iptm/ ./npm/ipsm/ ./npm 2>&1 | go-junit-report > report.xml
+      sudo -E env "PATH=$PATH" go test -v -coverprofile=coverage.txt -covermode count ./ipam/ ./log/ ./netlink/ ./store/ ./telemetry/ ./cnm/network/ ./cni/ipam/ ./cns/ipamclient/ ./npm/iptm/ ./npm/ipsm/ ./npm 2>&1 | go-junit-report > report.xml
       gocov convert coverage.txt > coverage.json
       gocov-xml < coverage.json > coverage.xml
       mkdir coverage
@@ -102,4 +102,4 @@ jobs:
   - task: PublishPipelineArtifact@0
     inputs:
       artifactName: 'azure-vnet-cni'
-      targetPath: '$(modulePath)/output/linux_amd64/*'
+      targetPath: '$(modulePath)/output/linux_amd64/**'
