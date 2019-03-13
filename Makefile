@@ -280,7 +280,7 @@ endif
 # run all tests
 .PHONY: test-all
 test-all:
-	go test -v -coverprofile=coverage.txt -covermode count \
+	go test -v -coverprofile=coverage.txt \
         ./ipam/ \
         ./log/ \
         ./netlink/ \
