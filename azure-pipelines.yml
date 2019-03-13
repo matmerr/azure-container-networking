@@ -82,4 +82,4 @@ jobs:
   - task: PublishPipelineArtifact@0
     inputs:
       artifactName: 'azure-vnet-cni'
-      targetPath: 'output/linux_amd64/cni/azure-vnet'
+      targetPath: '$(modulePath)/output/linux_amd64/cni/azure-vnet'
