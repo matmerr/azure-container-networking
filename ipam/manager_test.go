@@ -159,7 +159,10 @@ func TestAddressSpaceCreateAndGet(t *testing.T) {
 	if global != GlobalDefaultAddressSpaceId {
 		t.Errorf("GetDefaultAddressSpaces returned invalid global address space.")
 	}
-	t.Errorf("GetDefaultAddressSpaces - Please Remove")
+}
+
+func TestCIFailure(t *testing.T) {
+	t.Fatalf("TestCIFailure - Please Remove")
 }
 
 // Tests updating an existing address space adds new resources and removes stale ones.
