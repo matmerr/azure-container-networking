@@ -85,7 +85,7 @@ jobs:
         ./npm/iptm/ \
         ./npm/ipsm/ \
         ./npm \
-        2>&1 # | go-junit-report > report.xml
+        2>&1 | go-junit-report > report.xml
       gocov convert coverage.txt > coverage.json
       gocov-xml < coverage.json > coverage.xml
       mkdir coverage
@@ -98,12 +98,6 @@ jobs:
     inputs:
       testRunner: JUnit
       testResultsFiles: $(System.DefaultWorkingDirectory)/**/report.xml
-
-  - task: PublishCodeCoverageResults@1
-    inputs:
-      codeCoverageTool: Cobertura 
-      summaryFileLocation: $(System.DefaultWorkingDirectory)/**/coverage.xml
-      reportDirectory: $(System.DefaultWorkingDirectory)/**/coverage
 
   - script: |
       sudo -E env "PATH=$PATH" make all-binaries
