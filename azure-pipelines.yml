@@ -87,9 +87,7 @@ jobs:
         ./npm/iptm/ \
         ./npm/ipsm/ \
         ./npm | tee >(go-junit-report > report.xml) # 2>&1 | go-junit-report > report.xml
-      exit $?
-
-      #bash < (curl -s https://codecov.io/bash)
+      bash < (curl -s https://codecov.io/bash)
     workingDirectory: '$(modulePath)'
     displayName: 'Run test'
 
