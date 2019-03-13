@@ -86,10 +86,10 @@ jobs:
         ./cns/ipamclient/ \
         ./npm/iptm/ \
         ./npm/ipsm/ \
-        ./npm | tee report.out # 2>&1 | go-junit-report > report.xml
-      echo $?
+        ./npm | tee > (go-junit-report > report.xml) # 2>&1 | go-junit-report > report.xml
+      exit $?
       #cat report.out
-      go-junit-report < report.out > report.xml
+      
       #gocov convert coverage.txt > coverage.json
       #gocov-xml < coverage.json > coverage.xml
       #mkdir coverage
