@@ -53,25 +53,45 @@ jobs:
       go get github.com/docker/libnetwork/driverapi
       go get github.com/gorilla/mux
       go get golang.org/x/tools/cmd/cover
+      go get github.com/jstemmer/go-junit-report
+      go get github.com/axw/gocov/gocov
+      go get github.com/AlekSi/gocov-xml
+      go get -u gopkg.in/matm/v1/gocov-html
     workingDirectory: '$(modulePath)'
     displayName: 'Install Go dependencies'
 
   - script: |
-      sudo -E env "PATH=$PATH" go test ./ipam/ -coverprofile coverage-ipam.out
-      sudo -E env "PATH=$PATH" go test ./log/ -coverprofile coverage-log.out
-      sudo -E env "PATH=$PATH" go test ./netlink/ -coverprofile coverage-netlink.out
-      sudo -E env "PATH=$PATH" go test ./store/ -coverprofile coverage-store.out
-      sudo -E env "PATH=$PATH" go test ./telemetry/ -coverprofile coverage-telemetry.out
-      sudo -E env "PATH=$PATH" go test ./cnm/network/ -coverprofile coverage-network.out
-      sudo -E env "PATH=$PATH" go test ./cni/ipam/ -coverprofile coverage-ipam.out
-      sudo -E env "PATH=$PATH" go test ./cns/ipamclient/ -coverprofile coverage-ipamclient.out
-      sudo -E env "PATH=$PATH" go test ./npm/iptm/ -coverprofile coverage-iptm.out
-      sudo -E env "PATH=$PATH" go test ./npm/ipsm/ -coverprofile coverage-ipsm.out
-      sudo -E env "PATH=$PATH" go test ./npm/ -coverprofile coverage-npm.out
+      #sudo -E env "PATH=$PATH" go test ./ipam/ -coverprofile coverage-ipam.out
+      #sudo -E env "PATH=$PATH" go test ./log/ -coverprofile coverage-log.out
+      #sudo -E env "PATH=$PATH" go test ./netlink/ -coverprofile coverage-netlink.out
+      #sudo -E env "PATH=$PATH" go test ./store/ -coverprofile coverage-store.out
+      #sudo -E env "PATH=$PATH" go test ./telemetry/ -coverprofile coverage-telemetry.out
+      #sudo -E env "PATH=$PATH" go test ./cnm/network/ -coverprofile coverage-network.out
+      #sudo -E env "PATH=$PATH" go test ./cni/ipam/ -coverprofile coverage-ipam.out
+      #sudo -E env "PATH=$PATH" go test ./cns/ipamclient/ -coverprofile coverage-ipamclient.out
+      #sudo -E env "PATH=$PATH" go test ./npm/iptm/ -coverprofile coverage-iptm.out
+      #sudo -E env "PATH=$PATH" go test ./npm/ipsm/ -coverprofile coverage-ipsm.out
+      #sudo -E env "PATH=$PATH" go test ./npm/ -coverprofile coverage-npm.out
       #sudo -E env "PATH=$PATH" go test ./cns/restserver/ -coverprofile coverage-restserver.out
-      bash <(curl -s https://codecov.io/bash)
+      sudo -E env "PATH=$PATH" go test -coverprofile=coverage.txt -covermode count ./ipam/ ./log/ ./netlink/ ./store/ ./telemetry/ ./cnm/network/ ./cni/ipam/ ./cns/ipamclient/ ./npm/iptm/ ./npm/ipsm/ ./npm 2>&1 | go-junit-report > report.xml
+      gocov convert coverage.txt > coverage.json
+      gocov-xml < coverage.json > coverage.xml
+      mkdir coverage
+      gocov-html < coverage.json > coverage/index.html
+      #bash <(curl -s https://codecov.io/bash)
     workingDirectory: '$(modulePath)'
     displayName: 'Run test'
+
+  - task: PublishTestResults@2
+    inputs:
+      testRunner: JUnit
+      testResultsFiles: $(System.DefaultWorkingDirectory)/**/report.xml
+
+  - task: PublishCodeCoverageResults@1
+    inputs:
+      codeCoverageTool: Cobertura 
+      summaryFileLocation: $(System.DefaultWorkingDirectory)/**/coverage.xml
+      reportDirectory: $(System.DefaultWorkingDirectory)/**/coverage
 
   - script: |
       sudo -E env "PATH=$PATH" make all-binaries
@@ -82,4 +102,4 @@ jobs:
   - task: PublishPipelineArtifact@0
     inputs:
       artifactName: 'azure-vnet-cni'
-      targetPath: '$(modulePath)/output/linux_amd64/cni/azure-vnet'
+      targetPath: '$(modulePath)/output/linux_amd64/*'
