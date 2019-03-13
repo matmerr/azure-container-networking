@@ -187,5 +187,4 @@ func TestDeletePod(t *testing.T) {
 	if err := npMgr.DeletePod(podObj); err != nil {
 		t.Errorf("TestDeletePod failed @ DeletePod")
 	}
-	t.Errorf("TestDeletePod Test - Please Remove")
 }
