@@ -74,6 +74,7 @@ jobs:
       # sudo -E env "PATH=$PATH" go test -v ./npm/ipsm/ -coverprofile coverage-ipsm.out
       # sudo -E env "PATH=$PATH" go test -v ./npm/ -coverprofile coverage-npm.out
       # #sudo -E env "PATH=$PATH" go test -v ./cns/restserver/ -coverprofile coverage-restserver.out
+      set -o pipefail
       sudo -E env "PATH=$PATH" go test -covermode count -coverprofile=coverage.out \
         ./ipam/ \
         ./log/ \
