@@ -74,13 +74,13 @@ jobs:
       # sudo -E env "PATH=$PATH" go test -v ./npm/ipsm/ -coverprofile coverage-ipsm.out
       # sudo -E env "PATH=$PATH" go test -v ./npm/ -coverprofile coverage-npm.out
       # #sudo -E env "PATH=$PATH" go test -v ./cns/restserver/ -coverprofile coverage-restserver.out
-      sudo -E env "PATH=$PATH" make test-all > report.out
-      cat report.out
-      cat report.out | go-junit-report > report.xml
-      gocov convert coverage.txt > coverage.json
-      gocov-xml < coverage.json > coverage.xml
-      mkdir coverage
-      gocov-html < coverage.json > coverage/index.html
+      sudo -E env "PATH=$PATH" make test-all 
+      #cat report.out
+      #cat report.out | go-junit-report > report.xml
+      #gocov convert coverage.txt > coverage.json
+      #gocov-xml < coverage.json > coverage.xml
+      #mkdir coverage
+      #gocov-html < coverage.json > coverage/index.html
       #bash < (curl -s https://codecov.io/bash)
     workingDirectory: '$(modulePath)'
     displayName: 'Run test'
