@@ -84,8 +84,8 @@ jobs:
         ./cns/ipamclient/ \
         ./npm/iptm/ \
         ./npm/ipsm/ \
-        ./npm \
-        2>&1 | go-junit-report > report.xml
+        ./npm #\
+        #2>&1 | go-junit-report > report.xml
       gocov convert coverage.txt > coverage.json
       gocov-xml < coverage.json > coverage.xml
       mkdir coverage
