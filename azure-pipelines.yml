@@ -61,18 +61,18 @@ jobs:
     displayName: 'Install Go dependencies'
 
   - script: |
-      #sudo -E env "PATH=$PATH" go test ./ipam/ -coverprofile coverage-ipam.out
-      #sudo -E env "PATH=$PATH" go test ./log/ -coverprofile coverage-log.out
-      #sudo -E env "PATH=$PATH" go test ./netlink/ -coverprofile coverage-netlink.out
-      #sudo -E env "PATH=$PATH" go test ./store/ -coverprofile coverage-store.out
-      #sudo -E env "PATH=$PATH" go test ./telemetry/ -coverprofile coverage-telemetry.out
-      #sudo -E env "PATH=$PATH" go test ./cnm/network/ -coverprofile coverage-network.out
-      #sudo -E env "PATH=$PATH" go test ./cni/ipam/ -coverprofile coverage-ipam.out
-      #sudo -E env "PATH=$PATH" go test ./cns/ipamclient/ -coverprofile coverage-ipamclient.out
-      #sudo -E env "PATH=$PATH" go test ./npm/iptm/ -coverprofile coverage-iptm.out
-      #sudo -E env "PATH=$PATH" go test ./npm/ipsm/ -coverprofile coverage-ipsm.out
-      #sudo -E env "PATH=$PATH" go test ./npm/ -coverprofile coverage-npm.out
-      #sudo -E env "PATH=$PATH" go test ./cns/restserver/ -coverprofile coverage-restserver.out
+      # sudo -E env "PATH=$PATH" go test -v ./ipam/ -coverprofile coverage-ipam.out
+      # sudo -E env "PATH=$PATH" go test -v ./log/ -coverprofile coverage-log.out
+      # sudo -E env "PATH=$PATH" go test -v ./netlink/ -coverprofile coverage-netlink.out
+      # sudo -E env "PATH=$PATH" go test -v ./store/ -coverprofile coverage-store.out
+      # sudo -E env "PATH=$PATH" go test -v ./telemetry/ -coverprofile coverage-telemetry.out
+      # sudo -E env "PATH=$PATH" go test -v ./cnm/network/ -coverprofile coverage-network.out
+      # sudo -E env "PATH=$PATH" go test -v ./cni/ipam/ -coverprofile coverage-ipam.out
+      # sudo -E env "PATH=$PATH" go test -v ./cns/ipamclient/ -coverprofile coverage-ipamclient.out
+      # sudo -E env "PATH=$PATH" go test -v ./npm/iptm/ -coverprofile coverage-iptm.out
+      # sudo -E env "PATH=$PATH" go test -v ./npm/ipsm/ -coverprofile coverage-ipsm.out
+      # sudo -E env "PATH=$PATH" go test -v ./npm/ -coverprofile coverage-npm.out
+      # #sudo -E env "PATH=$PATH" go test -v ./cns/restserver/ -coverprofile coverage-restserver.out
       sudo -E env "PATH=$PATH" go test -v -coverprofile=coverage.txt -covermode count \
         ./ipam/ \
         ./log/ \
@@ -90,7 +90,7 @@ jobs:
       gocov-xml < coverage.json > coverage.xml
       mkdir coverage
       gocov-html < coverage.json > coverage/index.html
-      #bash <(curl -s https://codecov.io/bash)
+      #bash < (curl -s https://codecov.io/bash)
     workingDirectory: '$(modulePath)'
     displayName: 'Run test'
 
@@ -104,8 +104,7 @@ jobs:
     workingDirectory: '$(modulePath)'
     displayName: 'Build'
 
-
   - task: PublishPipelineArtifact@0
     inputs:
       artifactName: 'azure-vnet-cni'
-      targetPath: '$(modulePath)/output/linux_amd64/**'
+      targetPath: '$(modulePath)/output/linux_amd64/cni/azure-vnet'
