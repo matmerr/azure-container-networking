@@ -45,11 +45,6 @@ jobs:
     displayName: 'Set up the Go workspace'
 
   - script: |
-      go version
-      ls
-      pwd
-      echo '$(GOPATH)'
-      echo '$(GOROOT)'
       go get -v -t -d ./...
       if [ -f Gopkg.toml ]; then
           curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
@@ -62,10 +57,6 @@ jobs:
     displayName: 'Install Go dependencies'
 
   - script: |
-      ls
-      pwd
-      echo '$(GOPATH)'
-      echo '$(GOROOT)'
       sudo -E env "PATH=$PATH" go test ./ipam/ -coverprofile coverage-ipam.out
       sudo -E env "PATH=$PATH" go test ./log/ -coverprofile coverage-log.out
       sudo -E env "PATH=$PATH" go test ./netlink/ -coverprofile coverage-netlink.out
@@ -81,3 +72,14 @@ jobs:
       bash <(curl -s https://codecov.io/bash)
     workingDirectory: '$(modulePath)'
     displayName: 'Run test'
+
+  - script: |
+      make all-binaries
+    workingDirectory: '$(modulePath)'
+    displayName: 'Build'
+
+
+  - task: PublishPipelineArtifact@0
+    inputs:
+      artifactName: 'azure-vnet-cni'
+      targetPath: 'output/linux_amd64/cni/azure-vnet'
