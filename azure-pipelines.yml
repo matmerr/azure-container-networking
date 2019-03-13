@@ -34,6 +34,7 @@ jobs:
     displayName: 'Install OS dependencies'
 
   - script: |
+      go version
       mkdir -p '$(GOBIN)'
       mkdir -p '$(GOPATH)/pkg'
       mkdir -p '$(modulePath)'
@@ -84,8 +85,9 @@ jobs:
         ./cns/ipamclient/ \
         ./npm/iptm/ \
         ./npm/ipsm/ \
-        ./npm #\
-        #2>&1 | go-junit-report > report.xml
+        ./npm > report.out
+        cat report.out
+        cat report.out | go-junit-report > report.xml
       gocov convert coverage.txt > coverage.json
       gocov-xml < coverage.json > coverage.xml
       mkdir coverage
