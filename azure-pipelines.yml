@@ -86,14 +86,9 @@ jobs:
         ./cns/ipamclient/ \
         ./npm/iptm/ \
         ./npm/ipsm/ \
-        ./npm | tee > (go-junit-report > report.xml) # 2>&1 | go-junit-report > report.xml
+        ./npm | tee >(go-junit-report > report.xml) # 2>&1 | go-junit-report > report.xml
       exit $?
-      #cat report.out
-      
-      #gocov convert coverage.txt > coverage.json
-      #gocov-xml < coverage.json > coverage.xml
-      #mkdir coverage
-      #gocov-html < coverage.json > coverage/index.html
+
       #bash < (curl -s https://codecov.io/bash)
     workingDirectory: '$(modulePath)'
     displayName: 'Run test'
