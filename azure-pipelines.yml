@@ -86,7 +86,7 @@ jobs:
     workingDirectory: '$(modulePath)'
     displayName: 'Build'
 
-  - task: CopyBuildArtifacts@2
+  - task: CopyFiles@2
     inputs:
       sourceFolder: '$(modulePath)/output' # Optional
       #contents: '**' 
