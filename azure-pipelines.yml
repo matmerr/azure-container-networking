@@ -76,7 +76,7 @@ jobs:
       # #sudo -E env "PATH=$PATH" go test -v ./cns/restserver/ -coverprofile coverage-restserver.out
       set -o pipefail
       set -e
-      sudo -E env "PATH=$PATH" go test -v -covermode count -coverprofile=coverage.out \
+      sudo -E env "PATH=$PATH" go test -covermode count -coverprofile=coverage.out \
         ./ipam/ \
         ./log/ \
         ./netlink/ \
@@ -97,7 +97,7 @@ jobs:
       testRunner: JUnit
       testResultsFiles: $(System.DefaultWorkingDirectory)/**/report.xml
     condition: always()
-    
+
   - script: |
       sudo -E env "PATH=$PATH" make all-binaries
     workingDirectory: '$(modulePath)'
@@ -106,4 +106,4 @@ jobs:
   - task: PublishPipelineArtifact@0
     inputs:
       artifactName: 'azure-vnet-cni'
-      targetPath: '$(modulePath)/output/linux_amd64/cni/azure-vnet'
+      targetPath: '$(modulePath)/output/'
