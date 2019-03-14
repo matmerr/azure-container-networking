@@ -99,6 +99,7 @@ jobs:
     condition: always()
 
   - script: |
+      export GOOS=linux
       sudo -E env "PATH=$PATH" make all-binaries
       export GOOS=windows
       sudo -E env "PATH=$PATH" make all-binaries
