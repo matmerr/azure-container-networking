@@ -103,7 +103,7 @@ jobs:
     workingDirectory: '$(modulePath)'
     displayName: 'Build'
 
-  - task: PublishPipelineArtifact@0
+  - task: PublishBuildArtifacts@1
     inputs:
-      artifactName: 'azure-vnet-cni'
-      targetPath: '$(modulePath)/output/'
+      artifactName: 'binaries'
+      pathtoPublish: '$(modulePath)/output/'
