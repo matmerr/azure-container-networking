@@ -88,7 +88,6 @@ jobs:
   - task: CopyFiles@2
     inputs:
       sourceFolder: '$(modulePath)/output' # Optional
-      #contents: '**' 
       targetFolder: $(Build.ArtifactStagingDirectory)
 
   - task: PublishBuildArtifacts@1
