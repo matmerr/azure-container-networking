@@ -105,5 +105,5 @@ jobs:
 
   - task: PublishBuildArtifacts@1
     inputs:
-      artifactName: 'binaries'
+      artifactName: 'output'
       pathtoPublish: '$(modulePath)/output/'
