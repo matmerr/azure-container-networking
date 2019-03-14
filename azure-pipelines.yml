@@ -94,4 +94,4 @@ jobs:
   - task: PublishBuildArtifacts@1
     inputs:
       artifactName: 'output'
-      pathtoPublish: '$(Build.ArtifactStagingDirectory)/output/'
+      pathtoPublish: '$(Build.ArtifactStagingDirectory)'
