@@ -29,7 +29,7 @@ jobs:
   - script: |
       echo $UID
       sudo apt-get update
-      sudo apt-get install -y ebtables ipset python3-dev gcc
+      sudo apt-get install -y ebtables ipset python3-dev gcc zip
       sudo pip install coverage
     displayName: 'Install OS dependencies'
 
@@ -99,6 +99,8 @@ jobs:
     condition: always()
 
   - script: |
+      sudo -E env "PATH=$PATH" make all-binaries
+      export GOOS=windows
       sudo -E env "PATH=$PATH" make all-binaries
     workingDirectory: '$(modulePath)'
     displayName: 'Build'
