@@ -8,20 +8,14 @@ trigger:
     include:
     - azure-pipelines-*
 
-resources:
-  containers:
-  - container: dev1
-    image: quay.io/deis/go-dev:v1.19.1
-
 jobs:
 - job: unit_tests
   pool:
     vmImage: 'Ubuntu-16.04'
-  #container: dev1
 
   variables:
     GOBIN:  '$(GOPATH)/bin' # Go binaries path
-    GOROOT: '/usr/local/go1.11' # Go installation path # Go installation path
+    GOROOT: '/usr/local/go1.11' # Go installation path 
     GOPATH: '$(system.defaultWorkingDirectory)/gopath' # Go workspace path
     modulePath: '$(GOPATH)/src/github.com/Azure/azure-container-networking' # $(build.repository.name)' # Path to the module's code
 
@@ -62,18 +56,7 @@ jobs:
     displayName: 'Install Go dependencies'
 
   - script: |
-      # sudo -E env "PATH=$PATH" go test -v ./ipam/ -coverprofile coverage-ipam.out
-      # sudo -E env "PATH=$PATH" go test -v ./log/ -coverprofile coverage-log.out
-      # sudo -E env "PATH=$PATH" go test -v ./netlink/ -coverprofile coverage-netlink.out
-      # sudo -E env "PATH=$PATH" go test -v ./store/ -coverprofile coverage-store.out
-      # sudo -E env "PATH=$PATH" go test -v ./telemetry/ -coverprofile coverage-telemetry.out
-      # sudo -E env "PATH=$PATH" go test -v ./cnm/network/ -coverprofile coverage-network.out
-      # sudo -E env "PATH=$PATH" go test -v ./cni/ipam/ -coverprofile coverage-ipam.out
-      # sudo -E env "PATH=$PATH" go test -v ./cns/ipamclient/ -coverprofile coverage-ipamclient.out
-      # sudo -E env "PATH=$PATH" go test -v ./npm/iptm/ -coverprofile coverage-iptm.out
-      # sudo -E env "PATH=$PATH" go test -v ./npm/ipsm/ -coverprofile coverage-ipsm.out
-      # sudo -E env "PATH=$PATH" go test -v ./npm/ -coverprofile coverage-npm.out
-      # #sudo -E env "PATH=$PATH" go test -v ./cns/restserver/ -coverprofile coverage-restserver.out
+      # sudo -E env "PATH=$PATH" go test -v ./cns/restserver/ -coverprofile coverage-restserver.out
       set -o pipefail
       set -e
       sudo -E env "PATH=$PATH" go test -covermode count -coverprofile=coverage.out \
@@ -103,10 +86,11 @@ jobs:
       sudo -E env "PATH=$PATH" make all-binaries
       export GOOS=windows
       sudo -E env "PATH=$PATH" make all-binaries
+      mv output $(Build.ArtifactStagingDirectory)
     workingDirectory: '$(modulePath)'
     displayName: 'Build'
 
   - task: PublishBuildArtifacts@1
     inputs:
       artifactName: 'output'
-      pathtoPublish: '$(modulePath)/output/'
+      pathtoPublish: '$(Build.ArtifactStagingDirectory)/output/'
