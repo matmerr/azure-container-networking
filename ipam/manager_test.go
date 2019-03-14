@@ -161,10 +161,6 @@ func TestAddressSpaceCreateAndGet(t *testing.T) {
 	}
 }
 
-func TestCIFailure(t *testing.T) {
-	t.Fatalf("TestCIFailure - Please Remove")
-}
-
 // Tests updating an existing address space adds new resources and removes stale ones.
 func TestAddressSpaceUpdate(t *testing.T) {
 	// Start with the test address space.
