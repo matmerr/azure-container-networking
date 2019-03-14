@@ -9,7 +9,7 @@ trigger:
     - azure-pipelines-*
 
 jobs:
-- job: unit_tests
+- job: BuildAndTest
   pool:
     vmImage: 'Ubuntu-16.04'
 
@@ -82,7 +82,6 @@ jobs:
       sudo -E env "PATH=$PATH" make all-binaries
       export GOOS=windows
       sudo -E env "PATH=$PATH" make all-binaries
-      mv output $(Build.ArtifactStagingDirectory)
     workingDirectory: '$(modulePath)'
     displayName: 'Build'
 
