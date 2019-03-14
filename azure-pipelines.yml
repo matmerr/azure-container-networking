@@ -89,3 +89,4 @@ jobs:
     inputs:
       artifactName: 'output'
       pathtoPublish: '$(Build.ArtifactStagingDirectory)'
+      
