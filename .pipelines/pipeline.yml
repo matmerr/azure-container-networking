@@ -46,6 +46,9 @@ jobs:
       go get github.com/docker/libnetwork/driverapi
       go get github.com/gorilla/mux
       go get github.com/jstemmer/go-junit-report
+      go get github.com/axw/gocov/gocov
+      go get github.com/AlekSi/gocov-xml
+      go get -u gopkg.in/matm/v1/gocov-html
     workingDirectory: '$(modulePath)'
     displayName: 'Install Go dependencies'
 
@@ -54,6 +57,10 @@ jobs:
       set -e
       sudo -E env "PATH=$PATH" make test-all 2>&1 | tee >(go-junit-report > report.xml)
       bash <(curl -s https://codecov.io/bash)
+      gocov convert coverage.out > coverage.json
+      gocov-xml < coverage.json > coverage.xml
+      mkdir coverage
+      gocov-html < coverage.json > coverage/index.html
     workingDirectory: '$(modulePath)'
     displayName: 'RunTest'
 
@@ -61,6 +68,13 @@ jobs:
     inputs:
       testRunner: JUnit
       testResultsFiles: $(System.DefaultWorkingDirectory)/**/report.xml
+    condition: always()
+
+  - task: PublishCodeCoverageResults@1
+    inputs:
+      codeCoverageTool: Cobertura 
+      summaryFileLocation: $(System.DefaultWorkingDirectory)/**/coverage.xml
+      reportDirectory: $(System.DefaultWorkingDirectory)/**/coverage
     condition: always()
 
   - script: |
