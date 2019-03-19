@@ -4,16 +4,20 @@
 package ipam
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
 	"os"
 	"testing"
 
+	"github.com/Azure/azure-container-networking/cni"
 	"github.com/Azure/azure-container-networking/common"
+	cniSkel "github.com/containernetworking/cni/pkg/skel"
 )
 
 var plugin *ipamPlugin
+var args cniSkel.CmdArgs
 
 var ipamQueryUrl = "localhost:42424"
 var ipamQueryResponse = "" +
@@ -89,8 +93,29 @@ func handleIpamQuery(w http.ResponseWriter, r *http.Request) {
 // https://github.com/containernetworking/cni/blob/master/SPEC.md
 //
 
+func setValidCNIArgs() {
+	args = cniSkel.CmdArgs{}
+	nwCfg := cni.NetworkConfig{}
+	args.StdinData, _ = json.Marshal(nwCfg)
+	return
+}
+
 func TestAddSuccess(t *testing.T) {
+	setValidCNIArgs()
+	plugin.Add(&args)
 }
 
 func TestDelSuccess(t *testing.T) {
+	setValidCNIArgs()
+	plugin.Delete(&args)
+}
+
+func TestGetSuccess(t *testing.T) {
+	setValidCNIArgs()
+	plugin.Get(&args)
+}
+
+func TestUpdateSuccess(t *testing.T) {
+	setValidCNIArgs()
+	plugin.Update(&args)
 }

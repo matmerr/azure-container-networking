@@ -11,3 +11,4 @@ ipam-*.xml
 
 # Coverage 
 *.out
+*.html
