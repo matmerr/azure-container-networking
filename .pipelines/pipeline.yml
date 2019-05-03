@@ -59,8 +59,6 @@ jobs:
       bash <(curl -s https://codecov.io/bash)
       gocov convert coverage.out > coverage.json
       gocov-xml < coverage.json > coverage.xml
-      mkdir coverage
-      #gocov-html < coverage.json > coverage/index.html
     workingDirectory: '$(modulePath)'
     displayName: 'RunTest'
 
