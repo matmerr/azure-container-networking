@@ -28,10 +28,12 @@ jobs:
       mkdir -p '$(GOBIN)'
       mkdir -p '$(GOPATH)/pkg'
       mkdir -p '$(modulePath)'
+      mv -R $(system.defaultWorkingDirectory)/* $(modulePath)
       shopt -s extglob
       shopt -s dotglob
       echo '##vso[task.prependpath]$(GOBIN)'
       echo '##vso[task.prependpath]$(GOROOT)/bin'
+      echo '##vso[system.defaultWorkingDirectory]$(modulePath)'
     displayName: 'Set up the Go workspace'
 
   - script: |
