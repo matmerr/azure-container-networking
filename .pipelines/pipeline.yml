@@ -9,8 +9,9 @@ trigger:
 jobs:
 - job: Test
   pool:
-    vmImage: 'Ubuntu-16.04' # https://github.com/Microsoft/azure-pipelines-image-generation/blob/master/images/linux/scripts/installers/go.sh
+    vmImage: 'Ubuntu-16.04' 
 
+  # https://github.com/Microsoft/azure-pipelines-image-generation/blob/master/images/linux/scripts/installers/go.sh
   variables:
     GOBIN:  '$(GOPATH)/bin' # Go binaries path
     GOPATH: '$(System.DefaultWorkingDirectory)/gopath' # Go workspace path
