@@ -12,7 +12,6 @@ jobs:
     vmImage: 'Ubuntu-16.04' # https://github.com/Microsoft/azure-pipelines-image-generation/blob/master/images/linux/scripts/installers/go.sh
 
   variables:
-    GOBIN:  '$(GOPATH)/bin' # Go binaries path
     modulePath: '$(GOPATH)/src/github.com/Azure/azure-container-networking' # $(build.repository.name)' # Path to the module's code
 
   steps:
