@@ -9,9 +9,11 @@ trigger:
 jobs:
 - job: Test
   pool:
-    vmImage: 'Ubuntu-16.04' # https://github.com/Microsoft/azure-pipelines-image-generation/blob/master/images/linux/scripts/installers/go.sh
+    vmImage: 'Ubuntu-16.04'
 
   variables:
+    GOBIN:  '$(GOPATH)/bin' # Go binaries path
+    GOPATH: '$(system.defaultWorkingDirectory)/gopath' # Go workspace path
     modulePath: '$(GOPATH)/src/github.com/Azure/azure-container-networking' # $(build.repository.name)' # Path to the module's code
 
   steps:
@@ -24,17 +26,14 @@ jobs:
 
   - script: |
       go version
-      go env
-      mkdir -p $GOBIN
-      mkdir -p $GOPATH/pkg
+      mkdir -p '$(GOBIN)'
+      mkdir -p '$(GOPATH)/pkg'
       mkdir -p '$(modulePath)'
-      mv $(System.DefaultWorkingDirectory)/* $(modulePath)
-      ls $(modulePath)
-      echo $(modulePath)
       shopt -s extglob
       shopt -s dotglob
-      echo '##vso[task.prependpath]$GOBIN'
-      echo '##vso[task.prependpath]$GOROOT/bin'
+      mv !(gopath) '$(modulePath)'
+      echo '##vso[task.prependpath]$(GOBIN)'
+      echo '##vso[task.prependpath]$(GOROOT)/bin'
     displayName: 'Set up the Go workspace'
 
   - script: |
