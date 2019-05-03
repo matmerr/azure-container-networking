@@ -12,9 +12,6 @@ jobs:
     vmImage: 'Ubuntu-16.04'
 
   variables:
-    GOBIN:  '$(GOPATH)/bin' # Go binaries path
-    GOROOT: '/usr/local/go1.12' # Go installation path 
-    GOPATH: '$(system.defaultWorkingDirectory)/gopath' # Go workspace path
     modulePath: '$(GOPATH)/src/github.com/Azure/azure-container-networking' # $(build.repository.name)' # Path to the module's code
 
   steps:
