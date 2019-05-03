@@ -28,7 +28,7 @@ jobs:
       mkdir -p '$(GOBIN)'
       mkdir -p '$(GOPATH)/pkg'
       mkdir -p '$(modulePath)'
-      mv -R $(system.defaultWorkingDirectory)/* $(modulePath)
+      mv $(System.DefaultWorkingDirectory)/* $(modulePath)
       ls $(modulePath)
       echo $(modulePath)
       shopt -s extglob
