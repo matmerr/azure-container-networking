@@ -308,6 +308,6 @@ func TestDeleteNetworkPolicy(t *testing.T) {
 	}
 
 	if err := npMgr.DeleteNetworkPolicy(allow); err != nil {
-		t.Errorf("TestAddNetworkPolicy failed @ DeleteNetworkPolicy")
+		t.Errorf("TestDeleteNetworkPolicy failed @ DeleteNetworkPolicy")
 	}
 }

@@ -4,6 +4,7 @@ package ipsm
 
 import (
 	"testing"
+	"os"
 
 	"github.com/Azure/azure-container-networking/npm/util"
 )
@@ -246,7 +247,9 @@ func TestMain(m *testing.M) {
 	ipsMgr := NewIpsetManager()
 	ipsMgr.Save(util.IpsetConfigFile)
 
-	m.Run()
+	exitCode := m.Run()
 
 	ipsMgr.Restore(util.IpsetConfigFile)
+	
+	os.Exit(exitCode)
 }
