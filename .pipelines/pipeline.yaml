@@ -140,8 +140,8 @@ stages:
             condition: succeeded()
 
           - bash: |
-              az account set --subscription=$(ARTIFACT_SUBSCRIPTION_ID)
               az login --service-principal -u $(ARTIFACT_SP_NAME) -p $(ARTIFACT_CLIENT_SECRET) --tenant $(ARTIFACT_TENTANT_ID)
+              az account set --subscription=$(ARTIFACT_SUBSCRIPTION_ID)
               az storage container create -n acn-$(EnvironmentalVariables.CommitHash) --account-name $(STORAGE_ACCOUNT_NAME) --public-access container
               az storage blob upload-batch -d acn-$(EnvironmentalVariables.CommitHash) -s ./output/  --account-name $(STORAGE_ACCOUNT_NAME)
             workingDirectory: "$(modulePath)"
@@ -179,8 +179,8 @@ stages:
         steps:
           - checkout: none
           - bash: |
-              az account set --subscription=$(ARTIFACT_SUBSCRIPTION_ID)
               az login --service-principal -u $(ARTIFACT_SP_NAME) -p $(ARTIFACT_CLIENT_SECRET) --tenant $(ARTIFACT_TENTANT_ID)
+              az account set --subscription=$(ARTIFACT_SUBSCRIPTION_ID)
               export CommitHash=(git rev-parse HEAD)
               az storage container delete -n acn-$CommitHash --account-name $(STORAGE_ACCOUNT_NAME)
             workingDirectory: "$(modulePath)"
