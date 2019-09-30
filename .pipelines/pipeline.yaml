@@ -139,14 +139,12 @@ stages:
               pathtoPublish: "$(Build.ArtifactStagingDirectory)"
             condition: succeeded()
 
-          - task: AzureCLI@1
-            inputs:
-              azureSubscription: $(ARTIFACT_SUBSCRIPTION)
-              scriptLocation: "inlineScript"
-              inlineScript: |
-                az storage container create -n acn-$(EnvironmentalVariables.CommitHash) --account-name $(STORAGE_ACCOUNT_NAME) --public-access container
-                az storage blob upload-batch -d acn-$(EnvironmentalVariables.CommitHash) -s ./output/  --account-name $(STORAGE_ACCOUNT_NAME)
-              workingDirectory: "$(modulePath)"
+          - bash: |
+              az account set --subscription=$(ARTIFACT_SUBSCRIPTION)
+              az login --service-principal -u $(AKS_ENGINE_SERVICE_PRINCIPAL_NAME) -p $(AKS_ENGINE_CLIENT_SECRET) --tenant $(AKS_ENGINE_TENANT_ID)
+              az storage container create -n acn-$(EnvironmentalVariables.CommitHash) --account-name $(STORAGE_ACCOUNT_NAME) --public-access container
+              az storage blob upload-batch -d acn-$(EnvironmentalVariables.CommitHash) -s ./output/  --account-name $(STORAGE_ACCOUNT_NAME)
+            workingDirectory: "$(modulePath)"
             displayName: Create artifact storage container
 
       - template: e2e-job-template.yaml
@@ -180,12 +178,10 @@ stages:
 
         steps:
           - checkout: none
-          - task: AzureCLI@1
-            inputs:
-              azureSubscription: $(ARTIFACT_SUBSCRIPTION)
-              scriptLocation: "inlineScript"
-              inlineScript: |
-                export CommitHash=(git rev-parse HEAD)
-                az storage container delete -n acn-$CommitHash --account-name $(STORAGE_ACCOUNT_NAME)
-              workingDirectory: "$(modulePath)"
+          - bash: |
+              az account set --subscription=$(ARTIFACT_SUBSCRIPTION)
+              az login --service-principal -u $(AKS_ENGINE_SERVICE_PRINCIPAL_NAME) -p $(AKS_ENGINE_CLIENT_SECRET) --tenant $(AKS_ENGINE_TENANT_ID)
+              export CommitHash=(git rev-parse HEAD)
+              az storage container delete -n acn-$CommitHash --account-name $(STORAGE_ACCOUNT_NAME)
+            workingDirectory: "$(modulePath)"
             displayName: Cleanup remote Azure storage container
