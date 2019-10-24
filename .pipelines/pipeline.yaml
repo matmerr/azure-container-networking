@@ -169,6 +169,7 @@ stages:
           clusterDefinitionCniBuildExt: ".zip"
 
   - stage: cleanup
+    condition: always()
     jobs:
       - job: delete_remote_artifacts
         pool:
@@ -178,7 +179,7 @@ stages:
           image: containernetworking/pipeline-ci:1.0.4
         variables:
           Tag: $[ dependencies.unit_tests.outputs['EnvironmentalVariables.Tag'] ]
-
+        condition: always()
         steps:
           - checkout: none
           - task: AzureCLI@1
@@ -190,3 +191,4 @@ stages:
                 az storage container delete -n acn-$CommitHash --account-name $(STORAGE_ACCOUNT_NAME)
               workingDirectory: "$(modulePath)"
             displayName: Cleanup remote Azure storage container
+            condition: always()
