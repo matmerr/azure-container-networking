@@ -23,6 +23,7 @@ steps:
     inputs:
       buildType: current
       artifactName: clusterdefinitions
+      targetPath: "$(modulePath)"
       #buildType: 'current' # Options: current, specific
       #project: # Required when buildType == Specific
 
