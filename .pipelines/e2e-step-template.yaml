@@ -20,8 +20,11 @@ steps:
     displayName: "Set up the Go environment"
 
   - task: DownloadPipelineArtifact@2
-    buildType: current
-    artifactName: clusterdefinitions
+    inputs:
+      buildType: current
+      artifactName: clusterdefinitions
+      #buildType: 'current' # Options: current, specific
+      #project: # Required when buildType == Specific
 
   - bash: |
       ls -lah
