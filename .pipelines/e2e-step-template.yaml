@@ -19,10 +19,9 @@ steps:
     name: "GoEnv"
     displayName: "Set up the Go environment"
 
-  - download: current
-    artifact: clusterdefinitions
-    patterns: "${{ parameters.clusterDefinition }}.js"
-    targetPath: "$(modulePath)"
+  - task: DownloadPipelineArtifact@2
+    buildType: current
+    artifactName: clusterdefinitions
 
   - bash: |
       ls -lah
