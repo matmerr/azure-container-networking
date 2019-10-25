@@ -186,15 +186,6 @@ stages:
           clusterDefinitionCniBuildOS: "windows"
           clusterDefinitionCniBuildExt: ".zip"
 
-      - template: e2e-job-template.yaml
-        parameters:
-          name: "windows_e2e"
-          pipelineBuildImage: "containernetworking/pipeline-ci:1.0.5"
-          clusterDefinition: "cniWindows1903.json"
-          clusterDefinitionCniTypeKey: "azureCNIURLWindows"
-          clusterDefinitionCniBuildOS: "windows"
-          clusterDefinitionCniBuildExt: ".zip"
-
   - stage: cleanup
     condition: always()
     jobs:
