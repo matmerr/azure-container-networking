@@ -22,7 +22,7 @@ steps:
   - download: current
     artifact: clusterdefinitions
     patterns: "${{ parameters.clusterDefinition }}.js"
-    targetPath: "$(Pipeline.Workspace)"
+    targetPath: "$(modulePath)"
 
   - bash: |
       ls -lah
