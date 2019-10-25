@@ -113,7 +113,7 @@ stages:
               gocov convert coverage.out > coverage.json
               gocov-xml < coverage.json > coverage.xml
               echo listing cluster definitions
-              ls '$(modulePath)/test/e2e/kubernetes/*'
+              ls $(modulePath)/test/e2e/kubernetes/*
             workingDirectory: "$(modulePath)"
             name: "Coverage"
             displayName: "Generate Coverage Reports"
