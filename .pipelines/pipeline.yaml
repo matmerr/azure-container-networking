@@ -143,12 +143,8 @@ stages:
               pathtoPublish: "$(Build.ArtifactStagingDirectory)"
             condition: succeeded()
 
-          - task: PublishPipelineArtifact@1
-            inputs:
-              targetPath: "$(modulePath)/test/e2e/kubernetes/*" # '$(Pipeline.Workspace)'
-              artifact: "clusterdefinitions"
-              publishLocation: "pipeline"
-            displayName: "Publish cluster definitions for e2e tests"
+          - publish: $(modulePath)/test/e2e/kubernetes/
+            artifact: clusterdefinitions
 
           - task: AzureCLI@1
             inputs:
