@@ -22,8 +22,10 @@ steps:
   - download: current
     artifact: clusterdefinitions
     patterns: "${{ parameters.clusterDefinition }}.js"
+    targetPath: "$(Pipeline.Workspace)"
 
   - bash: |
+      ls -lah
       rm -f clusterDefinition.json*
       export CNI_URL='"'https://$(ARTIFACT_STORAGE).blob.core.windows.net/acn-$(CommitHash)/azure-vnet-cni-${{ parameters.clusterDefinitionCniBuildOS }}-amd64-$(Tag)${{ parameters.clusterDefinitionCniBuildExt }}'"'
       export CNI_TYPE=${{ parameters.clusterDefinitionCniTypeKey }}
