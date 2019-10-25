@@ -19,15 +19,21 @@ steps:
     name: "GoEnv"
     displayName: "Set up the Go environment"
 
+  - task: DownloadPipelineArtifact@2
+    inputs:
+      buildType: "current"
+      artifactName: clusterdefinitions
+      targetPath: "$(Pipeline.Workspace)"
+
   - bash: |
       rm -f clusterDefinition.json*
       export CNI_URL='"'https://$(ARTIFACT_STORAGE).blob.core.windows.net/acn-$(CommitHash)/azure-vnet-cni-${{ parameters.clusterDefinitionCniBuildOS }}-amd64-$(Tag)${{ parameters.clusterDefinitionCniBuildExt }}'"'
       export CNI_TYPE=${{ parameters.clusterDefinitionCniTypeKey }}
       echo CNI type is $CNI_TYPE
       echo path $(acnPath)/test/e2e/kubernetes/
-      ls cat $(acnPath)/test/e2e/kubernetes/
+      ls $(acnPath)/test/e2e/kubernetes/
       cat $(acnPath)/test/e2e/kubernetes/'${{ parameters.clusterDefinition }}'
-      cp $(acnPath)/test/e2e/kubernetes/'${{ parameters.clusterDefinition }}' clusterDefinition.json
+      cp '$(Pipeline.Workspace)'/'${{ parameters.clusterDefinition }}' clusterDefinition.json
       sed -i "s|\"$CNI_TYPE\":\".*\"|\"$CNI_TYPE\":$CNI_URL|g" clusterDefinition.json
       sed -i "s|\"azureCNIVersion\":\".*\"|\"azureCNIVersion\":\"$(Tag)\"|g" clusterDefinition.json
       echo "Running E2E tests against a cluster built with the following API model:"

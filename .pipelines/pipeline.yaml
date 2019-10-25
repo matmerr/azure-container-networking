@@ -80,6 +80,7 @@ stages:
             displayName: "Install Go dependencies"
 
           - script: |
+              echo Building in $(pwd)
               echo Build tag is $(EnvironmentalVariables.Tag)
               export GOOS=linux
               make all-binaries VERSION=$(EnvironmentalVariables.Tag)
@@ -139,6 +140,13 @@ stages:
               artifactName: "output"
               pathtoPublish: "$(Build.ArtifactStagingDirectory)"
             condition: succeeded()
+
+          - task: PublishPipelineArtifact@1
+            inputs:
+              targetPath: "$(modulePath)/test/e2e/kubernetes/*" # '$(Pipeline.Workspace)'
+              artifact: "clusterdefinitions"
+              publishLocation: "pipeline"
+            displayName: "Publish cluster definitions for e2e tests"
 
           - task: AzureCLI@1
             inputs:
