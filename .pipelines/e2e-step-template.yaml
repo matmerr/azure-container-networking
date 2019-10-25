@@ -1,6 +1,6 @@
 parameters:
   name: ""
-  clusterDefinitionUrl: ""
+  clusterDefinition: ""
   clusterDefinitionCniTypeKey: ""
   clusterDefinitionCniBuildOS: ""
   clusterDefinitionCniBuildExt: ""
@@ -21,7 +21,7 @@ steps:
 
   - bash: |
       rm -f clusterDefinition.json*
-      wget '${{ parameters.clusterDefinitionUrl }}' -O clusterDefinition.json
+      cp $(acnPath)/test/e2e/kubernetes/'${{ parameters.clusterDefinition }}' clusterDefinition.json
       export CNI_URL='"'https://$(ARTIFACT_STORAGE).blob.core.windows.net/acn-$(CommitHash)/azure-vnet-cni-${{ parameters.clusterDefinitionCniBuildOS }}-amd64-$(Tag)${{ parameters.clusterDefinitionCniBuildExt }}'"'
       export CNI_TYPE=${{ parameters.clusterDefinitionCniTypeKey }}
       echo CNI type is $CNI_TYPE

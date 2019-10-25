@@ -153,17 +153,44 @@ stages:
       - template: e2e-job-template.yaml
         parameters:
           name: "ubuntu_16_04_linux_e2e"
-          pipelineBuildImage: "containernetworking/pipeline-ci:1.0.4"
-          clusterDefinitionUrl: "https://raw.githubusercontent.com/Azure/azure-container-networking/master/test/e2e/kubernetes/cniLinux.json"
+          pipelineBuildImage: "containernetworking/pipeline-ci:1.0.5"
+          clusterDefinition: "cniLinux1604.json"
           clusterDefinitionCniTypeKey: "azureCNIURLLinux"
           clusterDefinitionCniBuildOS: "linux"
           clusterDefinitionCniBuildExt: ".tgz"
 
       - template: e2e-job-template.yaml
         parameters:
+          name: "ubuntu_18_04_linux_e2e"
+          pipelineBuildImage: "containernetworking/pipeline-ci:1.0.5"
+          clusterDefinition: "cniLinux1804.json"
+          clusterDefinitionCniTypeKey: "azureCNIURLLinux"
+          clusterDefinitionCniBuildOS: "linux"
+          clusterDefinitionCniBuildExt: ".tgz"
+
+      - template: e2e-job-template.yaml
+        parameters:
+          name: "windows_18_03_e2e"
+          pipelineBuildImage: "containernetworking/pipeline-ci:1.0.5"
+          clusterDefinition: "cniWindows1803.json"
+          clusterDefinitionCniTypeKey: "azureCNIURLWindows"
+          clusterDefinitionCniBuildOS: "windows"
+          clusterDefinitionCniBuildExt: ".zip"
+
+      - template: e2e-job-template.yaml
+        parameters:
+          name: "windows_19_03_e2e"
+          pipelineBuildImage: "containernetworking/pipeline-ci:1.0.5"
+          clusterDefinition: "cniWindows1903.json"
+          clusterDefinitionCniTypeKey: "azureCNIURLWindows"
+          clusterDefinitionCniBuildOS: "windows"
+          clusterDefinitionCniBuildExt: ".zip"
+
+      - template: e2e-job-template.yaml
+        parameters:
           name: "windows_e2e"
-          pipelineBuildImage: "containernetworking/pipeline-ci:1.0.4"
-          clusterDefinitionUrl: "https://raw.githubusercontent.com/Azure/azure-container-networking/master/test/e2e/kubernetes/cniWindows.json"
+          pipelineBuildImage: "containernetworking/pipeline-ci:1.0.5"
+          clusterDefinition: "cniWindows1903.json"
           clusterDefinitionCniTypeKey: "azureCNIURLWindows"
           clusterDefinitionCniBuildOS: "windows"
           clusterDefinitionCniBuildExt: ".zip"

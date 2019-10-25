@@ -18,6 +18,7 @@ jobs:
       GOPATH: "$(System.DefaultWorkingDirectory)/gopath"
       GOBIN: "$(GOPATH)/bin" # Go binaries path
       modulePath: "$(GOPATH)/src/github.com/Azure/aks-engine"
+      acnPath: "$(GOPATH)/src/github.com/Azure/azure-container-networking"
       Tag: $[ dependencies.unit_tests.outputs['EnvironmentalVariables.Tag'] ]
       CommitHash: $[ dependencies.unit_tests.outputs['EnvironmentalVariables.CommitHash'] ]
 
