@@ -35,10 +35,10 @@
          "adminPassword": "azureTest@!",
          "enableAutomaticUpdates": false,
          "sshEnabled": true,
-         "windowsPublisher": "MicrosoftWindowsServer",
-         "windowsOffer": "WindowsServerSemiAnnual",
-         "windowsSku": "Datacenter-Core-1809-with-Containers-smalldisk",
-         "imageVersion": "1809.0.20190826"
+         "windowsPublisher": "MicrosoftWindows",
+         "windowsOffer": "WindowsServer",
+         "windowsSku": "Datacenter-Core-1803-with-Containers-smalldisk",
+         "imageVersion": "17134.950.1908092218"
       },
       "linuxProfile": {
          "adminUsername": "azureuser",
