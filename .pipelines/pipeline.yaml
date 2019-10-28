@@ -104,7 +104,6 @@ stages:
                 } | { read xs; exit $xs; } 
               } 4>&1
             workingDirectory: "$(modulePath)"
-            failOnStderr: true
             name: "Test"
             displayName: "Run Tests"
 
