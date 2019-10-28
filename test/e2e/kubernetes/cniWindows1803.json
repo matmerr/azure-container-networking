@@ -35,7 +35,7 @@
          "adminPassword": "azureTest@!",
          "enableAutomaticUpdates": false,
          "sshEnabled": true,
-         "windowsPublisher": "MicrosoftWindows",
+         "windowsPublisher": "MicrosoftWindowsServer",
          "windowsOffer": "WindowsServer",
          "windowsSku": "Datacenter-Core-1803-with-Containers-smalldisk",
          "imageVersion": "17134.950.1908092218"
