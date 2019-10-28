@@ -63,6 +63,7 @@ steps:
       cp -r _output/kubernetes-*-ssh $(Build.ArtifactStagingDirectory)/kube-${{ parameters.name }}
     name: DeployAKSEngine
     displayName: Deploy AKS-Engine
+    failOnStderr: true
     workingDirectory: "$(modulePath)"
 
   - task: PublishBuildArtifacts@1
