@@ -29,18 +29,14 @@ steps:
 
   - bash: |
       ls -lah
-      rm -f clusterDefinition.json*
       export CNI_URL='"'https://$(ARTIFACT_STORAGE).blob.core.windows.net/acn-$(CommitHash)/azure-vnet-cni-${{ parameters.clusterDefinitionCniBuildOS }}-amd64-$(Tag)${{ parameters.clusterDefinitionCniBuildExt }}'"'
       export CNI_TYPE=${{ parameters.clusterDefinitionCniTypeKey }}
       echo CNI type is $CNI_TYPE
-      echo path $(acnPath)/test/e2e/kubernetes/
-      ls clusterdefinitions
-      cat clusterdefinitions/${{ parameters.clusterDefinition }}'
-      cp clusterdefinitions/'${{ parameters.clusterDefinition }}' clusterDefinition.json
-      sed -i "s|\"$CNI_TYPE\":\".*\"|\"$CNI_TYPE\":$CNI_URL|g" clusterDefinition.json
-      sed -i "s|\"azureCNIVersion\":\".*\"|\"azureCNIVersion\":\"$(Tag)\"|g" clusterDefinition.json
+      sed -i "s|\"$CNI_TYPE\":\".*\"|\"$CNI_TYPE\":$CNI_URL|g" '${{ parameters.clusterDefinition }}'
+      sed -i "s|\"azureCNIVersion\":\".*\"|\"azureCNIVersion\":\"$(Tag)\"|g" '${{ parameters.clusterDefinition }}'
       echo "Running E2E tests against a cluster built with the following API model:"
-      cat ./clusterDefinition.json
+      cat '${{ parameters.clusterDefinition }}'
+      cp ${{ parameters.clusterDefinition }} clusterDefinition.json
       curl -L https://dl.k8s.io/v1.16.0/kubernetes-client-linux-amd64.tar.gz | tar xvzf -
       sudo cp kubernetes/client/bin/kubectl /usr/local/bin/kubectl
       sudo cp kubernetes/client/bin/kubectl /usr/local/bin/k
@@ -50,7 +46,7 @@ steps:
     workingDirectory: "$(modulePath)"
 
   - bash: |
-      export CLUSTER_DEFINITION=./clusterDefinition.json 
+      export CLUSTER_DEFINITION=./'${{ parameters.clusterDefinition }}'
       export ORCHESTRATOR=kubernetes 
       export CREATE_VNET=false 
       export TIMEOUT=10m 
