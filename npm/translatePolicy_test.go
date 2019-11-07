@@ -2360,8 +2360,6 @@ func TestTranslatePolicy(t *testing.T) {
 		t.Errorf("expectedIptEntries: %s", marshalledExpectedIptEntries)
 	}
 
-	///////////////////////////////////////////////////////////////////////////
-
 	targetSelector = metav1.LabelSelector{
 		MatchLabels: map[string]string{
 			"app": "backend",
@@ -2414,8 +2412,6 @@ func TestTranslatePolicy(t *testing.T) {
 		t.Errorf("iptEntries: %s", marshalledIptEntries)
 		t.Errorf("expectedIptEntries: %s", marshalledExpectedIptEntries)
 	}
-
-	///////////////////////////////////////////////////////////////////////////
 
 	targetSelector = metav1.LabelSelector{}
 	denyAllFromNsUnsafePolicy := &networkingv1.NetworkPolicy{
