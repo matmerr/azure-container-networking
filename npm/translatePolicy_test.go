@@ -2375,7 +2375,7 @@ func TestTranslatePolicy(t *testing.T) {
 			PolicyTypes: []networkingv1.PolicyType{
 				networkingv1.PolicyTypeEgress,
 			},
-			Egress: []networkingv1.NetworkPolicyEgressRule{},
+			Egress: []networkingv1.NetworkPolicyEgressRule{networkingv1.NetworkPolicyEgressRule{}},
 		},
 	}
 
