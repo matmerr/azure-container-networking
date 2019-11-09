@@ -1011,7 +1011,10 @@ func translatePolicy(npObj *networkingv1.NetworkPolicy) ([]string, []string, []*
 			resultLists = append(resultLists, ingressLists...)
 			entries = append(entries, ingressEntries...)
 
-			if npObj.Spec.Ingress != nil && len(npObj.Spec.Ingress) == 1 && len(npObj.Spec.Ingress[0].Ports) == 0 && len(npObj.Spec.Ingress[0].From) == 0 {
+			if npObj.Spec.Ingress != nil &&
+				len(npObj.Spec.Ingress) == 1 &&
+				len(npObj.Spec.Ingress[0].Ports) == 0 &&
+				len(npObj.Spec.Ingress[0].From) == 0 {
 				hasIngress = false
 			} else {
 				hasIngress = true
@@ -1024,7 +1027,10 @@ func translatePolicy(npObj *networkingv1.NetworkPolicy) ([]string, []string, []*
 			resultLists = append(resultLists, egressLists...)
 			entries = append(entries, egressEntries...)
 
-			if npObj.Spec.Egress != nil && len(npObj.Spec.Egress) == 1 && len(npObj.Spec.Egress[0].Ports) == 0 && len(npObj.Spec.Egress[0].To) == 0 {
+			if npObj.Spec.Egress != nil &&
+				len(npObj.Spec.Egress) == 1 &&
+				len(npObj.Spec.Egress[0].Ports) == 0 &&
+				len(npObj.Spec.Egress[0].To) == 0 {
 				hasEgress = false
 			} else {
 				hasEgress = true
@@ -1033,7 +1039,7 @@ func translatePolicy(npObj *networkingv1.NetworkPolicy) ([]string, []string, []*
 	}
 
 	entries = append(entries, getDefaultDropEntries(npNs, npObj.Spec.PodSelector, hasIngress, hasEgress)...)
-	log.Printf("NEWPOLICY +%v", npObj)
+	log.Printf("New Policy%+v", npObj)
 	resultSets, resultLists = util.UniqueStrSlice(resultSets), util.UniqueStrSlice(resultLists)
 
 	return resultSets, resultLists, entries

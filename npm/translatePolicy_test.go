@@ -2365,6 +2365,10 @@ func TestTranslatePolicy(t *testing.T) {
 			"app": "backend",
 		},
 	}
+
+	//////
+	/// This policy tests the case where pods should have unlimited egress traffic
+	//////
 	allowAllEgress := &networkingv1.NetworkPolicy{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "ALLOW-all-FROM-app:backend-policy",
