@@ -2394,7 +2394,9 @@ func TestTranslatePolicy(t *testing.T) {
 		t.Errorf("expectedSets: %v", expectedSets)
 	}
 
-	expectedLists = []string{}
+	expectedLists = []string{
+		util.KubeAllNamespacesFlag,
+	}
 	if !reflect.DeepEqual(lists, expectedLists) {
 		t.Errorf("translatedPolicy failed @ ALLOW-all-FROM-app:backend-policy lists comparison")
 		t.Errorf("lists: %v", lists)
