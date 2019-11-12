@@ -2409,6 +2409,31 @@ func TestTranslatePolicy(t *testing.T) {
 		getAllowKubeSystemEntries("testnamespace", targetSelector)...,
 	)
 
+	nonKubeSystemEntries = []*iptm.IptEntry{
+		&iptm.IptEntry{
+			Chain: util.IptablesAzureEgressPortChain,
+			Specs: []string{
+				util.IptablesModuleFlag,
+				util.IptablesSetModuleFlag,
+				util.IptablesMatchSetFlag,
+				util.GetHashedName("app:backend"),
+				util.IptablesSrcFlag,
+				util.IptablesModuleFlag,
+				util.IptablesSetModuleFlag,
+				util.IptablesMatchSetFlag,
+				util.GetHashedName(util.KubeAllNamespacesFlag),
+				util.IptablesDstFlag,
+				util.IptablesJumpFlag,
+				util.IptablesAccept,
+				util.IptablesModuleFlag,
+				util.IptablesCommentModuleFlag,
+				util.IptablesCommentFlag,
+				"ALLOW-ALL-FROM-app:backend-TO-" +
+					util.KubeAllNamespacesFlag,
+			},
+		},
+	}
+	expectedIptEntries = append(expectedIptEntries, nonKubeSystemEntries...)
 	// has egress, but empty map means allow all
 	expectedIptEntries = append(expectedIptEntries, getDefaultDropEntries("testnamespace", targetSelector, false, false)...)
 	if !reflect.DeepEqual(iptEntries, expectedIptEntries) {
