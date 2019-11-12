@@ -1271,7 +1271,7 @@ func TestTranslatePolicy(t *testing.T) {
 		},
 	}
 	expectedIptEntries = append(expectedIptEntries, nonKubeSystemEntries...)
-	expectedIptEntries = append(expectedIptEntries, getDefaultDropEntries("testnamespace", targetSelector, true, false)...)
+	expectedIptEntries = append(expectedIptEntries, getDefaultDropEntries("testnamespace", targetSelector, false, false)...)
 	if !reflect.DeepEqual(iptEntries, expectedIptEntries) {
 		t.Errorf("translatedPolicy failed @ ALLOW-all-TO-app:frontend-FROM-all-namespaces-policy policy comparison")
 		marshalledIptEntries, _ := json.Marshal(iptEntries)
@@ -2018,7 +2018,7 @@ func TestTranslatePolicy(t *testing.T) {
 	}
 
 	expectedIptEntries = append(expectedIptEntries, nonKubeSystemEntries...)
-	expectedIptEntries = append(expectedIptEntries, getDefaultDropEntries("dangerous", targetSelector, true, false)...)
+	expectedIptEntries = append(expectedIptEntries, getDefaultDropEntries("dangerous", targetSelector, false, false)...)
 	if !reflect.DeepEqual(iptEntries, expectedIptEntries) {
 		t.Errorf("translatedPolicy failed @ ALLOW-ALL-TO-app:backdoor-policy policy comparison")
 		marshalledIptEntries, _ := json.Marshal(iptEntries)
