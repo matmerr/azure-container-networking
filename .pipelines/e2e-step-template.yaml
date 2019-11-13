@@ -20,6 +20,10 @@ steps:
       wget https://github.com/Azure/aks-engine/archive/$(AKS_ENGINE_VERSION).tar.gz
       tar -zxf *.tar.gz && mv aks-engine* aks-engine
       cd aks-engine
+      wget https://github.com/Azure/aks-engine/releases/download/v0.43.1/aks-engine-$(AKS_ENGINE_VERSION)-linux-amd64.tar.gz
+      tar -zxf *.tar.gz
+      mkdir ./bin
+      mv aks-engine-$(AKS_ENGINE_VERSION)-linux-amd64/aks-engine ./bin
       ls -lah
       pwd
     name: "GoEnv"
@@ -49,7 +53,7 @@ steps:
       sudo cp kubernetes/client/bin/kubectl /usr/local/bin/kubectl
       sudo cp kubernetes/client/bin/kubectl /usr/local/bin/k
       make bootstrap
-      make build-binary
+      #make build-binary
     displayName: Build AKS-Engine
     workingDirectory: "$(modulePath)"
 
