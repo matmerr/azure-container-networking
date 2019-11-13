@@ -42,9 +42,9 @@ steps:
       echo CNI_URL is $CNI_URL
       echo CNI type is $CNI_TYPE
       #sed -i "s|\"$CNI_TYPE\":\".*\"|\"$CNI_TYPE\":$CNI_URL|g" '${{ parameters.clusterDefinition }}'
-      cat '${{ parameters.clusterDefinition }}' | jq '.properties.orchestratorProfile.kubernetesConfig.$CNI_TYPE = \"$CNI_URL\"' > '${{ parameters.clusterDefinition }}'.tmp
+      cat cniLinux1604.json | jq --arg cnikey $CNI_TYPE --arg cniurl $CNI_URL'.properties.orchestratorProfile.kubernetesConfig[$cnikey]= $cniurl' > '${{ parameters.clusterDefinition }}'.tmp
       #sed -i "s|\"azureCNIVersion\":\".*\"|\"azureCNIVersion\":\"$(Tag)\"|g" '${{ parameters.clusterDefinition }}'
-      cat '${{ parameters.clusterDefinition }}'.tmp | jq '.properties.orchestratorProfile.kubernetesConfig.azureCNIVersion = \"$(Tag)\"' > '${{ parameters.clusterDefinition }}'
+      cat '${{ parameters.clusterDefinition }}'.tmp | jq --arg tag $(Tag) '.properties.orchestratorProfile.kubernetesConfig.azureCNIVersion = $tag' > '${{ parameters.clusterDefinition }}'
       echo "Running E2E tests against a cluster built with the following API model:"
       cat '${{ parameters.clusterDefinition }}'
       cp ${{ parameters.clusterDefinition }} clusterDefinition.json
