@@ -18,7 +18,9 @@ steps:
       mkdir -P $(dirname '$(modulePath)')
       cd $(dirname '$(modulePath)')
       wget https://github.com/Azure/aks-engine/archive/$(AKS_ENGINE_VERSION).tar.gz
-      tar -zxvf *.tar.gz && mv aks-engine* aks-engine
+      tar -zxf *.tar.gz && mv aks-engine* aks-engine
+      cd aks-engine
+      ls -lah
     name: "GoEnv"
     displayName: "Set up the Go environment"
 
