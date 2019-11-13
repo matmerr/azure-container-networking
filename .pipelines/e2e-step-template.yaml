@@ -69,7 +69,7 @@ steps:
       mkdir -p $(Build.ArtifactStagingDirectory)/kube-${{ parameters.name }}
       cp -r _output/k*/kubeconfig/kubeconfig.$REGIONS.json $(Build.ArtifactStagingDirectory)/kube-${{ parameters.name }}
       cp -r _output/kubernetes-*-ssh $(Build.ArtifactStagingDirectory)/kube-${{ parameters.name }}
-      rm -rf *
+      cd ~ && sudo rm -rf $(GOPATH)
       name: DeployAKSEngine
     displayName: Deploy AKS-Engine
     workingDirectory: "$(modulePath)"
