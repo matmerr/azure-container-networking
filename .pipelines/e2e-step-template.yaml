@@ -10,12 +10,15 @@ steps:
   - bash: |
       go version
       go env
-      go get -v github.com/Azure/aks-engine
+      #go get -v github.com/Azure/aks-engine
       mkdir -p '$(GOBIN)'
       mkdir -p '$(GOPATH)/pkg'
-      mkdir -p '$(modulePath)'
       echo '##vso[task.prependpath]$(GOBIN)'
       echo '##vso[task.prependpath]$(GOROOT)/bin'
+      mkdir -P $(dirname '$(modulePath)')
+      cd $(dirname '$(modulePath)')
+      wget https://github.com/Azure/aks-engine/archive/$(AKS_ENGINE_VERSION).tar.gz
+      tar -zxvf *.tar.gz && mv aks-engine* aks-engine
     name: "GoEnv"
     displayName: "Set up the Go environment"
 
