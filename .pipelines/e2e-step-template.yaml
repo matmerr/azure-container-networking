@@ -13,7 +13,7 @@ steps:
       go get -v github.com/Azure/aks-engine
       mkdir -p '$(GOBIN)'
       mkdir -p '$(GOPATH)/pkg'
-      shopt -s extglob
+      mkdir -p '$(modulePath)'
       echo '##vso[task.prependpath]$(GOBIN)'
       echo '##vso[task.prependpath]$(GOROOT)/bin'
     name: "GoEnv"
@@ -35,6 +35,7 @@ steps:
       make bootstrap
       make build-binary
     displayName: Build AKS-Engine
+    workingDirectory: "$(modulePath)"
 
   - bash: |
       export CLUSTER_DEFINITION=./clusterDefinition.json 
@@ -49,6 +50,7 @@ steps:
       export REGIONS=$(AKS_ENGINE_REGION) 
       export IS_JENKINS=false 
       make test-kubernetes
-      rm -rf
+      rm -rf *
     name: DeployAKSEngine
     displayName: Deploy AKS-Engine
+    workingDirectory: "$(modulePath)"
