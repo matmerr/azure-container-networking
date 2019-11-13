@@ -15,15 +15,15 @@ jobs:
     container:
       image: ${{ parameters.pipelineBuildImage }}
     variables:
+      GOPATH: "$(Agent.TempDirectory)/go" # Go workspace path
+      GOBIN: "$(GOPATH)/bin" # Go binaries path
+      GOROOT: "/usr/local/go" # Go installation path
       modulePath: "$(GOPATH)/src/github.com/Azure/aks-engine"
       acnPath: "$(GOPATH)/src/github.com/Azure/azure-container-networking"
       Tag: $[ dependencies.unit_tests.outputs['EnvironmentalVariables.Tag'] ]
       CommitHash: $[ dependencies.unit_tests.outputs['EnvironmentalVariables.CommitHash'] ]
       CLEANUP_ON_EXIT: true
       CLEANUP_IF_FAIL: true
-      GOBIN: "$(GOPATH)/bin" # Go binaries path
-      GOROOT: "/usr/local/go" # Go installation path
-      GOPATH: "$(Agent.TempDirectory)/go" # Go workspace path
       AKS_ENGINE_VERSION: v0.43.1
     steps:
       - template: e2e-step-template.yaml
