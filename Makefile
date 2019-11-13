@@ -7,6 +7,7 @@ COREFILES = \
 	$(wildcard netlink/*.go) \
 	$(wildcard network/*.go) \
 	$(wildcard telemetry/*.go) \
+	$(wildcard aitelemetry/*.go) \
 	$(wildcard network/epcommon/*.go) \
 	$(wildcard network/policy/*.go) \
 	$(wildcard platform/*.go) \
@@ -40,6 +41,7 @@ CNSFILES = \
 	$(wildcard cns/dockerclient/*.go) \
 	$(wildcard cns/imdsclient/*.go) \
 	$(wildcard cns/ipamclient/*.go) \
+	$(wildcard cns/hnsclient/*.go) \
 	$(wildcard cns/restserver/*.go) \
 	$(wildcard cns/routes/*.go) \
 	$(wildcard cns/service/*.go) \
@@ -313,6 +315,7 @@ test-all:
         ./netlink/ \
         ./store/ \
         ./telemetry/ \
+		./aitelemetry/ \
         ./cnm/network/ \
         ./cni/ipam/ \
         ./cns/ipamclient/ \
