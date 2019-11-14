@@ -68,7 +68,7 @@ steps:
       export CLEANUP_ON_EXIT=true 
       export REGIONS=$(AKS_ENGINE_REGION) 
       export IS_JENKINS=false 
-      sudo make test-kubernetes
+      make test-kubernetes
       mkdir -p $(Build.ArtifactStagingDirectory)/kube-${{ parameters.name }}
       cp -r _output/k*/kubeconfig/kubeconfig.$REGIONS.json $(Build.ArtifactStagingDirectory)/kube-${{ parameters.name }}
       cp -r _output/kubernetes-*-ssh $(Build.ArtifactStagingDirectory)/kube-${{ parameters.name }}
