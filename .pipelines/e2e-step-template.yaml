@@ -10,18 +10,12 @@ steps:
   - bash: |
       go version
       go env
-      #go get -v github.com/Azure/aks-engine
+      go get -v github.com/Azure/aks-engine
       mkdir -p '$(GOBIN)'
       mkdir -p '$(GOPATH)/pkg'
+      mkdir -p '$(modulePath)'
       echo '##vso[task.prependpath]$(GOBIN)'
       echo '##vso[task.prependpath]$(GOROOT)/bin'
-      mkdir -p $(dirname '$(modulePath)')
-      cd $(dirname '$(modulePath)')
-      wget https://github.com/Azure/aks-engine/archive/$(AKS_ENGINE_VERSION).tar.gz
-      tar -zxf *.tar.gz && mv aks-engine* aks-engine
-      cd aks-engine
-      ls -lah
-      pwd
     name: "GoEnv"
     displayName: "Set up the Go environment"
 
@@ -35,16 +29,11 @@ steps:
 
   - bash: |
       ls -lah
-      pwd
-      echo "$(modulePath)"
-      export CNI_URL=https://$(ARTIFACT_STORAGE).blob.core.windows.net/acn-$(CommitHash)/azure-vnet-cni-${{ parameters.clusterDefinitionCniBuildOS }}-amd64-$(Tag)${{ parameters.clusterDefinitionCniBuildExt }}
+      export CNI_URL='"'https://$(ARTIFACT_STORAGE).blob.core.windows.net/acn-$(CommitHash)/azure-vnet-cni-${{ parameters.clusterDefinitionCniBuildOS }}-amd64-$(Tag)${{ parameters.clusterDefinitionCniBuildExt }}'"'
       export CNI_TYPE=${{ parameters.clusterDefinitionCniTypeKey }}
-      echo CNI_URL is $CNI_URL
       echo CNI type is $CNI_TYPE
-      #sed -i "s|\"$CNI_TYPE\":\".*\"|\"$CNI_TYPE\":$CNI_URL|g" '${{ parameters.clusterDefinition }}'
-      cat '${{ parameters.clusterDefinition }}' | jq --arg cnikey $CNI_TYPE --arg cniurl $CNI_URL '.properties.orchestratorProfile.kubernetesConfig[$cnikey]= $cniurl' > '${{ parameters.clusterDefinition }}'.tmp
-      #sed -i "s|\"azureCNIVersion\":\".*\"|\"azureCNIVersion\":\"$(Tag)\"|g" '${{ parameters.clusterDefinition }}'
-      cat '${{ parameters.clusterDefinition }}'.tmp | jq --arg tag $(Tag) '.properties.orchestratorProfile.kubernetesConfig.azureCNIVersion = $tag' > '${{ parameters.clusterDefinition }}'
+      sed -i "s|\"$CNI_TYPE\":\".*\"|\"$CNI_TYPE\":$CNI_URL|g" '${{ parameters.clusterDefinition }}'
+      sed -i "s|\"azureCNIVersion\":\".*\"|\"azureCNIVersion\":\"$(Tag)\"|g" '${{ parameters.clusterDefinition }}'
       echo "Running E2E tests against a cluster built with the following API model:"
       cat '${{ parameters.clusterDefinition }}'
       cp ${{ parameters.clusterDefinition }} clusterDefinition.json
@@ -72,8 +61,11 @@ steps:
       mkdir -p $(Build.ArtifactStagingDirectory)/kube-${{ parameters.name }}
       cp -r _output/k*/kubeconfig/kubeconfig.$REGIONS.json $(Build.ArtifactStagingDirectory)/kube-${{ parameters.name }}
       cp -r _output/kubernetes-*-ssh $(Build.ArtifactStagingDirectory)/kube-${{ parameters.name }}
-      cd ~ && sudo rm -rf $(GOPATH)
-      name: DeployAKSEngine
+      echo "Deleting work directory"
+      sudo rm -rf ./
+      echo "Deleting file in GOPATH"
+      sudo rm -rf '$(GOPATH)'
+    name: DeployAKSEngine
     displayName: Deploy AKS-Engine
     workingDirectory: "$(modulePath)"
 
