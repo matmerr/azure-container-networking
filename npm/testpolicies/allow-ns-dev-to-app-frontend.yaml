@@ -1,0 +1,22 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: "ALLOW-ns-namespace:dev-AND-!ns-namespace:test0-AND-!ns-namespace:test1-TO-app:frontend-policy"
+  namespace: "testnamespace"
+spec:
+  policyTypes:
+    - Ingress
+  podSelector:
+    matchLabels:
+      app: "frontend"
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              namespace: "dev"
+            matchExpressions:
+              - key: namespace
+                operator: NotIn
+                values:
+                  - test0
+                  - test1
