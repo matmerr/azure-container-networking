@@ -1,8 +1,8 @@
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: ALLOW-app:backend-TO-app:frontend-port-8000-policy
-  namespace: "testnamespace"
+  name: allow-backend-to-frontend-on-port-8000-policy
+  namespace: testnamespace
 spec:
   policyTypes:
     - Ingress

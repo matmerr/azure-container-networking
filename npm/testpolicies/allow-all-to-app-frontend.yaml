@@ -1,8 +1,8 @@
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: ALLOW-all-TO-app:frontend-FROM-all-namespaces-policy
-  namespace: "testnamespace"
+  name: allow-all-to-app-frontend
+  namespace: testnamespace
 spec:
   podSelector:
     matchLabels:

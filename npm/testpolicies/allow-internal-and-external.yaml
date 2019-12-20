@@ -1,8 +1,8 @@
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: deny-all-policy
-  namespace: "dangerous"
+  name: allow-backdoor-policy
+  namespace: dangerous
 spec:
   policyTypes:
     - Ingress
