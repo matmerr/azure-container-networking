@@ -2380,7 +2380,8 @@ func TestAllowAllFromAppBackend(t *testing.T) {
 			},
 		},
 		&iptm.IptEntry{
-			Chain: util.IptablesAzureEgressPortChain,
+			Chain:       util.IptablesAzureEgressPortChain,
+			IsJumpEntry: true,
 			Specs: []string{
 				util.IptablesModuleFlag,
 				util.IptablesSetModuleFlag,
