@@ -70,7 +70,7 @@ steps:
       curl -L https://dl.k8s.io/v1.16.0/kubernetes-client-linux-amd64.tar.gz | tar xvzf -
       sudo cp kubernetes/client/bin/kubectl /usr/local/bin/kubectl
       sudo cp kubernetes/client/bin/kubectl /usr/local/bin/k
-    displayName: Build AKS-Engine
+    displayName: Configure AKS-Engine
     workingDirectory: "$(modulePath)"
 
   - bash: |
@@ -95,7 +95,7 @@ steps:
       echo "Deleting file in GOPATH"
       sudo rm -rf '$(GOPATH)'
     name: DeployAKSEngine
-    displayName: Deploy AKS-Engine
+    displayName: Run AKS-Engine E2E Tests
     workingDirectory: "$(modulePath)"
 
   - task: PublishBuildArtifacts@1
