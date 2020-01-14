@@ -21,6 +21,7 @@ steps:
 
       if [ -z '$(AKS_ENGINE_VERSION)' ]
       then
+        echo Found set AKS-Engine version '$(AKS_ENGINE_VERSION)'
         latestVersion=$(curl -L -s -H 'Accept: application/json' https://github.com/Azure/aks-engine/releases/latest | sed -e 's/.*"tag_name":"\([^"]*\)".*/\1/')
       else
         latestVersion='$(AKS_ENGINE_VERSION)'
