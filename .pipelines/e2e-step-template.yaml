@@ -19,7 +19,13 @@ steps:
 
       cd '$(modulePath)'
 
-      latestVersion=$(curl -L -s -H 'Accept: application/json' https://github.com/Azure/aks-engine/releases/latest | sed -e 's/.*"tag_name":"\([^"]*\)".*/\1/')
+      if [ -z '$(AKS_ENGINE_VERSION)' ]
+      then
+        latestVersion=$(curl -L -s -H 'Accept: application/json' https://github.com/Azure/aks-engine/releases/latest | sed -e 's/.*"tag_name":"\([^"]*\)".*/\1/')
+      else
+        latestVersion='$(AKS_ENGINE_VERSION)'
+      fi
+      echo Using AKS-Engine version $latestVersion
 
       #download source
       wget https://github.com/Azure/aks-engine/archive/$latestVersion.tar.gz
