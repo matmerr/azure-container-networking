@@ -39,7 +39,7 @@ steps:
       mv aks-engine-*/* .
 
       # download binary
-      wget https://github.com/Azure/aks-engine/releases/latest/download/aks-engine-$aksEVersion-linux-amd64.tar.gz
+      wget https://github.com/Azure/aks-engine/releases/$aksEVersion/download/aks-engine-$aksEVersion-linux-amd64.tar.gz
 
       mkdir ./bin
 
