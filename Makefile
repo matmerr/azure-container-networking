@@ -149,6 +149,7 @@ ifeq ($(GOOS),linux)
 all-images: azure-npm-image azure-vnet-telemetry-image
 else
 all-images:
+	azure-npm-image
 	@echo "Nothing to build. Skip."
 endif
 
