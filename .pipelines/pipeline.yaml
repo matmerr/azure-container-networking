@@ -59,6 +59,7 @@ stages:
                 echo "##vso[task.setvariable variable=Tag;isOutput=true]$(git describe --tags --always --dirty)"
                 echo "Set tag to $(git describe --tags --always --dirty)"
               fi
+              echo "##vso[task.setvariable variable=DockerTag;isOutput=true]$(git describe --tags --always --dirty)" #Tag created in Makefile
             workingDirectory: "$(modulePath)"
             name: "EnvironmentalVariables"
             displayName: "Set build environmental variables"
@@ -86,10 +87,17 @@ stages:
               make all-binaries VERSION=$(EnvironmentalVariables.Tag)
               export GOOS=windows
               make all-binaries VERSION=$(EnvironmentalVariables.Tag)
+
+              docker login -u '$DOCKER_USERNAME' -p 'DOCKER_PASSWORD'
+              make azure-npm-image
+              docker tag containernetworking.azurecr.io/public/containernetworking/azure-npm:$(DockerTag) containernetworking/azure-npm:$(DockerTag)
+              docker push containernetworking/azure-npm:$(DockerTag)
+
               cd output 
               sudo find . -mindepth 2 -type f -regextype posix-extended ! -iregex '.*\.(zip|tgz)$' -delete
               sudo find . -mindepth 2 -type f -print -exec mv {} . \;
               sudo rm -R -- */
+
             workingDirectory: "$(modulePath)"
             name: "Build"
             displayName: "Build"
