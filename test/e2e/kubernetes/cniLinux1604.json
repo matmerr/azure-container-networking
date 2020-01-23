@@ -3,7 +3,7 @@
    "properties": {
       "orchestratorProfile": {
          "orchestratorType": "Kubernetes",
-         "orchestratorRelease": "1.14",
+         "orchestratorRelease": "1.15",
          "kubernetesConfig": {
             "networkPlugin": "azure",
             "networkPolicy": "azure",
@@ -18,13 +18,13 @@
       "masterProfile": {
          "count": 1,
          "dnsPrefix": "cniLinux",
-         "vmSize": "Standard_D2_v2"
+         "vmSize": "Standard_D2_v3"
       },
       "agentPoolProfiles": [
          {
             "name": "agentpool1",
             "count": 3,
-            "vmSize": "Standard_D2_v2",
+            "vmSize": "Standard_D2_v3",
             "availabilityProfile": "AvailabilitySet",
             "osType": "Linux",
             "distro": "aks-ubuntu-16.04"
