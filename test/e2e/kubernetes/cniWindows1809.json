@@ -52,9 +52,9 @@
          "enableAutomaticUpdates": false,
          "sshEnabled": true,
          "windowsPublisher": "MicrosoftWindowsServer",
-         "windowsOffer": "WindowsServer",
+         "windowsOffer": "WindowsServerSemiAnnual",
          "windowsSku": "Datacenter-Core-1809-with-Containers-smalldisk",
-         "imageVersion": "1809.0.20190603"
+         "imageVersion": "1809.0.20190826"
       },
       "linuxProfile": {
          "adminUsername": "azureuser",
