@@ -85,7 +85,8 @@ stages:
               make all-binaries VERSION=$(EnvironmentalVariables.Tag)
               sudo make azure-npm-image VERSION=$(EnvironmentalVariables.Tag)
               echo '$(DOCKER_PASSWORD)' | docker login containernetworking.azurecr.io -u '$(DOCKER_USERNAME)' --password-stdin
-              docker push containernetworking.azurecr.io/public/containernetworking/azure-npm:$(EnvironmentalVariables.Tag)
+              docker tag containernetworking.azurecr.io/public/containernetworking/azure-npm:$(EnvironmentalVariables.Tag) containernetworking.azurecr.io/public/containernetworking/azure-npm:$(EnvironmentalVariables.Tag)-test
+              docker push containernetworking.azurecr.io/public/containernetworking/azure-npm:$(EnvironmentalVariables.Tag)-test
               cd output 
               sudo find . -mindepth 2 -type f -regextype posix-extended ! -iregex '.*\.(zip|tgz)$' -delete
               sudo find . -mindepth 2 -type f -print -exec mv {} . \;
@@ -128,7 +129,7 @@ stages:
                     printf "Attempt $i/$attempts - " && "$@" && break ||  sleep 3 &&  i=$[$i+1] && false
                   done
               }
-              auto-retry docker pull mcr.microsoft.com/containernetworking/azure-npm:$(EnvironmentalVariables.Tag)
+              auto-retry docker pull mcr.microsoft.com/containernetworking/azure-npm:$(EnvironmentalVariables.Tag)-test
             workingDirectory: "$(modulePath)"
             name: "mcrreplication"
             displayName: "Wait for MCR"
