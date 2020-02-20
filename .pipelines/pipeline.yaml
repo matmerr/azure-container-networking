@@ -122,13 +122,13 @@ stages:
               function auto-retry()
               {
                   export i="1"
-                  export attempts="60"
+                  export attempts="100"
                   false
                   while [[ $? -ne 0 ]] && [[ $i -lt $attempts ]]; do
                     printf "Attempt $i/$attempts - " && "$@" && break ||  sleep 3 &&  i=$[$i+1] && false
                   done
               }
-              auto-retry docker pull containernetworking.azurecr.io/public/containernetworking/azure-npm:$(EnvironmentalVariables.Tag)
+              auto-retry docker pull mcr.microsoft.com/containernetworking/azure-npm:$(EnvironmentalVariables.Tag)
             workingDirectory: "$(modulePath)"
             name: "mcrreplication"
             displayName: "Wait for MCR"
