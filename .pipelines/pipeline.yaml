@@ -123,7 +123,7 @@ stages:
               function auto-retry()
               {
                   export i="1"
-                  export attempts="100"
+                  export attempts="300"
                   false
                   while [[ $? -ne 0 ]] && [[ $i -lt $attempts ]]; do
                     printf "Attempt $i/$attempts - " && "$@" && break ||  sleep 3 &&  i=$[$i+1] && false
@@ -228,7 +228,7 @@ stages:
               inlineScript: |
                 export CommitHash=(git rev-parse HEAD)
                 az storage container delete -n acn-$CommitHash --account-name $(STORAGE_ACCOUNT_NAME)
-                az acr repository delete --name containernetworking --image containernetworking.azurecr.io/public/containernetworking/azure-npm:$(EnvironmentalVariables.Tag)
+                az acr repository delete --name containernetworking --image containernetworking.azurecr.io/public/containernetworking/azure-npm:$(EnvironmentalVariables.Tag)-test
               workingDirectory: "$(modulePath)"
             displayName: Cleanup remote Azure storage container
             condition: always()
