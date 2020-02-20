@@ -228,7 +228,7 @@ stages:
               inlineScript: |
                 export CommitHash=(git rev-parse HEAD)
                 az storage container delete -n acn-$CommitHash --account-name $(STORAGE_ACCOUNT_NAME)
-                az acr repository delete --name containernetworking --image containernetworking.azurecr.io/public/containernetworking/azure-npm:$(EnvironmentalVariables.Tag)-test
+                az acr repository delete --name containernetworking --image containernetworking.azurecr.io/public/containernetworking/azure-npm:$(Tag)-test
               workingDirectory: "$(modulePath)"
             displayName: Cleanup remote Azure storage container
             condition: always()
