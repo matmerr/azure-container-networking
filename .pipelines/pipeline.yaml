@@ -84,9 +84,8 @@ stages:
               export GOOS=linux
               make all-binaries VERSION=$(EnvironmentalVariables.Tag)
               sudo make azure-npm-image VERSION=$(EnvironmentalVariables.Tag)
-              echo '$(DOCKER_PASSWORD)' | docker login -u '$(DOCKER_USERNAME)' --password-stdin
-              docker tag containernetworking.azurecr.io/public/containernetworking/azure-npm:$(EnvironmentalVariables.Tag) containernetworking/azure-npm:$(EnvironmentalVariables.Tag)
-              docker push containernetworking/azure-npm:$(EnvironmentalVariables.Tag)
+              echo '$(DOCKER_PASSWORD)' | docker login containernetworking.azurecr.io -u '$(DOCKER_USERNAME)' --password-stdin
+              docker push containernetworking.azurecr.io/public/containernetworking/azure-npm:$(EnvironmentalVariables.Tag)
               cd output 
               sudo find . -mindepth 2 -type f -regextype posix-extended ! -iregex '.*\.(zip|tgz)$' -delete
               sudo find . -mindepth 2 -type f -print -exec mv {} . \;
@@ -118,6 +117,21 @@ stages:
             name: "Coverage"
             displayName: "Generate Coverage Reports"
             condition: always()
+
+          - script: |
+              function auto-retry()
+              {
+                  export i="1"
+                  export attempts="60"
+                  false
+                  while [[ $? -ne 0 ]] && [[ $i -lt $attempts ]]; do
+                    printf "Attempt $i/$attempts - " && "$@" && break ||  sleep 3 &&  i=$[$i+1] && false
+                  done
+              }
+              auto-retry docker pull containernetworking.azurecr.io/public/containernetworking/azure-npm:$(EnvironmentalVariables.Tag)
+            workingDirectory: "$(modulePath)"
+            name: "mcrreplication"
+            displayName: "Wait for MCR"
 
           - task: PublishTestResults@2
             inputs:
