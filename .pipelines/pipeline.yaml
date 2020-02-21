@@ -50,14 +50,11 @@ stages:
 
           - script: |
               echo "##vso[task.setvariable variable=CommitHash;isOutput=true]$(git rev-parse HEAD)"
+              echo "##vso[task.setvariable variable=Tag;isOutput=true]$(git describe --tags --always --dirty)"
               export BRANCH=$(Build.SourceBranchName)
               echo Building branch $BRANCH from $(Build.SourceBranch) 
               if [[ "$BRANCH" == "master" ]]; then
                 echo "##vso[task.setvariable variable=Tag;isOutput=true]$(git describe --tags --abbrev=0)"
-                echo "Set tag to $(git describe --tags --abbrev=0)"
-              else
-                echo "##vso[task.setvariable variable=Tag;isOutput=true]$(git describe --tags --always --dirty)"
-                echo "Set tag to $(git describe --tags --always --dirty)"
               fi
             workingDirectory: "$(modulePath)"
             name: "EnvironmentalVariables"
@@ -229,7 +226,8 @@ stages:
                   export Tag=$(git describe --tags --abbrev=0)
                 fi
                 az storage container delete -n acn-$CommitHash --account-name $(STORAGE_ACCOUNT_NAME)
-                az acr repository delete --name containernetworking --image containernetworking.azurecr.io/public/containernetworking/azure-npm:$Tag-test
+                echo tag is $Tag
+                az acr repository delete --name containernetworking --image $PUSH_CONTAINER_REGISTRY/azure-npm:$Tag-test
               workingDirectory: "$(modulePath)"
             displayName: Cleanup remote Azure storage container
             condition: always()
