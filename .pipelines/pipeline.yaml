@@ -216,7 +216,6 @@ stages:
           demands: agent.os -equals Linux
         container:
           image: containernetworking/pipeline-ci:1.0.6
-        variables:
         condition: always()
         steps:
           - task: AzureCLI@1
