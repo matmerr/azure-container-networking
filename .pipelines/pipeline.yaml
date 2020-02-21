@@ -216,14 +216,13 @@ stages:
           image: containernetworking/pipeline-ci:1.0.6
         condition: always()
         steps:
-          - checkout: none
           - task: AzureCLI@1
             inputs:
               azureSubscription: $(ARTIFACT_SUBSCRIPTION)
               scriptLocation: "inlineScript"
               inlineScript: |
                 export CommitHash=(git rev-parse HEAD)
-                echo Deleting storage container with name acn-$(EnvironmentalVariables.CommitHash) and account name $(STORAGE_ACCOUNT_NAME)
+                echo Deleting storage container with name acn-$CommitHash and account name $(STORAGE_ACCOUNT_NAME)
                 az storage container delete -n acn-$CommitHash --account-name $(STORAGE_ACCOUNT_NAME)
               workingDirectory: "$(modulePath)"
             displayName: Cleanup remote Azure storage container
