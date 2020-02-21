@@ -148,7 +148,8 @@ stages:
               sourceFolder: "$(modulePath)/output"
               targetFolder: $(Build.ArtifactStagingDirectory)
             condition: succeeded()
-
+              export BRANCH=$(Build.SourceBranchName)
+              echo Building branch $BRANCH from $(Build.SourceBranch)
           - task: PublishBuildArtifacts@1
             inputs:
               artifactName: "output"
@@ -163,6 +164,7 @@ stages:
               azureSubscription: $(ARTIFACT_SUBSCRIPTION)
               scriptLocation: "inlineScript"
               inlineScript: |
+                echo Creating storage container with name acn-$(EnvironmentalVariables.CommitHash) and account name $(STORAGE_ACCOUNT_NAME)
                 az storage container create -n acn-$(EnvironmentalVariables.CommitHash) --account-name $(STORAGE_ACCOUNT_NAME) --public-access container
                 az storage blob upload-batch -d acn-$(EnvironmentalVariables.CommitHash) -s ./output/  --account-name $(STORAGE_ACCOUNT_NAME)
               workingDirectory: "$(modulePath)"
@@ -225,8 +227,9 @@ stages:
                 if [[ "$(Build.SourceBranchName)" == "master" ]]; then
                   export Tag=$(git describe --tags --abbrev=0)
                 fi
+                echo Deleting storage container with name acn-$(EnvironmentalVariables.CommitHash) and account name $(STORAGE_ACCOUNT_NAME)
                 az storage container delete -n acn-$CommitHash --account-name $(STORAGE_ACCOUNT_NAME)
-                echo tag is $Tag
+                Deleting image $PUSH_CONTAINER_REGISTRY/azure-npm:$Tag-test
                 az acr repository delete --name containernetworking --image $PUSH_CONTAINER_REGISTRY/azure-npm:$Tag-test
               workingDirectory: "$(modulePath)"
             displayName: Cleanup remote Azure storage container
