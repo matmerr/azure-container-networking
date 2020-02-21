@@ -171,41 +171,41 @@ stages:
               workingDirectory: "$(modulePath)"
             displayName: Create artifact storage container
 
-          - template: e2e-job-template.yaml
-            parameters:
-              name: "ubuntu_16_04_linux_e2e"
-              pipelineBuildImage: "containernetworking/pipeline-ci:1.0.6"
-              clusterDefinition: "cniLinux1604.json"
-              clusterDefinitionCniTypeKey: "azureCNIURLLinux"
-              clusterDefinitionCniBuildOS: "linux"
-              clusterDefinitionCniBuildExt: ".tgz"
+      - template: e2e-job-template.yaml
+        parameters:
+          name: "ubuntu_16_04_linux_e2e"
+          pipelineBuildImage: "containernetworking/pipeline-ci:1.0.6"
+          clusterDefinition: "cniLinux1604.json"
+          clusterDefinitionCniTypeKey: "azureCNIURLLinux"
+          clusterDefinitionCniBuildOS: "linux"
+          clusterDefinitionCniBuildExt: ".tgz"
 
-          - template: e2e-job-template.yaml
-            parameters:
-              name: "ubuntu_18_04_linux_e2e"
-              pipelineBuildImage: "containernetworking/pipeline-ci:1.0.6"
-              clusterDefinition: "cniLinux1804.json"
-              clusterDefinitionCniTypeKey: "azureCNIURLLinux"
-              clusterDefinitionCniBuildOS: "linux"
-              clusterDefinitionCniBuildExt: ".tgz"
+      - template: e2e-job-template.yaml
+        parameters:
+          name: "ubuntu_18_04_linux_e2e"
+          pipelineBuildImage: "containernetworking/pipeline-ci:1.0.6"
+          clusterDefinition: "cniLinux1804.json"
+          clusterDefinitionCniTypeKey: "azureCNIURLLinux"
+          clusterDefinitionCniBuildOS: "linux"
+          clusterDefinitionCniBuildExt: ".tgz"
 
-          - template: e2e-job-template.yaml
-            parameters:
-              name: "windows_18_09_e2e"
-              pipelineBuildImage: "containernetworking/pipeline-ci:1.0.6"
-              clusterDefinition: "cniWindows1809.json"
-              clusterDefinitionCniTypeKey: "azureCNIURLWindows"
-              clusterDefinitionCniBuildOS: "windows"
-              clusterDefinitionCniBuildExt: ".zip"
+      - template: e2e-job-template.yaml
+        parameters:
+          name: "windows_18_09_e2e"
+          pipelineBuildImage: "containernetworking/pipeline-ci:1.0.6"
+          clusterDefinition: "cniWindows1809.json"
+          clusterDefinitionCniTypeKey: "azureCNIURLWindows"
+          clusterDefinitionCniBuildOS: "windows"
+          clusterDefinitionCniBuildExt: ".zip"
 
-          - template: e2e-job-template.yaml
-            parameters:
-              name: "windows_19_03_e2e"
-              pipelineBuildImage: "containernetworking/pipeline-ci:1.0.6"
-              clusterDefinition: "cniWindows1903.json"
-              clusterDefinitionCniTypeKey: "azureCNIURLWindows"
-              clusterDefinitionCniBuildOS: "windows"
-              clusterDefinitionCniBuildExt: ".zip"
+      - template: e2e-job-template.yaml
+        parameters:
+          name: "windows_19_03_e2e"
+          pipelineBuildImage: "containernetworking/pipeline-ci:1.0.6"
+          clusterDefinition: "cniWindows1903.json"
+          clusterDefinitionCniTypeKey: "azureCNIURLWindows"
+          clusterDefinitionCniBuildOS: "windows"
+          clusterDefinitionCniBuildExt: ".zip"
 
   - stage: cleanup
     condition: always()
