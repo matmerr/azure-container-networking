@@ -148,8 +148,7 @@ stages:
               sourceFolder: "$(modulePath)/output"
               targetFolder: $(Build.ArtifactStagingDirectory)
             condition: succeeded()
-              export BRANCH=$(Build.SourceBranchName)
-              echo Building branch $BRANCH from $(Build.SourceBranch)
+
           - task: PublishBuildArtifacts@1
             inputs:
               artifactName: "output"
