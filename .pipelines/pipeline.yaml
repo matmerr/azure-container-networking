@@ -216,20 +216,15 @@ stages:
           image: containernetworking/pipeline-ci:1.0.6
         condition: always()
         steps:
+          - checkout: none
           - task: AzureCLI@1
             inputs:
               azureSubscription: $(ARTIFACT_SUBSCRIPTION)
               scriptLocation: "inlineScript"
               inlineScript: |
                 export CommitHash=(git rev-parse HEAD)
-                export Tag=$(git describe --tags --always --dirty)
-                if [[ "$(Build.SourceBranchName)" == "master" ]]; then
-                  export Tag=$(git describe --tags --abbrev=0)
-                fi
                 echo Deleting storage container with name acn-$(EnvironmentalVariables.CommitHash) and account name $(STORAGE_ACCOUNT_NAME)
                 az storage container delete -n acn-$CommitHash --account-name $(STORAGE_ACCOUNT_NAME)
-                Deleting image $PUSH_CONTAINER_REGISTRY/azure-npm:$Tag-test
-                az acr repository delete --name containernetworking --image $PUSH_CONTAINER_REGISTRY/azure-npm:$Tag-test
               workingDirectory: "$(modulePath)"
             displayName: Cleanup remote Azure storage container
             condition: always()
