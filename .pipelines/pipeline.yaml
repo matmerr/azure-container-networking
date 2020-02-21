@@ -171,6 +171,17 @@ stages:
               workingDirectory: "$(modulePath)"
             displayName: Create artifact storage container
 
+          - task: AzureCLI@1
+            inputs:
+              azureSubscription: $(ARTIFACT_SUBSCRIPTION)
+              scriptLocation: "inlineScript"
+              inlineScript: |
+                export CommitHash=(git rev-parse HEAD)
+                az storage container delete -n acn-$CommitHash --account-name $(STORAGE_ACCOUNT_NAME)
+                az acr repository delete --name containernetworking --image containernetworking.azurecr.io/public/containernetworking/azure-npm:$(Tag)-test
+              workingDirectory: "$(modulePath)"
+            displayName: Cleanup remote Azure storage container
+            condition: always()
   #      - template: e2e-job-template.yaml
   #        parameters:
   #          name: "ubuntu_16_04_linux_e2e"
@@ -206,29 +217,28 @@ stages:
   #          clusterDefinitionCniTypeKey: "azureCNIURLWindows"
   #          clusterDefinitionCniBuildOS: "windows"
   #          clusterDefinitionCniBuildExt: ".zip"
-
-  - stage: cleanup
-    condition: always()
-    jobs:
-      - job: delete_remote_artifacts
-        pool:
-          name: Networking-ContainerNetworking
-          demands: agent.os -equals Linux
-        container:
-          image: containernetworking/pipeline-ci:1.0.6
-        variables:
-          Tag: $[ build_and_test.unit_tests.outputs['EnvironmentalVariables.Tag'] ]
-        condition: always()
-        steps:
-          - checkout: none
-          - task: AzureCLI@1
-            inputs:
-              azureSubscription: $(ARTIFACT_SUBSCRIPTION)
-              scriptLocation: "inlineScript"
-              inlineScript: |
-                export CommitHash=(git rev-parse HEAD)
-                az storage container delete -n acn-$CommitHash --account-name $(STORAGE_ACCOUNT_NAME)
-                az acr repository delete --name containernetworking --image containernetworking.azurecr.io/public/containernetworking/azure-npm:$(Tag)-test
-              workingDirectory: "$(modulePath)"
-            displayName: Cleanup remote Azure storage container
-            condition: always()
+#  - stage: cleanup
+#    condition: always()
+#    jobs:
+#      - job: delete_remote_artifacts
+#        pool:
+#          name: Networking-ContainerNetworking
+#          demands: agent.os -equals Linux
+#        container:
+#          image: containernetworking/pipeline-ci:1.0.6
+#        variables:
+#          Tag: $[ build_and_test.unit_tests.outputs['EnvironmentalVariables.Tag'] ]
+#        condition: always()
+#        steps:
+#          - checkout: none
+#          - task: AzureCLI@1
+#            inputs:
+#              azureSubscription: $(ARTIFACT_SUBSCRIPTION)
+#              scriptLocation: "inlineScript"
+#              inlineScript: |
+#                export CommitHash=(git rev-parse HEAD)
+#                az storage container delete -n acn-$CommitHash --account-name $(STORAGE_ACCOUNT_NAME)
+#                az acr repository delete --name containernetworking --image containernetworking.azurecr.io/public/containernetworking/azure-npm:$(Tag)-test
+#              workingDirectory: "$(modulePath)"
+#            displayName: Cleanup remote Azure storage container
+#            condition: always()
