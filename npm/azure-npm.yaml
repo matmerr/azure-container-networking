@@ -15,7 +15,7 @@ metadata:
     addonmanager.kubernetes.io/mode: EnsureExists
 rules:
   - apiGroups:
-    - ""
+      - ""
     resources:
       - pods
       - nodes
@@ -25,7 +25,7 @@ rules:
       - list
       - watch
   - apiGroups:
-    - networking.k8s.io
+      - networking.k8s.io
     resources:
       - networkpolicies
     verbs:
@@ -66,16 +66,16 @@ spec:
       labels:
         k8s-app: azure-npm
       annotations:
-        scheduler.alpha.kubernetes.io/critical-pod: ''
+        scheduler.alpha.kubernetes.io/critical-pod: ""
     spec:
       priorityClassName: system-node-critical
       tolerations:
-      - operator: "Exists"
-        effect: NoExecute
-      - operator: "Exists"
-        effect: NoSchedule
-      - key: CriticalAddonsOnly
-        operator: Exists
+        - operator: "Exists"
+          effect: NoExecute
+        - operator: "Exists"
+          effect: NoSchedule
+        - key: CriticalAddonsOnly
+          operator: Exists
       nodeSelector:
         beta.kubernetes.io/os: linux
         kubernetes.io/role: agent
@@ -90,19 +90,27 @@ spec:
                 fieldRef:
                   apiVersion: v1
                   fieldPath: spec.nodeName
+          livenessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - if sudo ipset -L | grep azure-npm-*; then echo liveness probe passed;  else echo liveness probe failed to find azure-npm ipsets; fi;
+            initialDelaySeconds: 120
+            periodSeconds: 10
           volumeMounts:
-          - name: xtables-lock
-            mountPath: /run/xtables.lock
-          - name: log
-            mountPath: /var/log
+            - name: xtables-lock
+              mountPath: /run/xtables.lock
+            - name: log
+              mountPath: /var/log
       hostNetwork: true
       volumes:
-      - name: log
-        hostPath:
-          path: /var/log
-          type: Directory
-      - name: xtables-lock
-        hostPath:
-          path: /run/xtables.lock
-          type: File
+        - name: log
+          hostPath:
+            path: /var/log
+            type: Directory
+        - name: xtables-lock
+          hostPath:
+            path: /run/xtables.lock
+            type: File
       serviceAccountName: azure-npm
