@@ -4,11 +4,19 @@
 package ipam
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net"
+	"os"
+	"reflect"
 	"testing"
 
 	"github.com/Azure/azure-container-networking/common"
+
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	testclient "k8s.io/client-go/kubernetes/fake"
 )
 
 var (
@@ -369,5 +377,49 @@ func TestAddressRequestsFromTheSamePool(t *testing.T) {
 	err = am.ReleasePool(LocalDefaultAddressSpaceId, poolId)
 	if err != nil {
 		t.Errorf("ReleasePool failed, err:%v", err)
+	}
+}
+
+func TestKubernetesIpam(t *testing.T) {
+
+	client := testclient.NewSimpleClientset()
+	nodeName := "TestNode"
+
+	testnode := &v1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: nodeName,
+		},
+		Spec: v1.NodeSpec{
+			PodCIDR:  "10.0.0.1/24",
+			PodCIDRs: []string{"10.0.0.1/24", "ace:cab:deca:deed::/64"},
+		},
+	}
+
+	client.CoreV1().Nodes().Create(testnode)
+
+	az, _ := newAzureSource(make(map[string]interface{}))
+	err := az.RefreshKubernetesIpam(client, nodeName)
+	if err != nil {
+		t.Fatalf("Failed to retrieve node spec with error: %+v", err)
+	}
+
+	filepath := "/tmp/nodespec.json"
+
+	jsonFile, _ := os.Open(filepath)
+	byteValue, err := ioutil.ReadAll(jsonFile)
+
+	if err != nil {
+		t.Fatalf("Failed to load saved node spec with error: %+v", err)
+	}
+
+	validateNodeSpec := v1.NodeSpec{}
+	json.Unmarshal(byteValue, &validateNodeSpec)
+
+	if testnode.Spec.PodCIDR != testnode.Spec.PodCIDR {
+		t.Fatalf("Node validation failed, expected: %+v, actual: %+v", testnode.Spec.PodCIDR, testnode.Spec.PodCIDR)
+	}
+
+	if !reflect.DeepEqual(testnode.Spec.PodCIDRs, validateNodeSpec.PodCIDRs) {
+		t.Fatalf("Node validation failed, expected: %+v, actual: %+v", testnode.Spec.PodCIDRs, validateNodeSpec.PodCIDRs)
 	}
 }

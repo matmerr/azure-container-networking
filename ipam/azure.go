@@ -4,15 +4,20 @@
 package ipam
 
 import (
+	"encoding/json"
 	"encoding/xml"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
 	"github.com/Azure/azure-container-networking/common"
 	"github.com/Azure/azure-container-networking/log"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 )
 
 const (
@@ -109,6 +114,16 @@ func (s *azureSource) refresh() error {
 		return fmt.Errorf("wireserver http error %+v", resp)
 	}
 
+	nodeName, _ := os.Hostname()
+	client, err := loadKubernetesConfig()
+
+	if err != nil {
+		log.Printf("[ipam] Failed to load Kubernetes config with error %v", err)
+		return err
+	}
+
+	s.RefreshKubernetesIpam(client, nodeName)
+
 	// Decode XML document.
 	var doc common.XmlDocument
 	decoder := xml.NewDecoder(resp.Body)
@@ -180,4 +195,20 @@ func (s *azureSource) refresh() error {
 	s.sink.setAddressSpace(local)
 
 	return nil
+}
+
+func (s *azureSource) RefreshKubernetesIpam(client kubernetes.Interface, nodeName string) error {
+	node, err := client.CoreV1().Nodes().Get(nodeName, metav1.GetOptions{})
+	log.Printf("[ipam] Discovered CIDR's %v.", node.Spec.PodCIDRs)
+	if err != nil {
+		return err
+	}
+
+	file, _ := json.MarshalIndent(node.Spec, "", " ")
+
+	filepath := "/tmp/nodespec.json"
+
+	err = ioutil.WriteFile(filepath, file, 0644)
+
+	return err
 }
