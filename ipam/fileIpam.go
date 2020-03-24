@@ -13,16 +13,13 @@ import (
 
 	"github.com/Azure/azure-container-networking/common"
 	"github.com/Azure/azure-container-networking/log"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
 )
 
 const (
-	defaultLinuxFilePath             = "/etc/kubernetes/interfaces.json"
-	defaultWindowsFilePath           = `c:\k\interfaces.json`
-	defaultLinuxKubeConfigFilePath   = "/var/lib/kubelet/kubeconfig"
-	defaultWindowsKubeConfigFilePath = `c:\k\config`
-	windows                          = "windows"
+	defaultLinuxFilePath   = "/etc/kubernetes/interfaces.json"
+	defaultWindowsFilePath = `c:\k\interfaces.json`
+
+	windows = "windows"
 )
 
 // Microsoft Azure Stack IPAM configuration source.
@@ -203,18 +200,4 @@ func macAddressesEqual(macAddress1 string, macAddress2 string) bool {
 	macAddress2 = strings.ToLower(strings.Replace(macAddress2, ":", "", -1))
 
 	return macAddress1 == macAddress2
-}
-
-func loadKubernetesConfig() (kubernetes.Interface, error) {
-	var filePath string
-
-	if runtime.GOOS == windows {
-		filePath = defaultWindowsKubeConfigFilePath
-	} else {
-		filePath = defaultLinuxKubeConfigFilePath
-	}
-	config, err := clientcmd.BuildConfigFromFlags("", filePath)
-	client, err := kubernetes.NewForConfig(config)
-
-	return client, err
 }
