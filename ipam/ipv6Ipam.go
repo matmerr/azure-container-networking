@@ -1,9 +1,7 @@
 package ipam
 
 import (
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
 	"runtime"
@@ -21,24 +19,37 @@ const (
 	defaultWindowsKubePath           = `c:\k\`
 	defaultWindowsKubeConfigFilePath = defaultWindowsKubePath + `config`
 	defaultLinuxKubeConfigFilePath   = "/var/lib/kubelet/kubeconfig"
+	nodeSubnetMask                   = "::/120"
 )
 
 type ipv6IpamSource struct {
-	name string
-	sink addressConfigSink
+	name           string
+	kubeConfigPath string
+	kubeClient     *kubernetes.Clientset
+	kubeNode       *v1.Node
+	sink           addressConfigSink
 }
 
 func newIPv6IpamSource(options map[string]interface{}) (*ipv6IpamSource, error) {
-
+	var kubeConfigPath string
 	name := options[common.OptEnvironment].(string)
+
+	if runtime.GOOS == windows {
+		kubeConfigPath = defaultWindowsKubeConfigFilePath
+	} else {
+		kubeConfigPath = defaultLinuxKubeConfigFilePath
+	}
+
 	return &ipv6IpamSource{
-		name: name,
+		name:           name,
+		kubeConfigPath: kubeConfigPath,
 	}, nil
 }
 
 // Starts the MAS source.
 func (source *ipv6IpamSource) start(sink addressConfigSink) error {
 	source.sink = sink
+
 	return nil
 }
 
@@ -47,45 +58,69 @@ func (source *ipv6IpamSource) stop() {
 	source.sink = nil
 }
 
-func loadKubernetesConfig() (kubernetes.Interface, error) {
-	var filePath string
-
-	if runtime.GOOS == windows {
-		filePath = defaultWindowsKubeConfigFilePath
-	} else {
-		filePath = defaultLinuxKubeConfigFilePath
-	}
-	config, err := clientcmd.BuildConfigFromFlags("", filePath)
+func (source *ipv6IpamSource) loadKubernetesConfig() (*kubernetes.Clientset, error) {
+	config, err := clientcmd.BuildConfigFromFlags("", source.kubeConfigPath)
 	client, err := kubernetes.NewForConfig(config)
-
 	return client, err
 }
 
-func incIPFromIP(ip net.IP) {
-	for j := len(ip) - 1; j >= 0; j-- {
-		ip[j]++
-		if ip[j] > 0 {
-			break
+func (source *ipv6IpamSource) refresh() error {
+	nodeName, err := os.Hostname()
+
+	if source.kubeClient == nil || source.kubeNode == nil {
+		source.kubeClient, err = source.loadKubernetesConfig()
+		source.kubeNode, err = source.kubeClient.CoreV1().Nodes().Get(nodeName, metav1.GetOptions{})
+	}
+
+	if err != nil {
+		return err
+	}
+
+	log.Printf("[ipam] Discovered CIDR's %v.", source.kubeNode.Spec.PodCIDRs)
+	if err != nil {
+		return err
+	}
+
+	// Query the list of Kubernetes Pod IPs
+	interfaceIPs, err := retrieveKubernetesPodIPs(source.kubeNode, nodeSubnetMask)
+
+	// Configure the local default address space.
+	local, err := source.sink.newAddressSpace(LocalDefaultAddressSpaceId, LocalScope)
+	if err != nil {
+		return err
+	}
+
+	for _, i := range interfaceIPs.Interfaces {
+		for el, s := range i.IPSubnets {
+			_, subnet, err := net.ParseCIDR(s.Prefix)
+			ifaceName := "azure-" + strconv.Itoa(el)
+			priority := 0
+			ap, err := local.newAddressPool(ifaceName, priority, subnet)
+
+			for _, a := range s.IPAddresses {
+				address := net.ParseIP(a.Address)
+
+				_, err = ap.newAddressRecord(&address)
+				if err != nil {
+					log.Printf("[ipam] Failed to create address:%v err:%v.", address, err)
+					continue
+				}
+			}
+
 		}
 	}
-}
 
-func duplicateIP(ip net.IP) net.IP {
-	dup := make(net.IP, len(ip))
-	copy(dup, ip)
-	return dup
-}
-
-func getIPsFromAddresses(ipv6 net.IP, ipnet *net.IPNet) []net.IP {
-	ips := make([]net.IP, 0)
-
-	for ipv6 := ipv6.Mask(ipnet.Mask); ipnet.Contains(ipv6); incIPFromIP(ipv6) {
-		ips = append(ips, duplicateIP(ipv6))
+	// Set the local address space as active.
+	if err = source.sink.setAddressSpace(local); err != nil {
+		return err
 	}
-	return ips
+
+	log.Printf("[ipam] Address space successfully populated from config file")
+
+	return err
 }
 
-func carveAddresses(node *v1.Node, desiredMaskV6 string) (*NetworkInterfaces, error) {
+func retrieveKubernetesPodIPs(node *v1.Node, desiredMaskV6 string) (*NetworkInterfaces, error) {
 	var nodeCidr net.IP
 	var ipnetv6 *net.IPNet
 	_, desiredMask, err := net.ParseCIDR(desiredMaskV6)
@@ -114,17 +149,15 @@ func carveAddresses(node *v1.Node, desiredMaskV6 string) (*NetworkInterfaces, er
 	networkSubnet := IPSubnet{
 		Prefix: subnet,
 	}
-	for _, address := range addresses {
 
+	// skip the first address
+	for i := 1; i < len(addresses); i++ {
 		ipaddress := IPAddress{
 			IsPrimary: false,
-			Address:   address.String(),
+			Address:   addresses[i].String(),
 		}
 		networkSubnet.IPAddresses = append(networkSubnet.IPAddresses, ipaddress)
 	}
-
-	// set address to primary
-	networkSubnet.IPAddresses[0].IsPrimary = true
 
 	networkInterfaces := NetworkInterfaces{
 		Interfaces: []Interface{
@@ -140,23 +173,26 @@ func carveAddresses(node *v1.Node, desiredMaskV6 string) (*NetworkInterfaces, er
 	return &networkInterfaces, nil
 }
 
-func (source *ipv6IpamSource) refresh() error {
-
-	nodeName, err := os.Hostname()
-	client, err := loadKubernetesConfig()
-	if err != nil {
-		return err
+func incIPFromIP(ip net.IP) {
+	for j := len(ip) - 1; j >= 0; j-- {
+		ip[j]++
+		if ip[j] > 0 {
+			break
+		}
 	}
+}
 
-	node, err := client.CoreV1().Nodes().Get(nodeName, metav1.GetOptions{})
-	log.Printf("[ipam] Discovered CIDR's %v.", node.Spec.PodCIDRs)
-	if err != nil {
-		return err
+func duplicateIP(ip net.IP) net.IP {
+	dup := make(net.IP, len(ip))
+	copy(dup, ip)
+	return dup
+}
+
+func getIPsFromAddresses(ipv6 net.IP, ipnet *net.IPNet) []net.IP {
+	ips := make([]net.IP, 0)
+
+	for ipv6 := ipv6.Mask(ipnet.Mask); ipnet.Contains(ipv6); incIPFromIP(ipv6) {
+		ips = append(ips, duplicateIP(ipv6))
 	}
-
-	file, _ := json.MarshalIndent(node.Spec, "", " ")
-	filepath := "/tmp/nodespec.json"
-	err = ioutil.WriteFile(filepath, file, 0644)
-
-	return err
+	return ips
 }

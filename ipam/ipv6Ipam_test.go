@@ -4,7 +4,6 @@
 package ipam
 
 import (
-	"fmt"
 	"reflect"
 	"testing"
 
@@ -14,14 +13,11 @@ import (
 	testclient "k8s.io/client-go/kubernetes/fake"
 )
 
-func TestKubernetesIpam(t *testing.T) {
-
+func TestIPv6Ipam(t *testing.T) {
 	options := make(map[string]interface{})
 	options[common.OptEnvironment] = common.OptEnvironmentIPv6Ipam
 
-	client := testclient.NewSimpleClientset()
 	nodeName := "TestNode"
-
 	testnode := &v1.Node{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: nodeName,
@@ -32,12 +28,11 @@ func TestKubernetesIpam(t *testing.T) {
 		},
 	}
 
+	client := testclient.NewSimpleClientset()
 	client.CoreV1().Nodes().Create(testnode)
-
 	node, _ := client.CoreV1().Nodes().Get(nodeName, metav1.GetOptions{})
 
-	testInterfaces, err := carveAddresses(node, "::/127")
-
+	testInterfaces, err := retrieveKubernetesPodIPs(node, "::/127")
 	if err != nil {
 		t.Fatalf("Failed to carve addresses: %+v", err)
 	}
@@ -50,7 +45,6 @@ func TestKubernetesIpam(t *testing.T) {
 					{
 						Prefix: "ace:cab:deca:deed::/127",
 						IPAddresses: []IPAddress{
-							{Address: "ace:cab:deca:deed::", IsPrimary: true},
 							{Address: "ace:cab:deca:deed::1", IsPrimary: false},
 						},
 					},
@@ -59,33 +53,9 @@ func TestKubernetesIpam(t *testing.T) {
 		},
 	}
 
-	isequal := reflect.DeepEqual(testInterfaces, correctInterfaces)
-	fmt.Println(isequal)
+	equal := reflect.DeepEqual(testInterfaces, correctInterfaces)
 
-	/*
-		err := ipam.RefreshKubernetesIpam(client, nodeName)
-		if err != nil {
-			t.Fatalf("Failed to retrieve node spec with error: %+v", err)
-		}
-
-		filepath := "/tmp/nodespec.json"
-
-		jsonFile, _ := os.Open(filepath)
-		byteValue, err := ioutil.ReadAll(jsonFile)
-
-		if err != nil {
-			t.Fatalf("Failed to load saved node spec with error: %+v", err)
-		}
-
-		validateNodeSpec := v1.NodeSpec{}
-		json.Unmarshal(byteValue, &validateNodeSpec)
-
-		if testnode.Spec.PodCIDR != testnode.Spec.PodCIDR {
-			t.Fatalf("Node validation failed, expected: %+v, actual: %+v", testnode.Spec.PodCIDR, testnode.Spec.PodCIDR)
-		}
-
-		if !reflect.DeepEqual(testnode.Spec.PodCIDRs, validateNodeSpec.PodCIDRs) {
-			t.Fatalf("Node validation failed, expected: %+v, actual: %+v", testnode.Spec.PodCIDRs, validateNodeSpec.PodCIDRs)
-		}
-	*/
+	if !equal {
+		t.Fatalf("Network interface mismatch, expected: %+v actual: %+v", correctInterfaces, testInterfaces)
+	}
 }
