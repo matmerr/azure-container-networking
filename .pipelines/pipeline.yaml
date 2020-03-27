@@ -17,7 +17,7 @@ stages:
           demands: agent.os -equals Linux
 
         container:
-          image: containernetworking/pipeline-ci:1.0.6
+          image: "$(BUILD_IMAGE)"
           options: "--privileged"
 
         # Go setup for the vmImage:
@@ -68,7 +68,7 @@ stages:
               go get github.com/jstemmer/go-junit-report
               go get github.com/axw/gocov/gocov
               go get github.com/AlekSi/gocov-xml
-              go get -u gopkg.in/matm/v1/gocov-html
+              go get gopkg.in/matm/v1/gocov-html
             workingDirectory: "$(modulePath)"
             name: "GoDependencies"
             displayName: "Install Go dependencies"
@@ -172,7 +172,7 @@ stages:
       - template: e2e-job-template.yaml
         parameters:
           name: "ubuntu_16_04_linux_e2e"
-          pipelineBuildImage: "containernetworking/pipeline-ci:1.0.6"
+          pipelineBuildImage: "$(BUILD_IMAGE)"
           clusterDefinition: "cniLinux1604.json"
           clusterDefinitionCniTypeKey: "azureCNIURLLinux"
           clusterDefinitionCniBuildOS: "linux"
@@ -181,7 +181,7 @@ stages:
       - template: e2e-job-template.yaml
         parameters:
           name: "ubuntu_18_04_linux_e2e"
-          pipelineBuildImage: "containernetworking/pipeline-ci:1.0.6"
+          pipelineBuildImage: "$(BUILD_IMAGE)"
           clusterDefinition: "cniLinux1804.json"
           clusterDefinitionCniTypeKey: "azureCNIURLLinux"
           clusterDefinitionCniBuildOS: "linux"
@@ -190,7 +190,7 @@ stages:
       - template: e2e-job-template.yaml
         parameters:
           name: "windows_18_09_e2e"
-          pipelineBuildImage: "containernetworking/pipeline-ci:1.0.6"
+          pipelineBuildImage: "$(BUILD_IMAGE)"
           clusterDefinition: "cniWindows1809.json"
           clusterDefinitionCniTypeKey: "azureCNIURLWindows"
           clusterDefinitionCniBuildOS: "windows"
@@ -199,7 +199,7 @@ stages:
       - template: e2e-job-template.yaml
         parameters:
           name: "windows_19_03_e2e"
-          pipelineBuildImage: "containernetworking/pipeline-ci:1.0.6"
+          pipelineBuildImage: "$(BUILD_IMAGE)"
           clusterDefinition: "cniWindows1903.json"
           clusterDefinitionCniTypeKey: "azureCNIURLWindows"
           clusterDefinitionCniBuildOS: "windows"
@@ -213,7 +213,7 @@ stages:
           name: Networking-ContainerNetworking
           demands: agent.os -equals Linux
         container:
-          image: containernetworking/pipeline-ci:1.0.6
+          image: "$(BUILD_IMAGE)"
         condition: always()
         steps:
           - task: AzureCLI@1

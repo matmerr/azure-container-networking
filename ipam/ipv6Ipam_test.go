@@ -4,6 +4,7 @@
 package ipam
 
 import (
+	"context"
 	"reflect"
 	"testing"
 
@@ -29,8 +30,8 @@ func TestIPv6Ipam(t *testing.T) {
 	}
 
 	client := testclient.NewSimpleClientset()
-	client.CoreV1().Nodes().Create(testnode)
-	node, _ := client.CoreV1().Nodes().Get(nodeName, metav1.GetOptions{})
+	client.CoreV1().Nodes().Create(context.TODO(), testnode, metav1.CreateOptions{})
+	node, _ := client.CoreV1().Nodes().Get(context.TODO(), nodeName, metav1.GetOptions{})
 
 	testInterfaces, err := retrieveKubernetesPodIPs(node, "::/127")
 	if err != nil {

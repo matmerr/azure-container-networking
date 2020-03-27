@@ -1,6 +1,7 @@
 package ipam
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"os"
@@ -69,7 +70,7 @@ func (source *ipv6IpamSource) refresh() error {
 
 	if source.kubeClient == nil || source.kubeNode == nil {
 		source.kubeClient, err = source.loadKubernetesConfig()
-		source.kubeNode, err = source.kubeClient.CoreV1().Nodes().Get(nodeName, metav1.GetOptions{})
+		source.kubeNode, err = source.kubeClient.CoreV1().Nodes().Get(context.TODO(), nodeName, metav1.GetOptions{})
 	}
 
 	if err != nil {
