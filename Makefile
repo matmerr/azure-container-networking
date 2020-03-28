@@ -65,6 +65,7 @@ GOOS ?= linux
 GOARCH ?= amd64
 
 # Build directories.
+ROOT_DIR = $(shell pwd)
 CNM_DIR = cnm/plugin
 CNI_NET_DIR = cni/network/plugin
 CNI_IPAM_DIR = cni/ipam/plugin
@@ -183,9 +184,9 @@ $(CNS_BUILD_DIR)/azure-cns$(EXE_EXT): $(CNSFILES)
 
 # Build the Azure NPM plugin.
 $(NPM_BUILD_DIR)/azure-npm$(EXE_EXT): $(NPMFILES)
-	go build -v -o $(NPM_BUILD_DIR)/azure-vnet-telemetry$(EXE_EXT) -ldflags "-X main.version=$(VERSION) -s -w" $(CNI_TELEMETRY_DIR)/*.go
-	go build -v -o $(NPM_BUILD_DIR)/azure-npm$(EXE_EXT) -ldflags "-X main.version=$(VERSION) -X $(ACN_PACKAGE_PATH)/npm.aiMetadata=$(NPM_AI_ID) -s -w" $(NPM_DIR)/*.go
-
+	cd $(NPM_DIR) && echo PWD2 ---- $(shell pwd)
+	cd $(CNI_TELEMETRY_DIR) && go build -v -o $(ROOT_DIR)/$(NPM_BUILD_DIR)/azure-vnet-telemetry$(EXE_EXT) -ldflags "-X main.version=$(VERSION) -s -w" ./*.go
+	cd $(NPM_DIR) && go build -v -o $(ROOT_DIR)/$(NPM_BUILD_DIR)/azure-npm$(EXE_EXT) -ldflags "-X main.version=$(VERSION) -X $(ACN_PACKAGE_PATH)/npm.aiMetadata=$(NPM_AI_ID) -s -w" ./*.go
 # Build all binaries in a container.
 .PHONY: all-containerized
 all-containerized:
@@ -346,7 +347,8 @@ test-all:
 		./aitelemetry/ \
         ./cnm/network/ \
         ./cni/ipam/ \
-        ./cns/ipamclient/ \
-        ./npm/iptm/ \
-        ./npm/ipsm/ \
-        ./npm
+        ./cns/ipamclient/ 
+	cd npm/ && go test -v -covermode count -coverprofile=coverage-npm.out \
+        ./iptm/ \
+        ./ipsm/ \
+        ./
