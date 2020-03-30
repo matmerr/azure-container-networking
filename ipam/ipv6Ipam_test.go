@@ -11,14 +11,18 @@ import (
 	"github.com/Azure/azure-container-networking/common"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 	testclient "k8s.io/client-go/kubernetes/fake"
 )
 
-func TestIPv6Ipam(t *testing.T) {
-	options := make(map[string]interface{})
-	options[common.OptEnvironment] = common.OptEnvironmentIPv6Ipam
+const (
+	testNodeName   = "TestNode"
+	testSubnetSize = "/127"
+)
 
-	nodeName := "TestNode"
+func newKubernetesTestClient() kubernetes.Interface {
+
+	nodeName := testNodeName
 	testnode := &v1.Node{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: nodeName,
@@ -31,9 +35,18 @@ func TestIPv6Ipam(t *testing.T) {
 
 	client := testclient.NewSimpleClientset()
 	client.CoreV1().Nodes().Create(context.TODO(), testnode, metav1.CreateOptions{})
-	node, _ := client.CoreV1().Nodes().Get(context.TODO(), nodeName, metav1.GetOptions{})
+	return client
+}
 
-	testInterfaces, err := retrieveKubernetesPodIPs(node, "::/127")
+func TestIPv6Ipam(t *testing.T) {
+	options := make(map[string]interface{})
+	options[common.OptEnvironment] = common.OptEnvironmentIPv6Ipam
+
+	client := newKubernetesTestClient()
+
+	node, _ := client.CoreV1().Nodes().Get(context.TODO(), testNodeName, metav1.GetOptions{})
+
+	testInterfaces, err := retrieveKubernetesPodIPs(node, testSubnetSize)
 	if err != nil {
 		t.Fatalf("Failed to carve addresses: %+v", err)
 	}

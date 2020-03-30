@@ -2,16 +2,19 @@ package ipam
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"net"
 	"os"
+	"regexp"
 	"runtime"
 	"strconv"
 
 	"github.com/Azure/azure-container-networking/common"
 	"github.com/Azure/azure-container-networking/log"
+	"github.com/Masterminds/semver"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/version"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 )
@@ -20,15 +23,22 @@ const (
 	defaultWindowsKubePath           = `c:\k\`
 	defaultWindowsKubeConfigFilePath = defaultWindowsKubePath + `config`
 	defaultLinuxKubeConfigFilePath   = "/var/lib/kubelet/kubeconfig"
-	nodeSubnetMask                   = "::/120"
+	nodeSubnetMask                   = "/120"
+	k8sMajorVerForNewPolicyDef       = "1"
+	k8sMinorVerForNewPolicyDef       = "16"
 )
 
+// regex to get minor version
+var re = regexp.MustCompile("[0-9]+")
+
 type ipv6IpamSource struct {
-	name           string
-	kubeConfigPath string
-	kubeClient     *kubernetes.Clientset
-	kubeNode       *v1.Node
-	sink           addressConfigSink
+	name            string
+	nodeHostname    string
+	kubeConfigPath  string
+	kubeClient      kubernetes.Interface
+	kubeNode        *v1.Node
+	subnetRetrieved bool
+	sink            addressConfigSink
 }
 
 func newIPv6IpamSource(options map[string]interface{}) (*ipv6IpamSource, error) {
@@ -41,8 +51,13 @@ func newIPv6IpamSource(options map[string]interface{}) (*ipv6IpamSource, error) 
 		kubeConfigPath = defaultLinuxKubeConfigFilePath
 	}
 
+	nodeName, err := os.Hostname()
+	if err != nil {
+		return nil, err
+	}
 	return &ipv6IpamSource{
 		name:           name,
+		nodeHostname:   nodeName,
 		kubeConfigPath: kubeConfigPath,
 	}, nil
 }
@@ -59,28 +74,78 @@ func (source *ipv6IpamSource) stop() {
 	source.sink = nil
 }
 
-func (source *ipv6IpamSource) loadKubernetesConfig() (*kubernetes.Clientset, error) {
+func (source *ipv6IpamSource) loadKubernetesConfig() (kubernetes.Interface, error) {
+
 	config, err := clientcmd.BuildConfigFromFlags("", source.kubeConfigPath)
+	if err != nil {
+		return nil, err
+	}
 	client, err := kubernetes.NewForConfig(config)
+
+	minimumVersion := &version.Info{
+		Major: k8sMajorVerForNewPolicyDef,
+		Minor: k8sMinorVerForNewPolicyDef,
+	}
+
+	serverVersion, err := client.ServerVersion()
+
+	isNewew := CompareK8sVer(serverVersion, minimumVersion)
+
+	if isNewew <= 0 {
+		return nil, errors.New("Incompatible Kubernetes version for dual stack")
+	}
+
 	return client, err
 }
 
-func (source *ipv6IpamSource) refresh() error {
-	nodeName, err := os.Hostname()
-
-	if source.kubeClient == nil || source.kubeNode == nil {
-		source.kubeClient, err = source.loadKubernetesConfig()
-		source.kubeNode, err = source.kubeClient.CoreV1().Nodes().Get(context.TODO(), nodeName, metav1.GetOptions{})
+// CompareK8sVer compares two k8s versions.
+// returns -1, 0, 1 if firstVer smaller, equals, bigger than secondVer respectively.
+// returns -2 for error.
+func CompareK8sVer(firstVer *version.Info, secondVer *version.Info) int {
+	v1Minor := re.FindAllString(firstVer.Minor, -1)
+	if len(v1Minor) < 1 {
+		return -2
+	}
+	v1, err := semver.NewVersion(firstVer.Major + "." + v1Minor[0])
+	if err != nil {
+		return -2
+	}
+	v2Minor := re.FindAllString(secondVer.Minor, -1)
+	if len(v2Minor) < 1 {
+		return -2
+	}
+	v2, err := semver.NewVersion(secondVer.Major + "." + v2Minor[0])
+	if err != nil {
+		return -2
 	}
 
+	return v1.Compare(v2)
+}
+
+func (source *ipv6IpamSource) refresh() error {
+	if source == nil {
+		return errors.New("ipv6ipam is nil")
+	}
+
+	if source.subnetRetrieved {
+		return nil
+	}
+
+	if source.kubeClient == nil {
+		kubeClient, err := source.loadKubernetesConfig()
+		source.kubeClient = kubeClient
+		if err != nil {
+			return err
+		}
+	}
+
+	kubeNode, err := source.kubeClient.CoreV1().Nodes().Get(context.TODO(), source.nodeHostname, metav1.GetOptions{})
+	source.kubeNode = kubeNode
 	if err != nil {
 		return err
 	}
 
 	log.Printf("[ipam] Discovered CIDR's %v.", source.kubeNode.Spec.PodCIDRs)
-	if err != nil {
-		return err
-	}
 
 	// Query the list of Kubernetes Pod IPs
 	interfaceIPs, err := retrieveKubernetesPodIPs(source.kubeNode, nodeSubnetMask)
@@ -92,9 +157,9 @@ func (source *ipv6IpamSource) refresh() error {
 	}
 
 	for _, i := range interfaceIPs.Interfaces {
-		for el, s := range i.IPSubnets {
+		for index, s := range i.IPSubnets {
 			_, subnet, err := net.ParseCIDR(s.Prefix)
-			ifaceName := "azure-" + strconv.Itoa(el)
+			ifaceName := "azure-" + strconv.Itoa(index)
 			priority := 0
 			ap, err := local.newAddressPool(ifaceName, priority, subnet)
 
@@ -116,31 +181,26 @@ func (source *ipv6IpamSource) refresh() error {
 		return err
 	}
 
+	source.subnetRetrieved = true
 	log.Printf("[ipam] Address space successfully populated from config file")
 
 	return err
 }
 
-func retrieveKubernetesPodIPs(node *v1.Node, desiredMaskV6 string) (*NetworkInterfaces, error) {
+func retrieveKubernetesPodIPs(node *v1.Node, subnetMaskBitSize string) (*NetworkInterfaces, error) {
 	var nodeCidr net.IP
 	var ipnetv6 *net.IPNet
-	_, desiredMask, err := net.ParseCIDR(desiredMaskV6)
-	if err != nil {
-		return nil, err
-	}
 
 	// get IPv6 subnet allocated to node
 	for _, cidr := range node.Spec.PodCIDRs {
-		nodeCidr, _, err = net.ParseCIDR(cidr)
-		fmt.Println(cidr)
+		nodeCidr, _, _ = net.ParseCIDR(cidr)
 		if nodeCidr.To4() == nil {
 			break
 		}
 	}
 
-	desiredMaskSize, _ := desiredMask.Mask.Size()
-	subnet := nodeCidr.String() + "/" + strconv.Itoa(desiredMaskSize)
-	nodeCidr, ipnetv6, err = net.ParseCIDR(subnet)
+	subnet := nodeCidr.String() + subnetMaskBitSize
+	nodeCidr, ipnetv6, err := net.ParseCIDR(subnet)
 	if err != nil {
 		return nil, err
 	}
@@ -174,7 +234,8 @@ func retrieveKubernetesPodIPs(node *v1.Node, desiredMaskV6 string) (*NetworkInte
 	return &networkInterfaces, nil
 }
 
-func incIPFromIP(ip net.IP) {
+// increment the IP
+func incrementIP(ip net.IP) {
 	for j := len(ip) - 1; j >= 0; j-- {
 		ip[j]++
 		if ip[j] > 0 {
@@ -192,7 +253,7 @@ func duplicateIP(ip net.IP) net.IP {
 func getIPsFromAddresses(ipv6 net.IP, ipnet *net.IPNet) []net.IP {
 	ips := make([]net.IP, 0)
 
-	for ipv6 := ipv6.Mask(ipnet.Mask); ipnet.Contains(ipv6); incIPFromIP(ipv6) {
+	for ipv6 := ipv6.Mask(ipnet.Mask); ipnet.Contains(ipv6); incrementIP(ipv6) {
 		ips = append(ips, duplicateIP(ipv6))
 	}
 	return ips

@@ -4,7 +4,6 @@ go 1.13
 
 replace (
 	github.com/Azure/azure-container-networking => ../
-	github.com/Azure/azure-container-networking/npm => ./
 	k8s.io/api => k8s.io/api v0.16.8
 	k8s.io/apimachinery => k8s.io/apimachinery v0.16.8
 	k8s.io/client-go => k8s.io/client-go v0.16.8

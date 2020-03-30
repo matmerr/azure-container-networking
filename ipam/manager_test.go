@@ -140,7 +140,6 @@ func cleanupTestAddressSpace(am AddressManager) error {
 //
 // Address manager tests.
 //
-
 // Tests address spaces are created and queried correctly.
 func TestAddressSpaceCreateAndGet(t *testing.T) {
 	// Start with the test address space.

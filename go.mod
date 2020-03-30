@@ -10,7 +10,6 @@ require (
 	github.com/Microsoft/hcsshim v0.8.7-0.20191018141444-2a08d6fcd238
 	github.com/containernetworking/cni v0.7.0-rc2
 	github.com/docker/libnetwork v0.5.6
-	github.com/gogo/protobuf v1.3.1 // indirect
 	github.com/golang/groupcache v0.0.0-20191027212112-611e8accdfc9 // indirect
 	github.com/google/uuid v1.1.1
 	github.com/googleapis/gnostic v0.3.1 // indirect
