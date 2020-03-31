@@ -18,8 +18,7 @@ import (
 const (
 	defaultLinuxFilePath   = "/etc/kubernetes/interfaces.json"
 	defaultWindowsFilePath = `c:\k\interfaces.json`
-
-	windows = "windows"
+	windows                = "windows"
 )
 
 // Microsoft Azure Stack IPAM configuration source.

@@ -58,7 +58,7 @@ func TestMain(m *testing.M) {
 	}
 
 	// Configure test mode.
-	plugin.SetOption(common.OptEnvironment, common.OptEnvironmentIPv6Ipam)
+	plugin.SetOption(common.OptEnvironment, common.OptEnvironmentAzure)
 	plugin.SetOption(common.OptAPIServerURL, "null")
 	plugin.SetOption(common.OptIpamQueryUrl, "http://"+ipamQueryUrl)
 
@@ -90,7 +90,6 @@ func handleIpamQuery(w http.ResponseWriter, r *http.Request) {
 //
 
 func TestAddSuccess(t *testing.T) {
-
 }
 
 func TestDelSuccess(t *testing.T) {

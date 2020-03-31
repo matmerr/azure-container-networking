@@ -17,7 +17,7 @@ import (
 
 const (
 	testNodeName   = "TestNode"
-	testSubnetSize = "/127"
+	testSubnetSize = "/126"
 )
 
 func newKubernetesTestClient() kubernetes.Interface {
@@ -57,9 +57,11 @@ func TestIPv6Ipam(t *testing.T) {
 				IsPrimary: true,
 				IPSubnets: []IPSubnet{
 					{
-						Prefix: "ace:cab:deca:deed::/127",
+						Prefix: "ace:cab:deca:deed::/126",
 						IPAddresses: []IPAddress{
 							{Address: "ace:cab:deca:deed::1", IsPrimary: false},
+							{Address: "ace:cab:deca:deed::2", IsPrimary: false},
+							{Address: "ace:cab:deca:deed::3", IsPrimary: false},
 						},
 					},
 				},
