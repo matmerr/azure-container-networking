@@ -143,6 +143,7 @@ func (source *ipv6IpamSource) refresh() error {
 	kubeNode, err := source.kubeClient.CoreV1().Nodes().Get(context.TODO(), source.nodeHostname, metav1.GetOptions{})
 	source.kubeNode = kubeNode
 	if err != nil {
+		log.Printf("[ipam] Failed to retrieve node using hostname: %+v", source.nodeHostname)
 		return err
 	}
 
@@ -220,7 +221,7 @@ func retrieveKubernetesPodIPs(node *v1.Node, subnetMaskBitSize string) (*Network
 		networkSubnet.IPAddresses = append(networkSubnet.IPAddresses, ipaddress)
 	}
 
-	networkInterfaces := NetworkInterfaces{
+	return &NetworkInterfaces{
 		Interfaces: []Interface{
 			{
 				IsPrimary: true,
@@ -229,9 +230,7 @@ func retrieveKubernetesPodIPs(node *v1.Node, subnetMaskBitSize string) (*Network
 				},
 			},
 		},
-	}
-
-	return &networkInterfaces, nil
+	}, nil
 }
 
 // retrieves all IP's from a given subnet

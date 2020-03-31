@@ -15,7 +15,7 @@ var (
 	ipv6subnet1 = "ace:cab:deca:deed::/126"
 	ipv6addr1   = "ace:cab:deca:deed::1"
 	ipv6addr2   = "ace:cab:deca:deed::2"
-	ipv6addr3   = "ace:cab:deca:deed::2"
+	ipv6addr3   = "ace:cab:deca:deed::3"
 )
 
 func createTestIpv6AddressManager() (AddressManager, error) {
