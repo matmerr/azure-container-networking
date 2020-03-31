@@ -22,9 +22,16 @@ const (
 	defaultWindowsKubePath           = `c:\k\`
 	defaultWindowsKubeConfigFilePath = defaultWindowsKubePath + `config`
 	defaultLinuxKubeConfigFilePath   = "/var/lib/kubelet/kubeconfig"
-	defaultSubnetMaskSizeLimit       = "/120"
 	k8sMajorVerForNewPolicyDef       = "1"
 	k8sMinorVerForNewPolicyDef       = "16"
+
+	// by default, Kubernetes node is allocated a /64 for each node. That's too much state to preserve,
+	// so instead we take the first /120 of that /64 as usable IP's.
+	defaultIPv6SubnetMaskSizeLimit = "/120"
+	lessThan                       = -1
+	equalTo                        = 0
+	greaterThan                    = 1
+	comparisonError                = -2
 )
 
 // regex to get minor version
@@ -58,7 +65,7 @@ func newIPv6IpamSource(options map[string]interface{}) (*ipv6IpamSource, error) 
 	}
 	return &ipv6IpamSource{
 		name:                name,
-		subnetMaskSizeLimit: defaultSubnetMaskSizeLimit,
+		subnetMaskSizeLimit: defaultIPv6SubnetMaskSizeLimit,
 		nodeHostname:        nodeName,
 		kubeConfigPath:      kubeConfigPath,
 	}, nil
@@ -81,7 +88,11 @@ func (source *ipv6IpamSource) loadKubernetesConfig() (kubernetes.Interface, erro
 	if err != nil {
 		return nil, err
 	}
+
 	client, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
 
 	minimumVersion := &version.Info{
 		Major: k8sMajorVerForNewPolicyDef,
@@ -89,11 +100,15 @@ func (source *ipv6IpamSource) loadKubernetesConfig() (kubernetes.Interface, erro
 	}
 
 	serverVersion, err := client.ServerVersion()
+	if err != nil {
+		return nil, err
+	}
 
-	isNewew := CompareK8sVer(serverVersion, minimumVersion)
-
-	if isNewew <= 0 {
+	comparison := CompareK8sVer(serverVersion, minimumVersion)
+	if comparison == equalTo || comparison == lessThan {
 		return nil, errors.New("Incompatible Kubernetes version for dual stack")
+	} else if comparison == comparisonError {
+		return nil, errors.New("Error comparing Kubernetes API versions")
 	}
 
 	return client, err
@@ -105,19 +120,22 @@ func (source *ipv6IpamSource) loadKubernetesConfig() (kubernetes.Interface, erro
 func CompareK8sVer(firstVer *version.Info, secondVer *version.Info) int {
 	v1Minor := re.FindAllString(firstVer.Minor, -1)
 	if len(v1Minor) < 1 {
-		return -2
+		return comparisonError
 	}
+
 	v1, err := semver.NewVersion(firstVer.Major + "." + v1Minor[0])
 	if err != nil {
-		return -2
+		return comparisonError
 	}
+
 	v2Minor := re.FindAllString(secondVer.Minor, -1)
 	if len(v2Minor) < 1 {
-		return -2
+		return comparisonError
 	}
+
 	v2, err := semver.NewVersion(secondVer.Major + "." + v2Minor[0])
 	if err != nil {
-		return -2
+		return comparisonError
 	}
 
 	return v1.Compare(v2)
@@ -134,19 +152,20 @@ func (source *ipv6IpamSource) refresh() error {
 
 	if source.kubeClient == nil {
 		kubeClient, err := source.loadKubernetesConfig()
-		source.kubeClient = kubeClient
 		if err != nil {
 			return err
 		}
+
+		source.kubeClient = kubeClient
 	}
 
 	kubeNode, err := source.kubeClient.CoreV1().Nodes().Get(context.TODO(), source.nodeHostname, metav1.GetOptions{})
-	source.kubeNode = kubeNode
 	if err != nil {
 		log.Printf("[ipam] Failed to retrieve node using hostname: %+v", source.nodeHostname)
 		return err
 	}
 
+	source.kubeNode = kubeNode
 	log.Printf("[ipam] Discovered CIDR's %v.", source.kubeNode.Spec.PodCIDRs)
 
 	// Query the list of Kubernetes Pod IPs
@@ -207,7 +226,6 @@ func retrieveKubernetesPodIPs(node *v1.Node, subnetMaskBitSize string) (*Network
 	}
 
 	addresses := getIPsFromAddresses(nodeCidr, ipnetv6)
-
 	networkSubnet := IPSubnet{
 		Prefix: subnet,
 	}
@@ -236,10 +254,10 @@ func retrieveKubernetesPodIPs(node *v1.Node, subnetMaskBitSize string) (*Network
 // retrieves all IP's from a given subnet
 func getIPsFromAddresses(ip net.IP, ipnet *net.IPNet) []net.IP {
 	ips := make([]net.IP, 0)
-
 	for ip := ip.Mask(ipnet.Mask); ipnet.Contains(ip); incrementIP(ip) {
 		ips = append(ips, duplicateIP(ip))
 	}
+
 	return ips
 }
 

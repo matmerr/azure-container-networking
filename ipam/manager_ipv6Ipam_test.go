@@ -12,7 +12,7 @@ import (
 var (
 
 	// Pools and addresses used by tests.
-	ipv6subnet1 = "ace:cab:deca:deed::/126"
+	ipv6subnet1 = "ace:cab:deca:deed::" + testSubnetSize
 	ipv6addr1   = "ace:cab:deca:deed::1"
 	ipv6addr2   = "ace:cab:deca:deed::2"
 	ipv6addr3   = "ace:cab:deca:deed::3"
@@ -47,7 +47,8 @@ func createTestIpv6AddressManager() (AddressManager, error) {
 //
 // Address manager tests.
 //
-// Tests address spaces are created and queried correctly.
+// request pool, request address with no address specified, request address with address specified,
+// release both addresses, release pool
 func TestIPv6GetAddressPoolAndAddress(t *testing.T) {
 	// Start with the test address space.
 	am, err := createTestIpv6AddressManager()
@@ -55,18 +56,11 @@ func TestIPv6GetAddressPoolAndAddress(t *testing.T) {
 		t.Fatalf("createAddressManager failed, err:%+v.", err)
 	}
 
-	amImpl := am.(*addressManager)
-
 	// Test if the address spaces are returned correctly.
 	local, _ := am.GetDefaultAddressSpaces()
 
 	if local != LocalDefaultAddressSpaceId {
 		t.Errorf("GetDefaultAddressSpaces returned invalid local address space.")
-	}
-
-	localAs, err := amImpl.getAddressSpace(LocalDefaultAddressSpaceId)
-	if err != nil {
-		t.Errorf("getAddressSpace failed, err:%+v.", err)
 	}
 
 	// Request two separate address pools.
@@ -79,26 +73,67 @@ func TestIPv6GetAddressPoolAndAddress(t *testing.T) {
 		t.Errorf("Mismatched retrieved subnet, expected:%+v, actual %+v", ipv6subnet1, subnet1)
 	}
 
-	// Subnet1 should have addr11 and addr13, but not addr12.
-	ap, err := localAs.getAddressPool(ipv6subnet1)
+	// test with no specified address
+	address1, err := am.RequestAddress(LocalDefaultAddressSpaceId, poolID1, "", nil)
 	if err != nil {
-		t.Errorf("Cannot find ipv6subnet1, err:%+v.", err)
+		t.Errorf("RequestAddress failed, err:%v", err)
 	}
 
-	// request ipv6addr1
-	_, err = ap.requestAddress(ipv6addr1, nil)
-	if err != nil {
-		t.Errorf("Cannot find ipv6addr1, err:%+v.", err)
+	if address1 != ipv6addr1+testSubnetSize {
+		t.Errorf("ReleaseAddress failed, expected: %v, actual: %v", ipv6addr1+testSubnetSize, address1)
 	}
 
-	// request ipv6addr1 again, because it's already been requested
-	_, err = ap.requestAddress(ipv6addr1, nil)
-	if err == nil {
-		t.Errorf("Expected failure, ipv6addr1 already in use:%+v.", err)
+	// test with a specified address
+	address2, err := am.RequestAddress(LocalDefaultAddressSpaceId, poolID1, ipv6addr2, nil)
+	if err != nil {
+		t.Errorf("RequestAddress failed, err:%v", err)
+	}
+
+	if address2 != ipv6addr2+testSubnetSize {
+		t.Errorf("ReleaseAddress failed, expected: %v, actual: %v", ipv6addr2+testSubnetSize, address2)
+	}
+
+	// Release addresses and the pool.
+	err = am.ReleaseAddress(LocalDefaultAddressSpaceId, poolID1, address1, nil)
+	if err != nil {
+		t.Errorf("ReleaseAddress failed, err:%v", err)
+	}
+
+	// Release addresses and the pool.
+	err = am.ReleaseAddress(LocalDefaultAddressSpaceId, poolID1, address2, nil)
+	if err != nil {
+		t.Errorf("ReleaseAddress failed, err:%v", err)
 	}
 
 	err = am.ReleasePool(LocalDefaultAddressSpaceId, poolID1)
 	if err != nil {
 		t.Errorf("ReleasePool failed, err:%v", err)
+	}
+}
+
+// request pool, request address, attempt to release pool (fail), release address, release pool,
+// attempt to release address (fail)
+func TestIPv6AddressManagerRequestAndReleasePool(t *testing.T) {
+	// Start with the test address space.
+	am, err := createTestIpv6AddressManager()
+	if err != nil {
+		t.Fatalf("createAddressManager failed, err:%+v.", err)
+	}
+
+	// Request pool and request address
+	poolID, _, err := am.RequestPool(LocalDefaultAddressSpaceId, "", "", nil, true)
+	if err != nil {
+		t.Errorf("RequestPool failed, err:%v", err)
+	}
+
+	_, err = am.RequestAddress(LocalDefaultAddressSpaceId, poolID, "", nil)
+	if err != nil {
+		t.Errorf("RequestAddress failed, err:%v", err)
+	}
+
+	// attempt to release pool, should fail after requesting address
+	err = am.ReleasePool(LocalDefaultAddressSpaceId, poolID)
+	if err == nil {
+		t.Errorf("ReleasePool expected to fail with after RequestAddress is called")
 	}
 }

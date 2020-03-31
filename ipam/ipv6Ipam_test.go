@@ -21,7 +21,6 @@ const (
 )
 
 func newKubernetesTestClient() kubernetes.Interface {
-
 	nodeName := testNodeName
 	testnode := &v1.Node{
 		ObjectMeta: metav1.ObjectMeta{
@@ -43,7 +42,6 @@ func TestIPv6Ipam(t *testing.T) {
 	options[common.OptEnvironment] = common.OptEnvironmentIPv6Ipam
 
 	client := newKubernetesTestClient()
-
 	node, _ := client.CoreV1().Nodes().Get(context.TODO(), testNodeName, metav1.GetOptions{})
 
 	testInterfaces, err := retrieveKubernetesPodIPs(node, testSubnetSize)
