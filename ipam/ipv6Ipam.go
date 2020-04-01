@@ -44,12 +44,12 @@ type ipv6IpamSource struct {
 	kubeConfigPath      string
 	kubeClient          kubernetes.Interface
 	kubeNode            *v1.Node
-	subnetRetrieved     bool
+	isLoaded            bool
 	sink                addressConfigSink
 }
 
 // creates a new IPv6 Ipam source
-func newIPv6IpamSource(options map[string]interface{}) (*ipv6IpamSource, error) {
+func newIPv6IpamSource(options map[string]interface{}, isLoaded bool) (*ipv6IpamSource, error) {
 	var kubeConfigPath string
 	name := options[common.OptEnvironment].(string)
 
@@ -69,6 +69,7 @@ func newIPv6IpamSource(options map[string]interface{}) (*ipv6IpamSource, error) 
 		subnetMaskSizeLimit: defaultIPv6SubnetMaskSizeLimit,
 		nodeHostname:        nodeName,
 		kubeConfigPath:      kubeConfigPath,
+		isLoaded:            isLoaded,
 	}, nil
 }
 
@@ -150,13 +151,14 @@ func (source *ipv6IpamSource) refresh() error {
 		return errors.New("ipv6ipam is nil")
 	}
 
-	if source.subnetRetrieved {
+	if source.isLoaded {
 		return nil
 	}
 
 	if source.kubeClient == nil {
 		kubeClient, err := source.loadKubernetesConfig()
 		if err != nil {
+			log.Printf("[ipam] Failed to load Kubernetes config: %+v", err)
 			return err
 		}
 
@@ -175,12 +177,14 @@ func (source *ipv6IpamSource) refresh() error {
 	// Query the list of Kubernetes Pod IPs
 	interfaceIPs, err := retrieveKubernetesPodIPs(source.kubeNode, source.subnetMaskSizeLimit)
 	if err != nil {
+		log.Printf("[ipam] Failed retrieve Kubernetes IP's from subnet: %v.", err)
 		return err
 	}
 
 	// Configure the local default address space.
 	local, err := source.sink.newAddressSpace(LocalDefaultAddressSpaceId, LocalScope)
 	if err != nil {
+		log.Printf("[ipam] Failed to configure local default address space: %v.", err)
 		return err
 	}
 
@@ -207,7 +211,7 @@ func (source *ipv6IpamSource) refresh() error {
 		return err
 	}
 
-	source.subnetRetrieved = true
+	source.isLoaded = true
 	log.Printf("[ipam] Address space successfully populated from Kubernetes API Server")
 
 	return err

@@ -182,8 +182,12 @@ func (am *addressManager) save() error {
 // Starts configuration source.
 func (am *addressManager) StartSource(options map[string]interface{}) error {
 	var err error
-
+	var isLoaded bool
 	environment, _ := options[common.OptEnvironment].(string)
+
+	if len(am.AddrSpaces) > 0 {
+		isLoaded = true
+	}
 
 	switch environment {
 	case common.OptEnvironmentAzure:
@@ -196,7 +200,7 @@ func (am *addressManager) StartSource(options map[string]interface{}) error {
 		am.source, err = newFileIpamSource(options)
 
 	case common.OptEnvironmentIPv6Ipam:
-		am.source, err = newIPv6IpamSource(options)
+		am.source, err = newIPv6IpamSource(options, isLoaded)
 
 	case "null":
 		am.source, err = newNullSource()
