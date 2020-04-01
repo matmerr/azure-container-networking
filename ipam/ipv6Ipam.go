@@ -167,7 +167,7 @@ func (source *ipv6IpamSource) refresh() error {
 
 	kubeNode, err := source.kubeClient.CoreV1().Nodes().Get(context.TODO(), source.nodeHostname, metav1.GetOptions{})
 	if err != nil {
-		log.Printf("[ipam] Failed to retrieve node using hostname: %+v", source.nodeHostname)
+		log.Printf("[ipam] Failed to retrieve node using hostname: %+v with err %+v", source.nodeHostname, err)
 		return err
 	}
 
@@ -211,9 +211,7 @@ func (source *ipv6IpamSource) refresh() error {
 		return err
 	}
 
-	source.isLoaded = true
 	log.Printf("[ipam] Address space successfully populated from Kubernetes API Server")
-
 	return err
 }
 

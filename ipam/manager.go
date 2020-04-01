@@ -185,7 +185,7 @@ func (am *addressManager) StartSource(options map[string]interface{}) error {
 	var isLoaded bool
 	environment, _ := options[common.OptEnvironment].(string)
 
-	if len(am.AddrSpaces) > 0 {
+	if am.AddrSpaces != nil && len(am.AddrSpaces) > 0 {
 		isLoaded = true
 	}
 
@@ -199,7 +199,7 @@ func (am *addressManager) StartSource(options map[string]interface{}) error {
 	case common.OptEnvironmentFileIpam:
 		am.source, err = newFileIpamSource(options)
 
-	case common.OptEnvironmentIPv6Ipam:
+	case common.OptEnvironmentIPv6NodeIpam:
 		am.source, err = newIPv6IpamSource(options, isLoaded)
 
 	case "null":

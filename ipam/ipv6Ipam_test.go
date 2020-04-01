@@ -38,7 +38,7 @@ func newKubernetesTestClient() kubernetes.Interface {
 
 func TestIPv6Ipam(t *testing.T) {
 	options := make(map[string]interface{})
-	options[common.OptEnvironment] = common.OptEnvironmentIPv6Ipam
+	options[common.OptEnvironment] = common.OptEnvironmentIPv6NodeIpam
 
 	client := newKubernetesTestClient()
 	node, _ := client.CoreV1().Nodes().Get(context.TODO(), testNodeName, metav1.GetOptions{})
@@ -75,7 +75,7 @@ func TestIPv6Ipam(t *testing.T) {
 
 func TestIPv6IpamWithoutIPv6SubnetAllocated(t *testing.T) {
 	options := make(map[string]interface{})
-	options[common.OptEnvironment] = common.OptEnvironmentIPv6Ipam
+	options[common.OptEnvironment] = common.OptEnvironmentIPv6NodeIpam
 
 	testnode := &v1.Node{
 		ObjectMeta: metav1.ObjectMeta{

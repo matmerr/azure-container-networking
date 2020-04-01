@@ -17,7 +17,7 @@ stages:
           demands: agent.os -equals Linux
 
         container:
-          image: "$(BUILD_IMAGE)"
+          image: "$(BUILD_IMAGE)" # build image set as variable in pipeline runtime for flexibility
           options: "--privileged"
 
         # Go setup for the vmImage:

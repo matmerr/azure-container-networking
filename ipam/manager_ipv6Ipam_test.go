@@ -23,7 +23,7 @@ func createTestIpv6AddressManager() (AddressManager, error) {
 	var options map[string]interface{}
 
 	options = make(map[string]interface{})
-	options[common.OptEnvironment] = common.OptEnvironmentIPv6Ipam
+	options[common.OptEnvironment] = common.OptEnvironmentIPv6NodeIpam
 
 	am, err := NewAddressManager()
 	if err != nil {
