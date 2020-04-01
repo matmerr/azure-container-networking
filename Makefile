@@ -184,7 +184,7 @@ $(CNS_BUILD_DIR)/azure-cns$(EXE_EXT): $(CNSFILES)
 
 # Build the Azure NPM plugin.
 $(NPM_BUILD_DIR)/azure-npm$(EXE_EXT): $(NPMFILES)
-	cd $(NPM_DIR) && echo PWD2 ---- $(shell pwd)
+	cd $(NPM_DIR)
 	cd $(CNI_TELEMETRY_DIR) && go build -v -o $(ROOT_DIR)/$(NPM_BUILD_DIR)/azure-vnet-telemetry$(EXE_EXT) -ldflags "-X main.version=$(VERSION) -s -w" ./*.go
 	cd $(NPM_DIR) && go build -v -o $(ROOT_DIR)/$(NPM_BUILD_DIR)/azure-npm$(EXE_EXT) -ldflags "-X main.version=$(VERSION) -X $(ACN_PACKAGE_PATH)/npm.aiMetadata=$(NPM_AI_ID) -s -w" ./*.go
 # Build all binaries in a container.
