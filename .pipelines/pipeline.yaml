@@ -80,19 +80,24 @@ stages:
               make all-binaries VERSION=$(EnvironmentalVariables.Tag)
               export GOOS=linux
               make all-binaries VERSION=$(EnvironmentalVariables.Tag)
-              sudo make azure-npm-image VERSION=$(EnvironmentalVariables.Tag)
-              echo '$(DOCKER_PASSWORD)' | docker login containernetworking.azurecr.io -u '$(DOCKER_USERNAME)' --password-stdin
-              docker tag $PUSH_CONTAINER_REGISTRY/azure-npm:$(EnvironmentalVariables.Tag) $PUSH_CONTAINER_REGISTRY/azure-npm:$(EnvironmentalVariables.Tag)-test
-              docker push $PUSH_CONTAINER_REGISTRY/azure-npm:$(EnvironmentalVariables.Tag)-test
-              cd output 
-              sudo find . -mindepth 2 -type f -regextype posix-extended ! -iregex '.*\.(zip|tgz)$' -delete
-              sudo find . -mindepth 2 -type f -print -exec mv {} . \;
-              sudo rm -R -- */
             workingDirectory: "$(modulePath)"
             name: "Build"
             displayName: "Build"
 
+          - script: |
+              sudo make azure-npm-image VERSION=$(EnvironmentalVariables.Tag)
+              echo '$(DOCKER_PASSWORD)' | docker login containernetworking.azurecr.io -u '$(DOCKER_USERNAME)' --password-stdin
+              docker tag $PUSH_CONTAINER_REGISTRY/azure-npm:$(EnvironmentalVariables.Tag) $PUSH_CONTAINER_REGISTRY/azure-npm:$(EnvironmentalVariables.Tag)-test
+              docker push $PUSH_CONTAINER_REGISTRY/azure-npm:$(EnvironmentalVariables.Tag)-test
+            workingDirectory: "$(modulePath)"
+            name: "pushimages"
+            displayName: "Push NPM Image"
+
           - bash: |
+              cd output 
+              sudo find . -mindepth 2 -type f -regextype posix-extended ! -iregex '.*\.(zip|tgz)$' -delete
+              sudo find . -mindepth 2 -type f -print -exec mv {} . \;
+              sudo rm -R -- */
               # run test, echo exit status code to fd 3, pipe output from test to tee, which splits output to stdout and go-junit-report (which converts test output to report.xml), stdout from tee is redirected to fd 4. Take output written to fd 3 (which is the exit code of test), redirect to stdout, pipe to read from stdout then exit with that status code. Read all output from fd 4 (output from tee) and write to top stdout
               { { { { 
                     sudo -E env "PATH=$PATH" make test-all; 
