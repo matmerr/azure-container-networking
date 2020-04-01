@@ -90,14 +90,14 @@ stages:
               docker tag $PUSH_CONTAINER_REGISTRY/azure-npm:$(EnvironmentalVariables.Tag) $PUSH_CONTAINER_REGISTRY/azure-npm:$(EnvironmentalVariables.Tag)-test
               docker push $PUSH_CONTAINER_REGISTRY/azure-npm:$(EnvironmentalVariables.Tag)-test
             workingDirectory: "$(modulePath)"
-            name: "pushimages"
-            displayName: "Push NPM Image"
+            name: "PushImages"
+            displayName: "PushNPMImage"
 
           - bash: |
-              cd output 
+              cd ./output 
               sudo find . -mindepth 2 -type f -regextype posix-extended ! -iregex '.*\.(zip|tgz)$' -delete
               sudo find . -mindepth 2 -type f -print -exec mv {} . \;
-              sudo rm -R -- */
+              sudo rm -R -- */ && cd ..
               # run test, echo exit status code to fd 3, pipe output from test to tee, which splits output to stdout and go-junit-report (which converts test output to report.xml), stdout from tee is redirected to fd 4. Take output written to fd 3 (which is the exit code of test), redirect to stdout, pipe to read from stdout then exit with that status code. Read all output from fd 4 (output from tee) and write to top stdout
               { { { { 
                     sudo -E env "PATH=$PATH" make test-all; 
@@ -173,6 +173,7 @@ stages:
                 az storage blob upload-batch -d acn-$(EnvironmentalVariables.CommitHash) -s ./output/  --account-name $(STORAGE_ACCOUNT_NAME)
               workingDirectory: "$(modulePath)"
             displayName: Create artifact storage container
+            condition: succeeded()
 
       - template: e2e-job-template.yaml
         parameters:
@@ -211,7 +212,6 @@ stages:
           clusterDefinitionCniBuildExt: ".zip"
 
   - stage: cleanup
-    condition: always()
     jobs:
       - job: delete_remote_artifacts
         pool:
@@ -219,7 +219,6 @@ stages:
           demands: agent.os -equals Linux
         container:
           image: "$(BUILD_IMAGE)"
-        condition: always()
         steps:
           - task: AzureCLI@1
             inputs:
@@ -231,4 +230,3 @@ stages:
                 az storage container delete -n acn-$CommitHash --account-name $(STORAGE_ACCOUNT_NAME)
               workingDirectory: "$(modulePath)"
             displayName: Cleanup remote Azure storage container
-            condition: always()
