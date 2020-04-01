@@ -319,33 +319,6 @@ func TestAddressPoolRequestsForSamePool(t *testing.T) {
 	}
 }
 
-// Tests multiple identical address pool requests return the same pool and pools are referenced correctly.
-func TestAddressPoolReleaseWithRequestedAddress(t *testing.T) {
-	// Start with the test address space.
-	am, err := createAddressManager()
-	if err != nil {
-		t.Fatalf("createAddressManager failed, err:%+v.", err)
-	}
-
-	// Request the same address pool twice.
-	poolId1, _, err := am.RequestPool(LocalDefaultAddressSpaceId, "", "", nil, false)
-	if err != nil {
-		t.Errorf("RequestPool failed, err:%v", err)
-	}
-
-	// Request two addresses from the pool.
-	address1, err := am.RequestAddress(LocalDefaultAddressSpaceId, poolId1, "", nil)
-	if err != nil {
-		t.Errorf("RequestAddress for address %v failed, err:%v", address1, err)
-	}
-
-	// Release the address pools.
-	err = am.ReleasePool(LocalDefaultAddressSpaceId, poolId1)
-	if err == nil {
-		t.Errorf("ReleasePool failed, expected error for released pool with requested address:%v", err)
-	}
-}
-
 // Tests address requests from the same pool return separate addresses and releases work correctly.
 func TestAddressRequestsFromTheSamePool(t *testing.T) {
 	// Start with the test address space.

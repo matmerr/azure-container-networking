@@ -21,10 +21,9 @@ const (
 )
 
 func newKubernetesTestClient() kubernetes.Interface {
-	nodeName := testNodeName
 	testnode := &v1.Node{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: nodeName,
+			Name: testNodeName,
 		},
 		Spec: v1.NodeSpec{
 			PodCIDR:  "10.0.0.1/24",
@@ -71,5 +70,26 @@ func TestIPv6Ipam(t *testing.T) {
 
 	if !equal {
 		t.Fatalf("Network interface mismatch, expected: %+v actual: %+v", correctInterfaces, testInterfaces)
+	}
+}
+
+func TestIPv6IpamWithoutIPv6SubnetAllocated(t *testing.T) {
+	options := make(map[string]interface{})
+	options[common.OptEnvironment] = common.OptEnvironmentIPv6Ipam
+
+	testnode := &v1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: testNodeName,
+		},
+		Spec: v1.NodeSpec{
+			PodCIDR:  "10.0.0.1/24",
+			PodCIDRs: []string{"10.0.0.1/24"},
+		},
+	}
+
+	_, err := retrieveKubernetesPodIPs(testnode, testSubnetSize)
+
+	if err == nil {
+		t.Fatal("Expected to fail IPv6 IP retrieval when node doesn't have IPv6 subnet")
 	}
 }

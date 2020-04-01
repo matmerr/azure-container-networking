@@ -110,30 +110,3 @@ func TestIPv6GetAddressPoolAndAddress(t *testing.T) {
 		t.Errorf("ReleasePool failed, err:%v", err)
 	}
 }
-
-// request pool, request address, attempt to release pool (fail), release address, release pool,
-// attempt to release address (fail)
-func TestIPv6AddressManagerRequestAndReleasePool(t *testing.T) {
-	// Start with the test address space.
-	am, err := createTestIpv6AddressManager()
-	if err != nil {
-		t.Fatalf("createAddressManager failed, err:%+v.", err)
-	}
-
-	// Request pool and request address
-	poolID, _, err := am.RequestPool(LocalDefaultAddressSpaceId, "", "", nil, true)
-	if err != nil {
-		t.Errorf("RequestPool failed, err:%v", err)
-	}
-
-	_, err = am.RequestAddress(LocalDefaultAddressSpaceId, poolID, "", nil)
-	if err != nil {
-		t.Errorf("RequestAddress failed, err:%v", err)
-	}
-
-	// attempt to release pool, should fail after requesting address
-	err = am.ReleasePool(LocalDefaultAddressSpaceId, poolID)
-	if err == nil {
-		t.Errorf("ReleasePool expected to fail with after RequestAddress is called")
-	}
-}

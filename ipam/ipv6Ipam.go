@@ -63,6 +63,7 @@ func newIPv6IpamSource(options map[string]interface{}) (*ipv6IpamSource, error) 
 	if err != nil {
 		return nil, err
 	}
+
 	return &ipv6IpamSource{
 		name:                name,
 		subnetMaskSizeLimit: defaultIPv6SubnetMaskSizeLimit,
@@ -86,11 +87,13 @@ func (source *ipv6IpamSource) stop() {
 func (source *ipv6IpamSource) loadKubernetesConfig() (kubernetes.Interface, error) {
 	config, err := clientcmd.BuildConfigFromFlags("", source.kubeConfigPath)
 	if err != nil {
+		log.Printf("[ipam] Failed to load Kubernetes config from disk: %+v", err)
 		return nil, err
 	}
 
 	client, err := kubernetes.NewForConfig(config)
 	if err != nil {
+		log.Printf("[ipam] Failed to create Kubernetes config: %+v", err)
 		return nil, err
 	}
 
@@ -101,6 +104,7 @@ func (source *ipv6IpamSource) loadKubernetesConfig() (kubernetes.Interface, erro
 
 	serverVersion, err := client.ServerVersion()
 	if err != nil {
+		log.Printf("[ipam] Failed to retrieve Kubernetes version: %+v", err)
 		return nil, err
 	}
 
@@ -170,6 +174,9 @@ func (source *ipv6IpamSource) refresh() error {
 
 	// Query the list of Kubernetes Pod IPs
 	interfaceIPs, err := retrieveKubernetesPodIPs(source.kubeNode, source.subnetMaskSizeLimit)
+	if err != nil {
+		return err
+	}
 
 	// Configure the local default address space.
 	local, err := source.sink.newAddressSpace(LocalDefaultAddressSpaceId, LocalScope)
@@ -213,10 +220,15 @@ func retrieveKubernetesPodIPs(node *v1.Node, subnetMaskBitSize string) (*Network
 
 	// get IPv6 subnet allocated to node
 	for _, cidr := range node.Spec.PodCIDRs {
-		nodeCidr, _, _ = net.ParseCIDR(cidr)
-		if nodeCidr.To4() == nil {
+		ipv6cidr, _, _ := net.ParseCIDR(cidr)
+		if ipv6cidr.To4() == nil {
+			nodeCidr = ipv6cidr
 			break
 		}
+	}
+
+	if nodeCidr == nil {
+		return nil, errors.New("[ipam] Failed to retrieve subnet, node does an IPv6 subnet allocated from Kubernetes")
 	}
 
 	subnet := nodeCidr.String() + subnetMaskBitSize

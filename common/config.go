@@ -11,7 +11,7 @@ const (
 	OptEnvironmentAzure    = "azure"
 	OptEnvironmentMAS      = "mas"
 	OptEnvironmentFileIpam = "fileIpam"
-	OptEnvironmentIPv6Ipam = "ipv6"
+	OptEnvironmentIPv6Ipam = "ipv6NodeIpam"
 
 	// API server URL.
 	OptAPIServerURL      = "api-url"
