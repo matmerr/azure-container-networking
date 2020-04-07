@@ -69,7 +69,9 @@ steps:
       echo "Running E2E tests against a cluster built with the following API model:"
       cat '${{ parameters.clusterDefinition }}'
       cp ${{ parameters.clusterDefinition }} clusterDefinition.json
-      echo '##vso[task.prependpath]$(modulePath)/scripts/'
+      curl -L https://dl.k8s.io/v1.18.0/kubernetes-client-linux-amd64.tar.gz | tar xvzf -
+      sudo cp kubernetes/client/bin/kubectl /usr/local/bin/kubectl	
+      sudo cp kubernetes/client/bin/kubectl /usr/local/bin/k
     displayName: Configure AKS-Engine
     workingDirectory: "$(modulePath)"
 
