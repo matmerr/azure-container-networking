@@ -100,7 +100,7 @@ func (listener *Listener) AddEndpoint(endpoint string) {
 
 // AddHandler registers a protocol handler.
 func (listener *Listener) AddHandler(path string, handler func(http.ResponseWriter, *http.Request)) {
-	listener.mux.HandleFunc(path, handler)
+	listener.mux.HandleFunc(path, LoggerHandler(handler))
 }
 
 // Decode receives and decodes JSON payload to a request.
@@ -130,4 +130,13 @@ func (listener *Listener) Encode(w http.ResponseWriter, response interface{}) er
 		log.Printf("[Listener] Failed to encode response: %v\n", err.Error())
 	}
 	return err
+}
+
+// LoggerHandler Also TODO: inject environment CNS and restrict API's
+// i.e. SF can't call URI's based on which env cns is running
+func LoggerHandler(handler func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		log.Printf(r.RequestURI)
+		http.HandlerFunc(handler).ServeHTTP(w, r)
+	})
 }
