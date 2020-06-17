@@ -48,15 +48,19 @@ const (
 // HTTPRestService represents http listener for CNS - Container Networking Service.
 type HTTPRestService struct {
 	*cns.Service
-	dockerClient     *dockerclient.DockerClient
-	imdsClient       *imdsclient.ImdsClient
-	ipamClient       *ipamclient.IpamClient
-	networkContainer *networkcontainers.NetworkContainers
-	routingTable     *routes.RoutingTable
-	store            store.KeyValueStore
-	state            *httpRestServiceState
-	lock             sync.Mutex
-	dncPartitionKey  string
+	dockerClient                 *dockerclient.DockerClient
+	imdsClient                   *imdsclient.ImdsClient
+	ipamClient                   *ipamclient.IpamClient
+	networkContainer             *networkcontainers.NetworkContainers
+	PodIPIDByOrchestratorContext map[string]string                     // OrchestratorContext is key and value is NetworkContainerID.
+	PodIPConfigState             map[string]cns.ContainerIPConfigState // seondaryipid(uuid) is key
+	AllocatedIPCount             map[string]struct{ int }              // key - ncid
+	ContainerStatus              map[string]containerstatus
+	routingTable                 *routes.RoutingTable
+	store                        store.KeyValueStore
+	state                        *httpRestServiceState
+	lock                         sync.Mutex
+	dncPartitionKey              string
 }
 
 // containerstatus is used to save status of an existing container
@@ -118,15 +122,22 @@ func NewHTTPRestService(config *common.ServiceConfig) (HTTPService, error) {
 	serviceState.Networks = make(map[string]*networkInfo)
 	serviceState.joinedNetworks = make(map[string]struct{})
 
+	podIPIDByOrchestratorContext := make(map[string]string)
+	podIPConfigState := make(map[string]cns.ContainerIPConfigState)
+	allocatedIPCount := make(map[string]struct{ int }) // key - ncid
+
 	return &HTTPRestService{
-		Service:          service,
-		store:            service.Service.Store,
-		dockerClient:     dc,
-		imdsClient:       imdsClient,
-		ipamClient:       ic,
-		networkContainer: nc,
-		routingTable:     routingTable,
-		state:            serviceState,
+		Service:                      service,
+		store:                        service.Service.Store,
+		dockerClient:                 dc,
+		imdsClient:                   imdsClient,
+		ipamClient:                   ic,
+		networkContainer:             nc,
+		PodIPIDByOrchestratorContext: podIPIDByOrchestratorContext,
+		PodIPConfigState:             podIPConfigState,
+		AllocatedIPCount:             allocatedIPCount,
+		routingTable:                 routingTable,
+		state:                        serviceState,
 	}, nil
 }
 
@@ -177,6 +188,8 @@ func (service *HTTPRestService) Start(config *common.ServiceConfig) error {
 	listener.AddHandler(cns.DeleteHostNCApipaEndpointPath, service.deleteHostNCApipaEndpoint)
 	listener.AddHandler(cns.PublishNetworkContainer, service.publishNetworkContainer)
 	listener.AddHandler(cns.UnpublishNetworkContainer, service.unpublishNetworkContainer)
+	listener.AddHandler(cns.AllocateIPConfig, service.allocateIPConfig)
+	listener.AddHandler(cns.ReleaseIPConfig, service.releaseIPConfig)
 
 	// handlers for v0.2
 	listener.AddHandler(cns.V2Prefix+cns.SetEnvironmentPath, service.setEnvironment)

@@ -18,6 +18,8 @@ const (
 	GetNetworkContainerByOrchestratorContext = "/network/getnetworkcontainerbyorchestratorcontext"
 	AttachContainerToNetwork                 = "/network/attachcontainertonetwork"
 	DetachContainerFromNetwork               = "/network/detachcontainerfromnetwork"
+	AllocateIPConfig                         = "/network/allocateipconfig"
+	ReleaseIPConfig                          = "/network/releaseipconfig"
 )
 
 // NetworkContainer Prefixes
@@ -48,6 +50,12 @@ const (
 const (
 	Vlan  = "Vlan"
 	Vxlan = "Vxlan"
+)
+
+// IPConfig States for CNS IPAM
+const (
+	Available = "Available"
+	Allocated = "Allocated"
 )
 
 // CreateNetworkContainerRequest specifies request to create a network container or network isolation boundary.
@@ -87,6 +95,11 @@ type KubernetesPodInfo struct {
 	PodNamespace string
 }
 
+// GetOrchestratorContext will return the orchestratorcontext as a string
+func (podinfo *KubernetesPodInfo) GetOrchestratorContext() string {
+	return podinfo.PodName + ":" + podinfo.PodNamespace
+}
+
 // MultiTenancyInfo contains encap type and id.
 type MultiTenancyInfo struct {
 	EncapType string
@@ -98,6 +111,19 @@ type IPConfiguration struct {
 	IPSubnet         IPSubnet
 	DNSServers       []string
 	GatewayIPAddress string
+}
+
+type SecondaryIPConfig struct {
+	UUID     string
+	IPConfig IPSubnet
+}
+
+type ContainerIPConfigState struct {
+	IPConfig            IPSubnet
+	ID                  string //uuid
+	NCID                string
+	State               string
+	OrchestratorContext json.RawMessage
 }
 
 // IPSubnet contains ip subnet.
@@ -141,6 +167,7 @@ type GetNetworkContainerStatusResponse struct {
 // GetNetworkContainerRequest specifies the details about the request to retrieve a specifc network container.
 type GetNetworkContainerRequest struct {
 	NetworkContainerid  string
+	DesiredIPConfig     IPSubnet
 	OrchestratorContext json.RawMessage
 }
 
