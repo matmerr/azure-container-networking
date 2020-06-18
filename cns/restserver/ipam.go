@@ -72,7 +72,7 @@ func (service *HTTPRestService) releaseIPConfig(w http.ResponseWriter, r *http.R
 	err := service.Listener.Decode(w, r, &req)
 	logger.Request(service.Name, &req, err)
 	if err != nil {
-		return err
+		return
 	}
 
 	defer func() {
@@ -92,23 +92,23 @@ func (service *HTTPRestService) releaseIPConfig(w http.ResponseWriter, r *http.R
 
 	if service.state.OrchestratorType != cns.Kubernetes {
 		err = fmt.Errorf("AllocateIPconfig API supported only for kubernetes orchestrator")
-		return err
+		return
 	}
 
 	// retrieve podinfo  from orchestrator context
 	if err := json.Unmarshal(req.OrchestratorContext, &podInfo); err != nil {
-		return nil
+		return
 	}
 
 	ipID := service.PodIPIDByOrchestratorContext[podInfo.PodName+podInfo.PodNamespace]
 	if ipID != "" {
 		if _, isExist := service.PodIPConfigState[ipID]; isExist {
-			return fmt.Errorf("Pod->IPIP exists but IPID to IPConfig doesn't exist")
+			err = fmt.Errorf("Pod->IPIP exists but IPID to IPConfig doesn't exist")
 		}
 	} else {
-		return nil
+		return
 	}
-	return nil
+	return
 }
 
 // If IPConfig is already allocated for pod, it returns that else it returns one of the available ipconfigs.

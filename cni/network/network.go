@@ -33,8 +33,9 @@ const (
 	dockerNetworkOption = "com.docker.network.generic"
 	opModeTransparent   = "transparent"
 	// Supported IP version. Currently support only IPv4
-	ipVersion = "4"
-	ipamV6    = "azure-vnet-ipamv6"
+	ipVersion    = "4"
+	ipamV6       = "azure-vnet-ipamv6"
+	azureCNSIPAM = "azure-cns-ipam"
 )
 
 // CNI Operation Types
@@ -329,6 +330,7 @@ func (plugin *netPlugin) Add(args *cniSkel.CmdArgs) error {
 		err              error
 		vethName         string
 		nwCfg            *cni.NetworkConfig
+		cnsClient        *cnsclient.CNSClient
 		epInfo           *network.EndpointInfo
 		iface            *cniTypesCurr.Interface
 		subnetPrefix     net.IPNet
@@ -411,9 +413,10 @@ func (plugin *netPlugin) Add(args *cniSkel.CmdArgs) error {
 
 	plugin.report.ContainerName = k8sPodName + ":" + k8sNamespace
 
-	if nwCfg.MultiTenancy {
+	if nwCfg.MultiTenancy || nwCfg.Ipam.Type == azureCNSIPAM {
 		// Initialize CNSClient
-		cnsclient.InitCnsClient(nwCfg.CNSUrl)
+		cnsClient, err := cnsclient.InitCnsClient(nwCfg.CNSUrl)
+		return err
 	}
 
 	k8sContainerID := args.ContainerID
@@ -492,6 +495,23 @@ func (plugin *netPlugin) Add(args *cniSkel.CmdArgs) error {
 		log.Printf("[cni-net] Creating network %v.", networkId)
 
 		if !nwCfg.MultiTenancy {
+
+			if nwCfg.Ipam.Type == azureCNSIPAM {
+				// create struct with info for target POD
+				podInfo := cns.KubernetesPodInfo{PodName: k8sPodName, PodNamespace: k8sNamespace}
+				orchestratorContext, err := json.Marshal(podInfo)
+				if err != nil {
+					log.Printf("Marshalling KubernetesPodInfo failed with %v", err)
+					return plugin.Errorf(err.Error())
+				}
+
+				result, resultV6, err = cnsClient.RequestIPAddress(orchestratorContext)
+				if err != nil {
+					log.Printf("get IP from CNS failed with %+v", err)
+					return plugin.Errorf(err.Error())
+				}
+			}
+
 			result, resultV6, err = plugin.invokeIpamAdd(*nwCfg, nwInfo, true)
 			if err != nil {
 				return err
@@ -499,8 +519,12 @@ func (plugin *netPlugin) Add(args *cniSkel.CmdArgs) error {
 
 			defer func() {
 				if err != nil {
-					plugin.invokeIpamDel(result, nwCfg.Ipam.Type, *nwCfg, true)
-					plugin.invokeIpamDel(resultV6, ipamV6, *nwCfg, true)
+					if nwCfg.Ipam.Type == azureCNSIPAM {
+						cnsClient.ReleaseIPAddress(orchestratorContext)
+					} else {
+						plugin.invokeIpamDel(result, nwCfg.Ipam.Type, *nwCfg, true)
+						plugin.invokeIpamDel(resultV6, ipamV6, *nwCfg, true)
+					}
 				}
 			}()
 
@@ -549,11 +573,11 @@ func (plugin *netPlugin) Add(args *cniSkel.CmdArgs) error {
 					Gateway: gateway,
 				},
 			},
-			BridgeName:       nwCfg.Bridge,
-			EnableSnatOnHost: nwCfg.EnableSnatOnHost,
-			DNS:              nwDNSInfo,
-			Policies:         policies,
-			NetNs:            args.Netns,
+			BridgeName:                    nwCfg.Bridge,
+			EnableSnatOnHost:              nwCfg.EnableSnatOnHost,
+			DNS:                           nwDNSInfo,
+			Policies:                      policies,
+			NetNs:                         args.Netns,
 			DisableHairpinOnHostInterface: nwCfg.DisableHairpinOnHostInterface,
 			IPV6Mode:                      nwCfg.IPV6Mode,
 			ServiceCidrs:                  nwCfg.ServiceCidrs,

@@ -72,9 +72,6 @@ func getTestService() *HTTPRestService {
 	svc := httpsvc.(*HTTPRestService)
 	svc.state.OrchestratorType = cns.Kubernetes
 
-	//svc.PodIPConfigState[testPod1GUID] = newTestPodState()
-	//svc.PodIPConfigState[testPod2GUID] = testPod2IPState
-
 	return svc
 }
 
