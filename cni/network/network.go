@@ -415,7 +415,7 @@ func (plugin *netPlugin) Add(args *cniSkel.CmdArgs) error {
 
 	if nwCfg.MultiTenancy || nwCfg.Ipam.Type == azureCNSIPAM {
 		// Initialize CNSClient
-		cnsClient, err := cnsclient.InitCnsClient(nwCfg.CNSUrl)
+		cnsclient.InitCnsClient(nwCfg.CNSUrl)
 		return err
 	}
 
@@ -520,6 +520,8 @@ func (plugin *netPlugin) Add(args *cniSkel.CmdArgs) error {
 			defer func() {
 				if err != nil {
 					if nwCfg.Ipam.Type == azureCNSIPAM {
+						podInfo := cns.KubernetesPodInfo{PodName: k8sPodName, PodNamespace: k8sNamespace}
+						orchestratorContext, _ := json.Marshal(podInfo)
 						cnsClient.ReleaseIPAddress(orchestratorContext)
 					} else {
 						plugin.invokeIpamDel(result, nwCfg.Ipam.Type, *nwCfg, true)

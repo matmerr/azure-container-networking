@@ -272,7 +272,57 @@ func (cnsClient *CNSClient) RequestIPAddress(orchestratorContext []byte) (*cniTy
 	return &result, &resultV6, err
 }
 
-func (cnsClient *CNSClient) ReleaseIPAddress(orchestratorContext []byte) {
+func (cnsClient *CNSClient) ReleaseIPAddress(orchestratorContext []byte) (*cniTypesCurr.Result, *cniTypesCurr.Result, error) {
 
-	return
+	var (
+		result   cniTypesCurr.Result
+		resultV6 cniTypesCurr.Result
+		err      error
+	)
+
+	var body bytes.Buffer
+
+	httpc := &http.Client{}
+	url := cnsClient.connectionURL + cns.ReleaseIPAddressPath
+	log.Printf("ReleaseIPAddress url %v", url)
+
+	payload := &cns.GetNetworkContainerRequest{
+		OrchestratorContext: orchestratorContext,
+	}
+
+	err = json.NewEncoder(&body).Encode(payload)
+	if err != nil {
+		log.Errorf("encoding json failed with %v", err)
+		return nil, nil, err
+	}
+
+	res, err := httpc.Post(url, "application/json", &body)
+	if err != nil {
+		log.Errorf("[Azure CNSClient] HTTP Post returned error %v", err.Error())
+		return nil, nil, err
+	}
+
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		errMsg := fmt.Sprintf("[Azure CNSClient] ReleaseIPAddress invalid http status code: %v", res.StatusCode)
+		log.Errorf(errMsg)
+		return nil, nil, fmt.Errorf(errMsg)
+	}
+
+	var resp cns.Response
+
+	err = json.NewDecoder(res.Body).Decode(&resp)
+	if err != nil {
+		log.Errorf("[Azure CNSClient] Error received while parsing ReleaseIPAddress response resp:%v err:%v", res.Body, err.Error())
+		return nil, nil, err
+	}
+
+	if resp.ReturnCode != 0 {
+		log.Errorf("[Azure CNSClient] ReleaseIPAddress received error response :%v", resp.Response.Message)
+		return nil, nil, fmt.Errorf(resp.Message)
+	}
+
+	return &result, &resultV6, err
+
 }
