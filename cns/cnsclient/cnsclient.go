@@ -319,7 +319,7 @@ func (cnsClient *CNSClient) ReleaseIPAddress(orchestratorContext []byte) (*cniTy
 	}
 
 	if resp.ReturnCode != 0 {
-		log.Errorf("[Azure CNSClient] ReleaseIPAddress received error response :%v", resp.Response.Message)
+		log.Errorf("[Azure CNSClient] ReleaseIPAddress received error response :%v", resp.Message)
 		return nil, nil, fmt.Errorf(resp.Message)
 	}
 

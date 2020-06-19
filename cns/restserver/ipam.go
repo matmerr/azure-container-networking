@@ -40,9 +40,9 @@ func (service *HTTPRestService) allocateIPConfig(w http.ResponseWriter, r *http.
 		Message:    returnMessage,
 	}
 
-	service.lock.Lock()
+	service.Lock()
 	containerDetails := service.ContainerStatus[ipState.NCID]
-	service.lock.Unlock()
+	service.Unlock()
 
 	savedReq := containerDetails.CreateNetworkContainerRequest
 	reserveResp := &cns.GetNetworkContainerResponse{
@@ -87,8 +87,8 @@ func (service *HTTPRestService) releaseIPConfig(w http.ResponseWriter, r *http.R
 		logger.Response(service.Name, resp, resp.ReturnCode, ReturnCodeToString(resp.ReturnCode), err)
 	}()
 
-	service.lock.Lock()
-	defer service.lock.Unlock()
+	service.Lock()
+	defer service.Unlock()
 
 	if service.state.OrchestratorType != cns.Kubernetes {
 		err = fmt.Errorf("AllocateIPconfig API supported only for kubernetes orchestrator")
@@ -114,8 +114,8 @@ func (service *HTTPRestService) releaseIPConfig(w http.ResponseWriter, r *http.R
 // If IPConfig is already allocated for pod, it returns that else it returns one of the available ipconfigs.
 func getIPConfig(service *HTTPRestService, req cns.GetNetworkContainerRequest) (cns.ContainerIPConfigState, error) {
 
-	service.lock.Lock()
-	defer service.lock.Unlock()
+	service.Lock()
+	defer service.Unlock()
 
 	var (
 		podInfo cns.KubernetesPodInfo
@@ -172,8 +172,8 @@ func getIPConfig(service *HTTPRestService, req cns.GetNetworkContainerRequest) (
 
 func releaseIPConfig(service *HTTPRestService, req cns.GetNetworkContainerRequest) error {
 
-	service.lock.Lock()
-	defer service.lock.Unlock()
+	service.Lock()
+	defer service.Unlock()
 
 	var (
 		err     error

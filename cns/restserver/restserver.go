@@ -59,8 +59,8 @@ type HTTPRestService struct {
 	routingTable                 *routes.RoutingTable
 	store                        store.KeyValueStore
 	state                        *httpRestServiceState
-	lock                         sync.Mutex
-	dncPartitionKey              string
+	sync.Mutex
+	dncPartitionKey string
 }
 
 // containerstatus is used to save status of an existing container
@@ -225,6 +225,16 @@ func (service *HTTPRestService) Start(config *common.ServiceConfig) error {
 	return nil
 }
 
+// StateUpdater is used by requestcontroller to update cns state
+func StateUpdater(restService *HTTPRestService, notifyChan chan int, restServiceChannel chan *HTTPRestService) {
+	for range notifyChan {
+		restService.Lock()
+		restServiceChannel <- restService
+		<-restServiceChannel
+		restService.Unlock()
+	}
+}
+
 // Stop stops the CNS.
 func (service *HTTPRestService) Stop() {
 	service.Uninitialize()
@@ -233,16 +243,16 @@ func (service *HTTPRestService) Stop() {
 
 // GetPartitionKey - Get dnc/service partition key
 func (service *HTTPRestService) GetPartitionKey() (dncPartitionKey string) {
-	service.lock.Lock()
+	service.Lock()
 	dncPartitionKey = service.dncPartitionKey
-	service.lock.Unlock()
+	service.Unlock()
 	return
 }
 
 // Get the network info from the service network state
 func (service *HTTPRestService) getNetworkInfo(networkName string) (*networkInfo, bool) {
-	service.lock.Lock()
-	defer service.lock.Unlock()
+	service.Lock()
+	defer service.Unlock()
 	networkInfo, found := service.state.Networks[networkName]
 
 	return networkInfo, found
@@ -250,8 +260,8 @@ func (service *HTTPRestService) getNetworkInfo(networkName string) (*networkInfo
 
 // Set the network info in the service network state
 func (service *HTTPRestService) setNetworkInfo(networkName string, networkInfo *networkInfo) {
-	service.lock.Lock()
-	defer service.lock.Unlock()
+	service.Lock()
+	defer service.Unlock()
 	service.state.Networks[networkName] = networkInfo
 
 	return
@@ -259,8 +269,8 @@ func (service *HTTPRestService) setNetworkInfo(networkName string, networkInfo *
 
 // Remove the network info from the service network state
 func (service *HTTPRestService) removeNetworkInfo(networkName string) {
-	service.lock.Lock()
-	defer service.lock.Unlock()
+	service.Lock()
+	defer service.Unlock()
 	delete(service.state.Networks, networkName)
 
 	return
@@ -1009,7 +1019,7 @@ func (service *HTTPRestService) setOrchestratorType(w http.ResponseWriter, r *ht
 		return
 	}
 
-	service.lock.Lock()
+	service.Lock()
 
 	service.dncPartitionKey = req.DncPartitionKey
 	nodeID = service.state.NodeID
@@ -1040,7 +1050,7 @@ func (service *HTTPRestService) setOrchestratorType(w http.ResponseWriter, r *ht
 		returnCode = InvalidRequest
 	}
 
-	service.lock.Unlock()
+	service.Unlock()
 
 	resp := cns.Response{
 		ReturnCode: returnCode,
@@ -1053,8 +1063,8 @@ func (service *HTTPRestService) setOrchestratorType(w http.ResponseWriter, r *ht
 
 func (service *HTTPRestService) saveNetworkContainerGoalState(req cns.CreateNetworkContainerRequest) (int, string) {
 	// we don't want to overwrite what other calls may have written
-	service.lock.Lock()
-	defer service.lock.Unlock()
+	service.Lock()
+	defer service.Unlock()
 
 	existing, ok := service.state.ContainerStatus[req.NetworkContainerid]
 	var hostVersion string
@@ -1227,8 +1237,8 @@ func (service *HTTPRestService) getNetworkContainerResponse(req cns.GetNetworkCo
 	var containerID string
 	var getNetworkContainerResponse cns.GetNetworkContainerResponse
 
-	service.lock.Lock()
-	defer service.lock.Unlock()
+	service.Lock()
+	defer service.Unlock()
 
 	switch service.state.OrchestratorType {
 	case cns.Kubernetes:
@@ -1347,8 +1357,8 @@ func (service *HTTPRestService) deleteNetworkContainer(w http.ResponseWriter, r 
 			}
 		}
 
-		service.lock.Lock()
-		defer service.lock.Unlock()
+		service.Lock()
+		defer service.Unlock()
 
 		if service.state.ContainerStatus != nil {
 			delete(service.state.ContainerStatus, req.NetworkContainerid)
@@ -1393,8 +1403,8 @@ func (service *HTTPRestService) getNetworkContainerStatus(w http.ResponseWriter,
 		return
 	}
 
-	service.lock.Lock()
-	defer service.lock.Unlock()
+	service.Lock()
+	defer service.Unlock()
 	var ok bool
 	var containerDetails containerstatus
 
@@ -1672,8 +1682,8 @@ func (service *HTTPRestService) getNumberOfCPUCores(w http.ResponseWriter, r *ht
 }
 
 func (service *HTTPRestService) getNetworkContainerDetails(networkContainerID string) (containerstatus, bool) {
-	service.lock.Lock()
-	defer service.lock.Unlock()
+	service.Lock()
+	defer service.Unlock()
 
 	containerDetails, containerExists := service.state.ContainerStatus[networkContainerID]
 
