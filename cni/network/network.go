@@ -226,7 +226,13 @@ func (plugin *netPlugin) setCNIReportDetails(nwCfg *cni.NetworkConfig, opType st
 	plugin.report.SubContext = fmt.Sprintf("%+v", nwCfg)
 	plugin.report.EventMessage = msg
 	plugin.report.BridgeDetails.NetworkMode = nwCfg.Mode
-	plugin.report.InterfaceDetails.SecondaryCAUsedCount = plugin.nm.GetNumberOfEndpoints("", nwCfg.Name)
+
+	log.Printf("HERE")
+	if nwCfg.Ipam.Type == azureCNSIPAM {
+		plugin.report.Context = "AzureCNSIpam"
+	} else {
+		plugin.report.InterfaceDetails.SecondaryCAUsedCount = plugin.nm.GetNumberOfEndpoints("", nwCfg.Name)
+	}
 }
 
 func addNatIPV6SubnetInfo(nwCfg *cni.NetworkConfig,
@@ -415,8 +421,10 @@ func (plugin *netPlugin) Add(args *cniSkel.CmdArgs) error {
 
 	if nwCfg.MultiTenancy || nwCfg.Ipam.Type == azureCNSIPAM {
 		// Initialize CNSClient
-		cnsclient.InitCnsClient(nwCfg.CNSUrl)
-		return err
+		cnsClient, err = cnsclient.InitCnsClient(nwCfg.CNSUrl)
+		if err != nil {
+			return err
+		}
 	}
 
 	k8sContainerID := args.ContainerID
@@ -497,6 +505,7 @@ func (plugin *netPlugin) Add(args *cniSkel.CmdArgs) error {
 		if !nwCfg.MultiTenancy {
 
 			if nwCfg.Ipam.Type == azureCNSIPAM {
+				log.Printf("[cni-net] Using CNS IPAM.")
 				// create struct with info for target POD
 				podInfo := cns.KubernetesPodInfo{PodName: k8sPodName, PodNamespace: k8sNamespace}
 				orchestratorContext, err := json.Marshal(podInfo)
