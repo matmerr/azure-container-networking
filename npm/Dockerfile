@@ -1,5 +1,5 @@
 # Use a minimal image as a parent image
-FROM ubuntu:focal
+FROM ubuntu:focal-20200606
 ARG NPM_BUILD_DIR
 
 # Install dependencies.

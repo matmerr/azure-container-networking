@@ -1,5 +1,6 @@
-# Use a minimal image as a parent image
-FROM ubuntu:19.10
+# Use a minimal image as a parent image. 
+# TODO: Use multistage build and use scratch
+FROM ubuntu:focal-20200606
 ARG CNS_BUILD_ARCHIVE
 
 # Install plugin
