@@ -96,7 +96,7 @@ type KubernetesPodInfo struct {
 }
 
 // GetOrchestratorContext will return the orchestratorcontext as a string
-func (podinfo *KubernetesPodInfo) GetOrchestratorContext() string {
+func (podinfo *KubernetesPodInfo) GetOrchestratorContextKey() string {
 	return podinfo.PodName + ":" + podinfo.PodNamespace
 }
 

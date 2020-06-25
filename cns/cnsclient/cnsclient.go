@@ -291,7 +291,7 @@ func (cnsClient *CNSClient) ReleaseIPAddress(orchestratorContext []byte) (*cniTy
 	var body bytes.Buffer
 
 	httpc := &http.Client{}
-	url := cnsClient.connectionURL + cns.ReleaseIPAddressPath
+	url := cnsClient.connectionURL + cns.ReleaseIPConfig
 	log.Printf("ReleaseIPAddress url %v", url)
 
 	payload := &cns.GetNetworkContainerRequest{

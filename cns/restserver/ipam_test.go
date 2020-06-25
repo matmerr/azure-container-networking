@@ -73,7 +73,7 @@ func TestGetNextAvailableIPConfig(t *testing.T) {
 	svc := getTestService()
 
 	// Add already allocated pod ip to state
-	svc.PodIPIDByOrchestratorContext[testPod1Info.GetOrchestratorContext()] = testPod1GUID
+	svc.PodIPIDByOrchestratorContext[testPod1Info.GetOrchestratorContextKey()] = testPod1GUID
 	state1, _ := NewPodStateWithOrchestratorContext(testIP1, 24, testPod1GUID, testNCID, cns.Allocated, testPod1Info)
 	svc.PodIPConfigState[state1.ID] = state1
 
@@ -100,7 +100,7 @@ func TestGetAlreadyAllocatedIPConfigForSamePod(t *testing.T) {
 	svc := getTestService()
 
 	// Add Allocated Pod IP to state
-	svc.PodIPIDByOrchestratorContext[testPod1Info.GetOrchestratorContext()] = testPod1GUID
+	svc.PodIPIDByOrchestratorContext[testPod1Info.GetOrchestratorContextKey()] = testPod1GUID
 	desiredState, _ := NewPodStateWithOrchestratorContext(testIP1, 24, testPod1GUID, testNCID, cns.Allocated, testPod1Info)
 	svc.PodIPConfigState[desiredState.ID] = desiredState
 
@@ -147,7 +147,7 @@ func TestFailToGetDesiredIPConfigWithAlreadyAllocatedSpecfiedIP(t *testing.T) {
 	svc := getTestService()
 
 	// set state as already allocated
-	svc.PodIPIDByOrchestratorContext[testPod1Info.GetOrchestratorContext()] = testPod1GUID
+	svc.PodIPIDByOrchestratorContext[testPod1Info.GetOrchestratorContextKey()] = testPod1GUID
 	desiredState, _ := NewPodStateWithOrchestratorContext(testIP1, 24, testPod1GUID, testNCID, cns.Allocated, testPod1Info)
 	svc.PodIPConfigState[desiredState.ID] = desiredState
 
@@ -167,12 +167,12 @@ func TestFailToGetIPWhenAllIPsAreAllocated(t *testing.T) {
 	svc := getTestService()
 
 	// set state as already allocated
-	svc.PodIPIDByOrchestratorContext[testPod1Info.GetOrchestratorContext()] = testPod1GUID
+	svc.PodIPIDByOrchestratorContext[testPod1Info.GetOrchestratorContextKey()] = testPod1GUID
 	state1, _ := NewPodStateWithOrchestratorContext(testIP1, 24, testPod1GUID, testNCID, cns.Allocated, testPod1Info)
 	svc.PodIPConfigState[state1.ID] = state1
 
 	// set state as already allocated
-	svc.PodIPIDByOrchestratorContext[testPod2Info.GetOrchestratorContext()] = testPod1GUID
+	svc.PodIPIDByOrchestratorContext[testPod2Info.GetOrchestratorContextKey()] = testPod1GUID
 	state2, _ := NewPodStateWithOrchestratorContext(testIP2, 24, testPod2GUID, testNCID, cns.Allocated, testPod2Info)
 	svc.PodIPConfigState[state2.ID] = state2
 

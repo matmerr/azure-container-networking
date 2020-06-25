@@ -62,7 +62,7 @@ func (service *HTTPRestService) SetIPConfigAsAllocated(ipconfig cns.ContainerIPC
 	ipconfig.State = cns.Allocated
 	ipconfig.OrchestratorContext = rawOrchestratorContext
 
-	service.PodIPIDByOrchestratorContext[podInfo.GetOrchestratorContext()] = ipconfig.ID
+	service.PodIPIDByOrchestratorContext[podInfo.GetOrchestratorContextKey()] = ipconfig.ID
 	service.PodIPConfigState[ipconfig.ID] = ipconfig
 	return ipconfig, err
 }
@@ -73,7 +73,7 @@ func (service *HTTPRestService) SetIPConfigAsAvailable(ipconfig cns.ContainerIPC
 	ipconfig.State = cns.Available
 	ipconfig.OrchestratorContext = nil
 	service.PodIPConfigState[ipconfig.ID] = ipconfig
-	service.PodIPIDByOrchestratorContext[podInfo.GetOrchestratorContext()] = ""
+	service.PodIPIDByOrchestratorContext[podInfo.GetOrchestratorContextKey()] = ""
 	return
 }
 
@@ -116,9 +116,11 @@ func (service *HTTPRestService) allocateIPConfig(w http.ResponseWriter, r *http.
 
 func (service *HTTPRestService) releaseIPConfig(w http.ResponseWriter, r *http.Request) {
 	var (
-		podInfo cns.KubernetesPodInfo
-		req     cns.GetNetworkContainerRequest
+		podInfo    cns.KubernetesPodInfo
+		req        cns.GetNetworkContainerRequest
+		statusCode int
 	)
+	statusCode = -1
 
 	err := service.Listener.Decode(w, r, &req)
 	logger.Request(service.Name, &req, err)
@@ -130,7 +132,12 @@ func (service *HTTPRestService) releaseIPConfig(w http.ResponseWriter, r *http.R
 		resp := cns.Response{}
 
 		if err != nil {
-			resp.ReturnCode = UnexpectedError
+			if statusCode < 0 {
+				resp.ReturnCode = UnexpectedError
+			} else {
+				resp.ReturnCode = statusCode
+			}
+
 			resp.Message = err.Error()
 		}
 
@@ -139,7 +146,7 @@ func (service *HTTPRestService) releaseIPConfig(w http.ResponseWriter, r *http.R
 	}()
 
 	if service.state.OrchestratorType != cns.Kubernetes {
-		err = fmt.Errorf("AllocateIPconfig API supported only for kubernetes orchestrator")
+		err = fmt.Errorf("ReleaseIPConfig API supported only for kubernetes orchestrator")
 		return
 	}
 
@@ -148,12 +155,15 @@ func (service *HTTPRestService) releaseIPConfig(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	ipID := service.PodIPIDByOrchestratorContext[podInfo.PodName+podInfo.PodNamespace]
+	ipID := service.PodIPIDByOrchestratorContext[podInfo.GetOrchestratorContextKey()]
 	if ipID != "" {
 		if _, isExist := service.PodIPConfigState[ipID]; isExist {
-			err = fmt.Errorf("Pod->IPIP exists but IPID to IPConfig doesn't exist")
+			ipstate := service.PodIPConfigState[ipID]
+			service.SetIPConfigAsAvailable(ipstate, podInfo)
 		}
 	} else {
+		statusCode = NotFound
+		err = fmt.Errorf("ReleaseIPConfig failed to release, no allocation found for pod")
 		return
 	}
 	return
@@ -178,7 +188,7 @@ func getIPConfig(service *HTTPRestService, req cns.GetNetworkContainerRequest) (
 	}
 
 	// check if ipconfig already allocated for this pod and return
-	ipID := service.PodIPIDByOrchestratorContext[podInfo.GetOrchestratorContext()]
+	ipID := service.PodIPIDByOrchestratorContext[podInfo.GetOrchestratorContextKey()]
 	if ipID != "" {
 		if ipState, isExist = service.PodIPConfigState[ipID]; isExist {
 			return ipState, nil
@@ -232,7 +242,7 @@ func releaseIPConfig(service *HTTPRestService, req cns.GetNetworkContainerReques
 	}
 
 	// check if ipconfig already allocated for this pod and return
-	ipID := service.PodIPIDByOrchestratorContext[podInfo.GetOrchestratorContext()]
+	ipID := service.PodIPIDByOrchestratorContext[podInfo.GetOrchestratorContextKey()]
 	if ipID != "" {
 		if _, isExist := service.PodIPConfigState[ipID]; isExist {
 			// reset state to be free
@@ -244,32 +254,3 @@ func releaseIPConfig(service *HTTPRestService, req cns.GetNetworkContainerReques
 
 	return err
 }
-
-/*
-apiVersion: acn.azure.com/v1alpha
-kind: NodeNetworkConfig
-metadata:
-  name: my-nnc
-  namespace: kube-system
-spec:
-  iPsNotInUse:
-    - aabbc
-    - aabbcc
-    - bbbb
-  requestedIPCount: 15
-status:
-  batchSize: 23
-  networkContainers:
-    - ID: yo
-      primaryIP: yo
-      subnetID: yo
-      ipAssignments:
-        - name: yo
-          ip: yo
-      defaultGateway: yo
-      netMask: yo
-  releaseThresholdPercent: 30
-  requestThresholdPercent: 40
-
-
-*/

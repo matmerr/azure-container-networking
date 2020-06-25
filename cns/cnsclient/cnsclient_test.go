@@ -130,13 +130,6 @@ func TestCNSClientRelease(t *testing.T) {
 	podName := "testpodname"
 	podNamespace := "testpodnamespace"
 
-	desiredip := net.ParseIP("10.0.0.1")
-	_, desiredipnet, _ := net.ParseCIDR("10.0.0.1/24")
-	desired := net.IPNet{
-		IP:   desiredip,
-		Mask: desiredipnet.Mask,
-	}
-
 	cnsClient, _ := InitCnsClient("")
 
 	podInfo := cns.KubernetesPodInfo{PodName: podName, PodNamespace: podNamespace}
@@ -145,12 +138,18 @@ func TestCNSClientRelease(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	result, _, err := cnsClient.ReleaseIPAddress(orchestratorContext)
-	if err != nil {
-		t.Fatalf("release IP from CNS failed with %+v", err)
+	// no IP reservation found with that context, expect fail
+	_, _, err = cnsClient.ReleaseIPAddress(orchestratorContext)
+	if err == nil {
+		t.Fatalf("Expected failure to release when no IP reservation found with context: %+v", err)
 	}
 
-	if reflect.DeepEqual(desired, result) != true {
-		t.Fatalf("Desired result not matching actual result, expected: %+v, actual: %+v", desired, result)
+	// request IP address
+	_, _, err = cnsClient.RequestIPAddress(orchestratorContext)
+
+	// release requested IP address, expect success
+	_, _, err = cnsClient.ReleaseIPAddress(orchestratorContext)
+	if err != nil {
+		t.Fatalf("Expected to not fail when releasing IP reservation found with context: %+v", err)
 	}
 }
