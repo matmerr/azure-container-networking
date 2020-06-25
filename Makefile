@@ -377,6 +377,11 @@ test-all:
         ./cnm/network/ \
         ./cni/ipam/ \
         ./cns/ipamclient/ \
+        ./cns/cnsclient/ \
         ./cnms/service/ \
         ./npm/iptm/ \
         ./npm/ipsm/
+	
+	#until the restserver tests are fixed...
+	go test -timeout 30s \
+		./cns/restserver -run ^TestIPAM*

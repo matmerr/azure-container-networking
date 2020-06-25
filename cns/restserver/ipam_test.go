@@ -46,7 +46,7 @@ func getTestService() *HTTPRestService {
 }
 
 // Want first IP
-func TestGetAvailableIPConfig(t *testing.T) {
+func TestIPAMGetAvailableIPConfig(t *testing.T) {
 	svc := getTestService()
 
 	desiredState := newPodState(testIP1, 24, testPod1GUID, testNCID, cns.Available)
@@ -69,7 +69,7 @@ func TestGetAvailableIPConfig(t *testing.T) {
 }
 
 // First IP is already assigned to a pod, want second IP
-func TestGetNextAvailableIPConfig(t *testing.T) {
+func TestIPAMGetNextAvailableIPConfig(t *testing.T) {
 	svc := getTestService()
 
 	// Add already allocated pod ip to state
@@ -96,7 +96,7 @@ func TestGetNextAvailableIPConfig(t *testing.T) {
 	}
 }
 
-func TestGetAlreadyAllocatedIPConfigForSamePod(t *testing.T) {
+func TestIPAMGetAlreadyAllocatedIPConfigForSamePod(t *testing.T) {
 	svc := getTestService()
 
 	// Add Allocated Pod IP to state
@@ -119,17 +119,41 @@ func TestGetAlreadyAllocatedIPConfigForSamePod(t *testing.T) {
 	}
 }
 
-func TestGetDesiredIPConfigWithSpecfiedIP(t *testing.T) {
+func TestIPAMAttemptToRequestIPNotFoundInPool(t *testing.T) {
 	svc := getTestService()
 
 	// Add Available Pod IP to state
 	desiredState := newPodState(testIP1, 24, testPod1GUID, testNCID, cns.Available)
-	svc.PodIPConfigState[desiredState.ID] = desiredState
+	ipconfigs := []cns.ContainerIPConfigState{
+		desiredState,
+	}
+	svc.AddIPConfigsToState(ipconfigs)
 
 	req := cns.GetNetworkContainerRequest{}
 	b, _ := json.Marshal(testPod2Info)
 	req.OrchestratorContext = b
 	req.DesiredIPConfig = newIPConfig(testIP2, 24)
+
+	_, err := getIPConfig(svc, req)
+	if err == nil {
+		t.Fatalf("Expected to fail as IP not found in pool")
+	}
+}
+
+func TestIPAMGetDesiredIPConfigWithSpecfiedIP(t *testing.T) {
+	svc := getTestService()
+
+	// Add Available Pod IP to state
+	desiredState := newPodState(testIP1, 24, testPod1GUID, testNCID, cns.Available)
+	ipconfigs := []cns.ContainerIPConfigState{
+		desiredState,
+	}
+	svc.AddIPConfigsToState(ipconfigs)
+
+	req := cns.GetNetworkContainerRequest{}
+	b, _ := json.Marshal(testPod1Info)
+	req.OrchestratorContext = b
+	req.DesiredIPConfig = newIPConfig(testIP1, 24)
 
 	actualstate, err := getIPConfig(svc, req)
 	if err != nil {
@@ -143,13 +167,16 @@ func TestGetDesiredIPConfigWithSpecfiedIP(t *testing.T) {
 	}
 }
 
-func TestFailToGetDesiredIPConfigWithAlreadyAllocatedSpecfiedIP(t *testing.T) {
+func TestIPAMFailToGetDesiredIPConfigWithAlreadyAllocatedSpecfiedIP(t *testing.T) {
 	svc := getTestService()
 
 	// set state as already allocated
-	svc.PodIPIDByOrchestratorContext[testPod1Info.GetOrchestratorContextKey()] = testPod1GUID
 	desiredState, _ := NewPodStateWithOrchestratorContext(testIP1, 24, testPod1GUID, testNCID, cns.Allocated, testPod1Info)
-	svc.PodIPConfigState[desiredState.ID] = desiredState
+	ipconfigs := []cns.ContainerIPConfigState{
+		desiredState,
+	}
+	svc.AddIPConfigsToState(ipconfigs)
+	svc.SetIPConfigAsAllocated(ipconfigs[0], testPod1Info)
 
 	// request the already allocated ip with a new context
 	req := cns.GetNetworkContainerRequest{}
@@ -163,13 +190,16 @@ func TestFailToGetDesiredIPConfigWithAlreadyAllocatedSpecfiedIP(t *testing.T) {
 	}
 }
 
-func TestFailToGetIPWhenAllIPsAreAllocated(t *testing.T) {
+func TestIPAMFailToGetIPWhenAllIPsAreAllocated(t *testing.T) {
 	svc := getTestService()
 
 	// set state as already allocated
-	svc.PodIPIDByOrchestratorContext[testPod1Info.GetOrchestratorContextKey()] = testPod1GUID
 	state1, _ := NewPodStateWithOrchestratorContext(testIP1, 24, testPod1GUID, testNCID, cns.Allocated, testPod1Info)
-	svc.PodIPConfigState[state1.ID] = state1
+	ipconfigs := []cns.ContainerIPConfigState{
+		state1,
+	}
+	svc.AddIPConfigsToState(ipconfigs)
+	svc.SetIPConfigAsAllocated(ipconfigs[0], testPod1Info)
 
 	// set state as already allocated
 	svc.PodIPIDByOrchestratorContext[testPod2Info.GetOrchestratorContextKey()] = testPod1GUID
@@ -191,7 +221,7 @@ func TestFailToGetIPWhenAllIPsAreAllocated(t *testing.T) {
 // Request 10.0.0.1 with PodInfo2 (Fail)
 // Release PodInfo1
 // Request 10.0.0.1 with PodInfo2 (Success)
-func TestRequestThenReleaseThenRequestAgain(t *testing.T) {
+func TestIPAMRequestThenReleaseThenRequestAgain(t *testing.T) {
 	svc := getTestService()
 
 	// set state as already allocated

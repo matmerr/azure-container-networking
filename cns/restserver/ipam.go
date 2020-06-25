@@ -64,7 +64,7 @@ func (service *HTTPRestService) SetIPConfigAsAllocated(ipconfig cns.ContainerIPC
 
 	service.PodIPIDByOrchestratorContext[podInfo.GetOrchestratorContextKey()] = ipconfig.ID
 	service.PodIPConfigState[ipconfig.ID] = ipconfig
-	return ipconfig, err
+	return service.PodIPConfigState[ipconfig.ID], err
 }
 
 func (service *HTTPRestService) SetIPConfigAsAvailable(ipconfig cns.ContainerIPConfigState, podInfo cns.KubernetesPodInfo) {
@@ -201,12 +201,12 @@ func getIPConfig(service *HTTPRestService, req cns.GetNetworkContainerRequest) (
 		for _, ipState = range service.PodIPConfigState {
 			if ipState.IPConfig.IPAddress == req.DesiredIPConfig.IPAddress {
 				if ipState.State != cns.Allocated {
-					service.SetIPConfigAsAllocated(ipState, podInfo)
-					return ipState, nil
+					return service.SetIPConfigAsAllocated(ipState, podInfo)
 				}
 				return ipState, fmt.Errorf("Desired IP has already been allocated")
 			}
 		}
+		return ipState, fmt.Errorf("Requested IP not found in pool")
 	} else {
 		// return any free IPConfig
 		for _, ipState = range service.PodIPConfigState {
@@ -223,9 +223,6 @@ func getIPConfig(service *HTTPRestService, req cns.GetNetworkContainerRequest) (
 }
 
 func releaseIPConfig(service *HTTPRestService, req cns.GetNetworkContainerRequest) error {
-
-	service.Lock()
-	defer service.Unlock()
 
 	var (
 		err     error

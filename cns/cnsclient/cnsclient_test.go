@@ -98,7 +98,7 @@ func TestMain(m *testing.M) {
 	m.Run()
 }
 
-func TestCNSClientRequest(t *testing.T) {
+func TestCNSClientRequestAndRelease(t *testing.T) {
 	podName := "testpodname"
 	podNamespace := "testpodnamespace"
 	ip := net.ParseIP("10.0.0.1")
@@ -116,28 +116,6 @@ func TestCNSClientRequest(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	result, _, err := cnsClient.RequestIPAddress(orchestratorContext)
-	if err != nil {
-		t.Fatalf("get IP from CNS failed with %+v", err)
-	}
-
-	if reflect.DeepEqual(desired, result) != true {
-		t.Fatalf("Desired result not matching actual result, expected: %+v, actual: %+v", desired, result)
-	}
-}
-
-func TestCNSClientRelease(t *testing.T) {
-	podName := "testpodname"
-	podNamespace := "testpodnamespace"
-
-	cnsClient, _ := InitCnsClient("")
-
-	podInfo := cns.KubernetesPodInfo{PodName: podName, PodNamespace: podNamespace}
-	orchestratorContext, err := json.Marshal(podInfo)
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	// no IP reservation found with that context, expect fail
 	_, _, err = cnsClient.ReleaseIPAddress(orchestratorContext)
 	if err == nil {
@@ -146,6 +124,15 @@ func TestCNSClientRelease(t *testing.T) {
 
 	// request IP address
 	_, _, err = cnsClient.RequestIPAddress(orchestratorContext)
+
+	result, _, err := cnsClient.RequestIPAddress(orchestratorContext)
+	if err != nil {
+		t.Fatalf("get IP from CNS failed with %+v", err)
+	}
+
+	if reflect.DeepEqual(desired, result.IPs[0].Address) != true {
+		t.Fatalf("Desired result not matching actual result, expected: %+v, actual: %+v", desired, result.IPs[0].Address)
+	}
 
 	// release requested IP address, expect success
 	_, _, err = cnsClient.ReleaseIPAddress(orchestratorContext)
