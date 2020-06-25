@@ -5,10 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"os"
+	"reflect"
 	"testing"
-	"time"
 
 	"github.com/Azure/azure-container-networking/cns"
 	"github.com/Azure/azure-container-networking/cns/common"
@@ -17,9 +18,30 @@ import (
 	"github.com/Azure/azure-container-networking/log"
 )
 
+var (
+	testNCID = "06867cf3-332d-409d-8819-ed70d2c116b0"
+
+	testIP1      = "10.0.0.1"
+	testPod1GUID = "898fb8f1-f93e-4c96-9c31-6b89098949a3"
+	testPod1Info = cns.KubernetesPodInfo{
+		PodName:      "testpod1",
+		PodNamespace: "testpod1namespace",
+	}
+)
+
+func addTestStateToRestServer(svc *restserver.HTTPRestService) {
+	// set state as already allocated
+	state1, _ := restserver.NewPodStateWithOrchestratorContext(testIP1, 24, testPod1GUID, testNCID, cns.Available, testPod1Info)
+	ipconfigs := []cns.ContainerIPConfigState{
+		state1,
+	}
+	svc.AddIPConfigsToState(ipconfigs)
+}
+
 func TestMain(m *testing.M) {
 	tmpFileState, err := ioutil.TempFile(os.TempDir(), "cns-*.json")
 	tmpLogDir, err := ioutil.TempDir("", "cns-")
+	fmt.Printf("logdir: %+v", tmpLogDir)
 
 	if err != nil {
 		panic(err)
@@ -36,10 +58,14 @@ func TestMain(m *testing.M) {
 	config := common.ServiceConfig{}
 
 	httpRestService, err := restserver.NewHTTPRestService(&config)
+	svc := httpRestService.(*restserver.HTTPRestService)
+	svc.Name = "cns-test-server"
 	if err != nil {
 		logger.Errorf("Failed to create CNS object, err:%v.\n", err)
 		return
 	}
+
+	addTestStateToRestServer(svc)
 
 	if httpRestService != nil {
 		err = httpRestService.Start(&config)
@@ -49,11 +75,6 @@ func TestMain(m *testing.M) {
 		}
 	}
 
-	m.Run()
-	time.Sleep(30 * time.Second)
-}
-
-func TestSetOrchestratorType(t *testing.T) {
 	var (
 		info = &cns.SetOrchestratorTypeRequest{
 			OrchestratorType: cns.Kubernetes}
@@ -74,4 +95,62 @@ func TestSetOrchestratorType(t *testing.T) {
 	}
 	fmt.Println(res)
 
+	m.Run()
+}
+
+func TestCNSClientRequest(t *testing.T) {
+	podName := "testpodname"
+	podNamespace := "testpodnamespace"
+	ip := net.ParseIP("10.0.0.1")
+	_, ipnet, _ := net.ParseCIDR("10.0.0.1/24")
+	desired := net.IPNet{
+		IP:   ip,
+		Mask: ipnet.Mask,
+	}
+
+	cnsClient, _ := InitCnsClient("")
+
+	podInfo := cns.KubernetesPodInfo{PodName: podName, PodNamespace: podNamespace}
+	orchestratorContext, err := json.Marshal(podInfo)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	result, _, err := cnsClient.RequestIPAddress(orchestratorContext)
+	if err != nil {
+		t.Fatalf("get IP from CNS failed with %+v", err)
+	}
+
+	if reflect.DeepEqual(desired, result) != true {
+		t.Fatalf("Desired result not matching actual result, expected: %+v, actual: %+v", desired, result)
+	}
+}
+
+func TestCNSClientRelease(t *testing.T) {
+	podName := "testpodname"
+	podNamespace := "testpodnamespace"
+
+	desiredip := net.ParseIP("10.0.0.1")
+	_, desiredipnet, _ := net.ParseCIDR("10.0.0.1/24")
+	desired := net.IPNet{
+		IP:   desiredip,
+		Mask: desiredipnet.Mask,
+	}
+
+	cnsClient, _ := InitCnsClient("")
+
+	podInfo := cns.KubernetesPodInfo{PodName: podName, PodNamespace: podNamespace}
+	orchestratorContext, err := json.Marshal(podInfo)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	result, _, err := cnsClient.ReleaseIPAddress(orchestratorContext)
+	if err != nil {
+		t.Fatalf("release IP from CNS failed with %+v", err)
+	}
+
+	if reflect.DeepEqual(desired, result) != true {
+		t.Fatalf("Desired result not matching actual result, expected: %+v, actual: %+v", desired, result)
+	}
 }

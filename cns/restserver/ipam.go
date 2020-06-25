@@ -30,7 +30,7 @@ func newPodState(ipaddress string, prefixLength uint8, id, ncid, state string) c
 	}
 }
 
-func newPodStateWithOrchestratorContext(ipaddress string, prefixLength uint8, id, ncid, state string, orchestratorContext cns.KubernetesPodInfo) (cns.ContainerIPConfigState, error) {
+func NewPodStateWithOrchestratorContext(ipaddress string, prefixLength uint8, id, ncid, state string, orchestratorContext cns.KubernetesPodInfo) (cns.ContainerIPConfigState, error) {
 	ipconfig := newIPConfig(ipaddress, prefixLength)
 	b, err := json.Marshal(orchestratorContext)
 	return cns.ContainerIPConfigState{
@@ -67,6 +67,16 @@ func (service *HTTPRestService) SetIPConfigAsAllocated(ipconfig cns.ContainerIPC
 	return ipconfig, err
 }
 
+func (service *HTTPRestService) SetIPConfigAsAvailable(ipconfig cns.ContainerIPConfigState, podInfo cns.KubernetesPodInfo) {
+	service.Lock()
+	defer service.Unlock()
+	ipconfig.State = cns.Available
+	ipconfig.OrchestratorContext = nil
+	service.PodIPConfigState[ipconfig.ID] = ipconfig
+	service.PodIPIDByOrchestratorContext[podInfo.GetOrchestratorContext()] = ""
+	return
+}
+
 // cni -> allocate ipconfig
 // 			|- fetch nc from state by constructing nc id
 func (service *HTTPRestService) allocateIPConfig(w http.ResponseWriter, r *http.Request) {
@@ -95,22 +105,8 @@ func (service *HTTPRestService) allocateIPConfig(w http.ResponseWriter, r *http.
 		Message:    returnMessage,
 	}
 
-	service.Lock()
-	containerDetails := service.ContainerStatus[ipState.NCID]
-	service.Unlock()
-
-	savedReq := containerDetails.CreateNetworkContainerRequest
 	reserveResp := &cns.GetNetworkContainerResponse{
-		Response:                   resp,
-		NetworkContainerID:         savedReq.NetworkContainerid,
-		IPConfiguration:            savedReq.IPConfiguration,
-		Routes:                     savedReq.Routes,
-		CnetAddressSpace:           savedReq.CnetAddressSpace,
-		MultiTenancyInfo:           savedReq.MultiTenancyInfo,
-		PrimaryInterfaceIdentifier: savedReq.PrimaryInterfaceIdentifier,
-		LocalIPConfiguration:       savedReq.LocalIPConfiguration,
-		AllowHostToNCCommunication: savedReq.AllowHostToNCCommunication,
-		AllowNCToHostCommunication: savedReq.AllowNCToHostCommunication,
+		Response: resp,
 	}
 	reserveResp.IPConfiguration.IPSubnet = ipState.IPConfig
 
@@ -205,9 +201,7 @@ func getIPConfig(service *HTTPRestService, req cns.GetNetworkContainerRequest) (
 		// return any free IPConfig
 		for _, ipState = range service.PodIPConfigState {
 			if ipState.State == cns.Available {
-				ipState.State = cns.Allocated
-				ipState.OrchestratorContext = req.OrchestratorContext
-				return ipState, nil
+				return service.SetIPConfigAsAllocated(ipState, podInfo)
 			}
 		}
 		return ipState, fmt.Errorf("No more free IP's available, trigger batch")
@@ -226,7 +220,6 @@ func releaseIPConfig(service *HTTPRestService, req cns.GetNetworkContainerReques
 	var (
 		err     error
 		podInfo cns.KubernetesPodInfo
-		isExist bool
 	)
 
 	if service.state.OrchestratorType != cns.Kubernetes {
@@ -241,13 +234,9 @@ func releaseIPConfig(service *HTTPRestService, req cns.GetNetworkContainerReques
 	// check if ipconfig already allocated for this pod and return
 	ipID := service.PodIPIDByOrchestratorContext[podInfo.GetOrchestratorContext()]
 	if ipID != "" {
-		if _, isExist = service.PodIPConfigState[ipID]; isExist {
+		if _, isExist := service.PodIPConfigState[ipID]; isExist {
 			// reset state to be free
-			freeIPState := service.PodIPConfigState[ipID]
-			freeIPState.State = cns.Available
-			freeIPState.OrchestratorContext = nil
-			service.PodIPConfigState[ipID] = freeIPState
-			service.PodIPIDByOrchestratorContext[podInfo.GetOrchestratorContext()] = ""
+			service.SetIPConfigAsAvailable(service.PodIPConfigState[ipID], podInfo)
 			return nil
 		}
 		return fmt.Errorf("Pod->IPIP exists but IPID to IPConfig doesn't exist")

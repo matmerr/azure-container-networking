@@ -227,7 +227,6 @@ func (plugin *netPlugin) setCNIReportDetails(nwCfg *cni.NetworkConfig, opType st
 	plugin.report.EventMessage = msg
 	plugin.report.BridgeDetails.NetworkMode = nwCfg.Mode
 
-	log.Printf("HERE")
 	if nwCfg.Ipam.Type == azureCNSIPAM {
 		plugin.report.Context = "AzureCNSIpam"
 	} else {
@@ -346,7 +345,6 @@ func (plugin *netPlugin) Add(args *cniSkel.CmdArgs) error {
 		nwDNSInfo        network.DNSInfo
 		cniMetric        telemetry.AIMetric
 	)
-
 	startTime := time.Now()
 
 	log.Printf("[cni-net] Processing ADD command with args {ContainerID:%v Netns:%v IfName:%v Args:%v Path:%v StdinData:%s}.",
@@ -421,6 +419,7 @@ func (plugin *netPlugin) Add(args *cniSkel.CmdArgs) error {
 
 	if nwCfg.MultiTenancy || nwCfg.Ipam.Type == azureCNSIPAM {
 		// Initialize CNSClient
+
 		cnsClient, err = cnsclient.InitCnsClient(nwCfg.CNSUrl)
 		if err != nil {
 			return err

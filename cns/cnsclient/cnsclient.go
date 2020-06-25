@@ -261,13 +261,21 @@ func (cnsClient *CNSClient) RequestIPAddress(orchestratorContext []byte) (*cniTy
 
 	// set result ipconfig from CNS Response Body
 	prefix := strconv.Itoa(int(resp.IPConfiguration.IPSubnet.PrefixLength))
-	_, ipnet, err := net.ParseCIDR(resp.IPConfiguration.IPSubnet.IPAddress + "/" + prefix)
+	ip, ipnet, err := net.ParseCIDR(resp.IPConfiguration.IPSubnet.IPAddress + "/" + prefix)
 	if err != nil {
 		return nil, nil, err
 	}
 
+	// construct ipnet for result
+	resultIPnet := net.IPNet{
+		IP:   ip,
+		Mask: ipnet.Mask,
+	}
+
 	result.IPs = make([]*cniTypesCurr.IPConfig, 1)
-	result.IPs[0].Address = *ipnet
+	result.IPs[0] = &cniTypesCurr.IPConfig{
+		Address: resultIPnet,
+	}
 
 	return &result, &resultV6, err
 }
