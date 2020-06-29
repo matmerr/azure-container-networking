@@ -123,8 +123,6 @@ func TestCNSClientRequestAndRelease(t *testing.T) {
 	}
 
 	// request IP address
-	_, _, err = cnsClient.RequestIPAddress(orchestratorContext)
-
 	result, _, err := cnsClient.RequestIPAddress(orchestratorContext)
 	if err != nil {
 		t.Fatalf("get IP from CNS failed with %+v", err)

@@ -283,14 +283,6 @@ func main() {
 		return
 	}
 
-	// establish channel between request controller and CNS to update state
-
-	notifyChannel := make(chan int)
-	restServiceChannel := make(chan *restserver.HTTPRestService)
-	svc := httpRestService.(*restserver.HTTPRestService)
-	// TBD on this, likely will just pass svc pointer to request controller when it's written
-	go restserver.StateUpdater(svc, notifyChannel, restServiceChannel)
-
 	// Set CNS options.
 	httpRestService.SetOption(acn.OptCnsURL, cnsURL)
 	httpRestService.SetOption(acn.OptNetPluginPath, cniPath)

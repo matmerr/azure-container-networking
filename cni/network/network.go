@@ -254,9 +254,18 @@ func (plugin *netPlugin) invokeIpamDel(
 	result *cniTypesCurr.Result,
 	ipamType string,
 	nwCfg cni.NetworkConfig,
-	isDeletePoolOnError bool) {
+	isDeletePoolOnError bool,
+	podName, podNamespace string,
+	cnsClient *cnsclient.CNSClient) {
 
 	if result != nil {
+		if ipamType == azureCNSIPAM {
+			podInfo := cns.KubernetesPodInfo{PodName: podName, PodNamespace: podNamespace}
+			orchestratorContext, _ := json.Marshal(podInfo)
+			cnsClient.ReleaseIPAddress(orchestratorContext)
+			return
+		}
+
 		if ipamType == ipamV6 {
 			nwCfg.Ipam.Environment = common.OptEnvironmentIPv6NodeIpam
 			nwCfg.Ipam.Type = ipamType
@@ -278,7 +287,9 @@ func (plugin *netPlugin) invokeIpamDel(
 func (plugin *netPlugin) invokeIpamAdd(
 	nwCfg cni.NetworkConfig,
 	nwInfo network.NetworkInfo,
-	isDeletePoolOnError bool) (*cniTypesCurr.Result, *cniTypesCurr.Result, error) {
+	isDeletePoolOnError bool,
+	podName, podNamespace string,
+	cnsClient *cnsclient.CNSClient) (*cniTypesCurr.Result, *cniTypesCurr.Result, error) {
 
 	var (
 		result   *cniTypesCurr.Result
@@ -290,8 +301,30 @@ func (plugin *netPlugin) invokeIpamAdd(
 		nwCfg.Ipam.Subnet = nwInfo.Subnets[0].Prefix.String()
 	}
 
-	// Call into IPAM plugin to allocate an address pool for the network.
-	result, err = plugin.DelegateAdd(nwCfg.Ipam.Type, &nwCfg)
+	if nwCfg.Ipam.Type == azureCNSIPAM {
+		if cnsClient == nil {
+			return result, resultV6, fmt.Errorf("[cni-net] Using CNS IPAM, but cnsClient has not been initialized")
+		}
+
+		log.Printf("[cni-net] Using CNS IPAM.")
+		// create struct with info for target POD
+		podInfo := cns.KubernetesPodInfo{PodName: podName, PodNamespace: podNamespace}
+		orchestratorContext, err := json.Marshal(podInfo)
+		if err != nil {
+			log.Printf("Marshalling KubernetesPodInfo failed with %v", err)
+			return result, resultV6, err
+		}
+
+		result, resultV6, err = cnsClient.RequestIPAddress(orchestratorContext)
+		if err != nil {
+			log.Printf("get IP from CNS failed with %+v", err)
+			return result, resultV6, err
+		}
+	} else {
+		// Call into IPAM plugin to allocate an address pool for the network.
+		result, err = plugin.DelegateAdd(nwCfg.Ipam.Type, &nwCfg)
+	}
+
 	if err != nil {
 		err = plugin.Errorf("Failed to allocate pool: %v", err)
 		return result, resultV6, err
@@ -299,7 +332,7 @@ func (plugin *netPlugin) invokeIpamAdd(
 
 	defer func() {
 		if err != nil {
-			plugin.invokeIpamDel(result, nwCfg.Ipam.Type, nwCfg, isDeletePoolOnError)
+			plugin.invokeIpamDel(result, nwCfg.Ipam.Type, nwCfg, isDeletePoolOnError, podName, podNamespace, cnsClient)
 		}
 	}()
 
@@ -502,39 +535,16 @@ func (plugin *netPlugin) Add(args *cniSkel.CmdArgs) error {
 		log.Printf("[cni-net] Creating network %v.", networkId)
 
 		if !nwCfg.MultiTenancy {
-
-			if nwCfg.Ipam.Type == azureCNSIPAM {
-				log.Printf("[cni-net] Using CNS IPAM.")
-				// create struct with info for target POD
-				podInfo := cns.KubernetesPodInfo{PodName: k8sPodName, PodNamespace: k8sNamespace}
-				orchestratorContext, err := json.Marshal(podInfo)
-				if err != nil {
-					log.Printf("Marshalling KubernetesPodInfo failed with %v", err)
-					return plugin.Errorf(err.Error())
-				}
-
-				result, resultV6, err = cnsClient.RequestIPAddress(orchestratorContext)
-				if err != nil {
-					log.Printf("get IP from CNS failed with %+v", err)
-					return plugin.Errorf(err.Error())
-				}
-			}
-
-			result, resultV6, err = plugin.invokeIpamAdd(*nwCfg, nwInfo, true)
+			result, resultV6, err = plugin.invokeIpamAdd(*nwCfg, nwInfo, true, k8sPodName, k8sNamespace, cnsClient)
 			if err != nil {
 				return err
 			}
 
 			defer func() {
 				if err != nil {
-					if nwCfg.Ipam.Type == azureCNSIPAM {
-						podInfo := cns.KubernetesPodInfo{PodName: k8sPodName, PodNamespace: k8sNamespace}
-						orchestratorContext, _ := json.Marshal(podInfo)
-						cnsClient.ReleaseIPAddress(orchestratorContext)
-					} else {
-						plugin.invokeIpamDel(result, nwCfg.Ipam.Type, *nwCfg, true)
-						plugin.invokeIpamDel(resultV6, ipamV6, *nwCfg, true)
-					}
+					plugin.invokeIpamDel(result, nwCfg.Ipam.Type, *nwCfg, true, k8sPodName, k8sNamespace, cnsClient)
+					plugin.invokeIpamDel(resultV6, ipamV6, *nwCfg, true, k8sPodName, k8sNamespace, cnsClient)
+
 				}
 			}()
 
@@ -610,15 +620,15 @@ func (plugin *netPlugin) Add(args *cniSkel.CmdArgs) error {
 			// Network already exists.
 			log.Printf("[cni-net] Found network %v with subnet %v.", networkId, nwInfo.Subnets[0].Prefix.String())
 
-			result, resultV6, err = plugin.invokeIpamAdd(*nwCfg, nwInfo, false)
+			result, resultV6, err = plugin.invokeIpamAdd(*nwCfg, nwInfo, false, k8sPodName, k8sNamespace, cnsClient)
 			if err != nil {
 				return err
 			}
 
 			defer func() {
 				if err != nil {
-					plugin.invokeIpamDel(result, nwCfg.Ipam.Type, *nwCfg, false)
-					plugin.invokeIpamDel(resultV6, ipamV6, *nwCfg, false)
+					plugin.invokeIpamDel(result, nwCfg.Ipam.Type, *nwCfg, false, k8sPodName, k8sNamespace, cnsClient)
+					plugin.invokeIpamDel(resultV6, ipamV6, *nwCfg, false, k8sPodName, k8sNamespace, cnsClient)
 				}
 			}()
 		}

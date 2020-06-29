@@ -52,7 +52,7 @@ type HTTPRestService struct {
 	imdsClient                   *imdsclient.ImdsClient
 	ipamClient                   *ipamclient.IpamClient
 	networkContainer             *networkcontainers.NetworkContainers
-	PodIPIDByOrchestratorContext map[string]string                     // OrchestratorContext is key and value is NetworkContainerID.
+	PodIPIDByOrchestratorContext map[string]string                     // OrchestratorContext is key and value is Pod IP uuid.
 	PodIPConfigState             map[string]cns.ContainerIPConfigState // seondaryipid(uuid) is key
 	AllocatedIPCount             map[string]struct{ int }              // key - ncid
 	ContainerStatus              map[string]containerstatus
@@ -223,16 +223,6 @@ func (service *HTTPRestService) Start(config *common.ServiceConfig) error {
 	logger.Printf("[Azure CNS]  Listening.")
 
 	return nil
-}
-
-// StateUpdater is used by requestcontroller to update cns state
-func StateUpdater(restService *HTTPRestService, notifyChan chan int, restServiceChannel chan *HTTPRestService) {
-	for range notifyChan {
-		restService.Lock()
-		restServiceChannel <- restService
-		<-restServiceChannel
-		restService.Unlock()
-	}
 }
 
 // Stop stops the CNS.
