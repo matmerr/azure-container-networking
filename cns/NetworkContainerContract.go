@@ -18,7 +18,7 @@ const (
 	GetNetworkContainerByOrchestratorContext = "/network/getnetworkcontainerbyorchestratorcontext"
 	AttachContainerToNetwork                 = "/network/attachcontainertonetwork"
 	DetachContainerFromNetwork               = "/network/detachcontainerfromnetwork"
-	AllocateIPConfig                         = "/network/allocateipconfig"
+	RequestIPConfig                          = "/network/requestipconfig"
 	ReleaseIPConfig                          = "/network/releaseipconfig"
 )
 
@@ -68,7 +68,7 @@ type CreateNetworkContainerRequest struct {
 	LocalIPConfiguration       IPConfiguration
 	OrchestratorContext        json.RawMessage
 	IPConfiguration            IPConfiguration
-	SecondaryIPConfigs         map[string]IPSubnet // or struct {ipsubnet} //IPsubnet //uuid is key
+	SecondaryIPConfigs         map[string]SecondaryIPConfig // or struct {ipsubnet} //IPsubnet //uuid is key
 	MultiTenancyInfo           MultiTenancyInfo
 	CnetAddressSpace           []IPSubnet // To setup SNAT (should include service endpoint vips).
 	Routes                     []Route

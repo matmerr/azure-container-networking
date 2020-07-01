@@ -52,9 +52,9 @@ type HTTPRestService struct {
 	imdsClient                   *imdsclient.ImdsClient
 	ipamClient                   *ipamclient.IpamClient
 	networkContainer             *networkcontainers.NetworkContainers
-	PodIPIDByOrchestratorContext map[string]string                     // OrchestratorContext is key and value is Pod IP uuid.
-	PodIPConfigState             map[string]cns.ContainerIPConfigState // seondaryipid(uuid) is key
-	AllocatedIPCount             map[string]struct{ int }              // key - ncid
+	PodIPIDByOrchestratorContext map[string]string                      // OrchestratorContext is key and value is Pod IP uuid.
+	PodIPConfigState             map[string]*cns.ContainerIPConfigState // seondaryipid(uuid) is key
+	AllocatedIPCount             map[string]struct{ int }               // key - ncid
 	ContainerStatus              map[string]containerstatus
 	routingTable                 *routes.RoutingTable
 	store                        store.KeyValueStore
@@ -123,7 +123,7 @@ func NewHTTPRestService(config *common.ServiceConfig) (HTTPService, error) {
 	serviceState.joinedNetworks = make(map[string]struct{})
 
 	podIPIDByOrchestratorContext := make(map[string]string)
-	podIPConfigState := make(map[string]cns.ContainerIPConfigState)
+	podIPConfigState := make(map[string]*cns.ContainerIPConfigState)
 	allocatedIPCount := make(map[string]struct{ int }) // key - ncid
 
 	return &HTTPRestService{
@@ -188,8 +188,8 @@ func (service *HTTPRestService) Start(config *common.ServiceConfig) error {
 	listener.AddHandler(cns.DeleteHostNCApipaEndpointPath, service.deleteHostNCApipaEndpoint)
 	listener.AddHandler(cns.PublishNetworkContainer, service.publishNetworkContainer)
 	listener.AddHandler(cns.UnpublishNetworkContainer, service.unpublishNetworkContainer)
-	listener.AddHandler(cns.AllocateIPConfig, service.allocateIPConfig)
-	listener.AddHandler(cns.ReleaseIPConfig, service.releaseIPConfig)
+	listener.AddHandler(cns.RequestIPConfig, service.requestIPConfigHandler)
+	listener.AddHandler(cns.ReleaseIPConfig, service.releaseIPConfigHandler)
 
 	// handlers for v0.2
 	listener.AddHandler(cns.V2Prefix+cns.SetEnvironmentPath, service.setEnvironment)

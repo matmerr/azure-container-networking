@@ -19,10 +19,10 @@ func newIPConfig(ipAddress string, prefixLength uint8) cns.IPSubnet {
 	}
 }
 
-func newPodState(ipaddress string, prefixLength uint8, id, ncid, state string) cns.ContainerIPConfigState {
+func NewPodState(ipaddress string, prefixLength uint8, id, ncid, state string) *cns.ContainerIPConfigState {
 	ipconfig := newIPConfig(ipaddress, prefixLength)
 
-	return cns.ContainerIPConfigState{
+	return &cns.ContainerIPConfigState{
 		IPConfig: ipconfig,
 		ID:       id,
 		NCID:     ncid,
@@ -30,10 +30,10 @@ func newPodState(ipaddress string, prefixLength uint8, id, ncid, state string) c
 	}
 }
 
-func NewPodStateWithOrchestratorContext(ipaddress string, prefixLength uint8, id, ncid, state string, orchestratorContext cns.KubernetesPodInfo) (cns.ContainerIPConfigState, error) {
+func NewPodStateWithOrchestratorContext(ipaddress string, prefixLength uint8, id, ncid, state string, orchestratorContext cns.KubernetesPodInfo) (*cns.ContainerIPConfigState, error) {
 	ipconfig := newIPConfig(ipaddress, prefixLength)
 	b, err := json.Marshal(orchestratorContext)
-	return cns.ContainerIPConfigState{
+	return &cns.ContainerIPConfigState{
 		IPConfig:            ipconfig,
 		ID:                  id,
 		NCID:                ncid,
@@ -42,32 +42,59 @@ func NewPodStateWithOrchestratorContext(ipaddress string, prefixLength uint8, id
 	}, err
 }
 
-func (service *HTTPRestService) AddIPConfigsToState(ipconfigs []cns.ContainerIPConfigState) {
+func (service *HTTPRestService) AddIPConfigsToState(ipconfigs []*cns.ContainerIPConfigState) error {
 	service.Lock()
 	defer service.Unlock()
-	for _, ipconfig := range ipconfigs {
+
+	for i, ipconfig := range ipconfigs {
 		service.PodIPConfigState[ipconfig.ID] = ipconfig
+		if ipconfig.State == cns.Allocated {
+			var podInfo cns.KubernetesPodInfo
+			err := json.Unmarshal(ipconfig.OrchestratorContext, &podInfo)
+			service.PodIPIDByOrchestratorContext[podInfo.GetOrchestratorContextKey()] = ipconfig.ID
+
+			// if batch request failed, remove added ipconfigs and return
+			if err != nil {
+				service.removeIPConfigsFromPool(ipconfigs[0:i])
+				return fmt.Errorf("Failed to add IPConfig to state: %+v with error: %v", ipconfig, err)
+			}
+		}
 	}
+	return nil
 }
 
-func (service *HTTPRestService) SetIPConfigAsAllocated(ipconfig cns.ContainerIPConfigState, podInfo cns.KubernetesPodInfo) (cns.ContainerIPConfigState, error) {
+func (service *HTTPRestService) removeIPConfigsFromPool(ipconfigs []*cns.ContainerIPConfigState) error {
 	service.Lock()
 	defer service.Unlock()
 
-	rawOrchestratorContext, err := json.Marshal(podInfo)
-	if err != nil {
-		return ipconfig, err
+	for _, ipconfig := range ipconfigs {
+		service.PodIPConfigState[ipconfig.ID] = nil
+		var podInfo cns.KubernetesPodInfo
+		err := json.Unmarshal(ipconfig.OrchestratorContext, &podInfo)
+		if ipconfig.State == cns.Allocated {
+			service.PodIPIDByOrchestratorContext[podInfo.GetOrchestratorContextKey()] = ""
+		}
+
+		// if batch delete failed return
+		if err != nil {
+			return err
+		}
 	}
+	return nil
+}
 
+func (service *HTTPRestService) SetIPConfigAsAllocated(ipconfig *cns.ContainerIPConfigState, podInfo cns.KubernetesPodInfo, marshalledOrchestratorContext json.RawMessage) *cns.ContainerIPConfigState {
 	ipconfig.State = cns.Allocated
-	ipconfig.OrchestratorContext = rawOrchestratorContext
+	ipconfig.OrchestratorContext = marshalledOrchestratorContext
 
+	service.Lock()
+	defer service.Unlock()
 	service.PodIPIDByOrchestratorContext[podInfo.GetOrchestratorContextKey()] = ipconfig.ID
 	service.PodIPConfigState[ipconfig.ID] = ipconfig
-	return service.PodIPConfigState[ipconfig.ID], err
+	return service.PodIPConfigState[ipconfig.ID]
 }
 
-func (service *HTTPRestService) SetIPConfigAsAvailable(ipconfig cns.ContainerIPConfigState, podInfo cns.KubernetesPodInfo) {
+func (service *HTTPRestService) SetIPConfigAsAvailable(ipconfig *cns.ContainerIPConfigState, podInfo cns.KubernetesPodInfo) {
 	service.Lock()
 	defer service.Unlock()
 	ipconfig.State = cns.Available
@@ -79,11 +106,11 @@ func (service *HTTPRestService) SetIPConfigAsAvailable(ipconfig cns.ContainerIPC
 
 // cni -> allocate ipconfig
 // 			|- fetch nc from state by constructing nc id
-func (service *HTTPRestService) allocateIPConfig(w http.ResponseWriter, r *http.Request) {
+func (service *HTTPRestService) requestIPConfigHandler(w http.ResponseWriter, r *http.Request) {
 	var (
 		err           error
 		ncrequest     cns.GetNetworkContainerRequest
-		ipState       cns.ContainerIPConfigState
+		ipState       *cns.ContainerIPConfigState
 		returnCode    int
 		returnMessage string
 	)
@@ -114,7 +141,7 @@ func (service *HTTPRestService) allocateIPConfig(w http.ResponseWriter, r *http.
 	logger.Response(service.Name, reserveResp, resp.ReturnCode, ReturnCodeToString(resp.ReturnCode), err)
 }
 
-func (service *HTTPRestService) releaseIPConfig(w http.ResponseWriter, r *http.Request) {
+func (service *HTTPRestService) releaseIPConfigHandler(w http.ResponseWriter, r *http.Request) {
 	var (
 		podInfo    cns.KubernetesPodInfo
 		req        cns.GetNetworkContainerRequest
@@ -170,11 +197,11 @@ func (service *HTTPRestService) releaseIPConfig(w http.ResponseWriter, r *http.R
 }
 
 // If IPConfig is already allocated for pod, it returns that else it returns one of the available ipconfigs.
-func getIPConfig(service *HTTPRestService, req cns.GetNetworkContainerRequest) (cns.ContainerIPConfigState, error) {
+func getIPConfig(service *HTTPRestService, req cns.GetNetworkContainerRequest) (*cns.ContainerIPConfigState, error) {
 
 	var (
 		podInfo cns.KubernetesPodInfo
-		ipState cns.ContainerIPConfigState
+		ipState *cns.ContainerIPConfigState
 		isExist bool
 	)
 
@@ -201,7 +228,7 @@ func getIPConfig(service *HTTPRestService, req cns.GetNetworkContainerRequest) (
 		for _, ipState = range service.PodIPConfigState {
 			if ipState.IPConfig.IPAddress == req.DesiredIPConfig.IPAddress {
 				if ipState.State != cns.Allocated {
-					return service.SetIPConfigAsAllocated(ipState, podInfo)
+					return service.SetIPConfigAsAllocated(ipState, podInfo, req.OrchestratorContext), nil
 				}
 				return ipState, fmt.Errorf("Desired IP has already been allocated")
 			}
@@ -211,7 +238,7 @@ func getIPConfig(service *HTTPRestService, req cns.GetNetworkContainerRequest) (
 		// return any free IPConfig
 		for _, ipState = range service.PodIPConfigState {
 			if ipState.State == cns.Available {
-				return service.SetIPConfigAsAllocated(ipState, podInfo)
+				return service.SetIPConfigAsAllocated(ipState, podInfo, req.OrchestratorContext), nil
 			}
 		}
 		return ipState, fmt.Errorf("No more free IP's available, trigger batch")

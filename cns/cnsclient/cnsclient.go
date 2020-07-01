@@ -203,6 +203,7 @@ func (cnsClient *CNSClient) DeleteHostNCApipaEndpoint(networkContainerID string)
 	return nil
 }
 
+// RequestIPAddress calls the requestIPAddress in CNS
 func (cnsClient *CNSClient) RequestIPAddress(orchestratorContext []byte) (*cniTypesCurr.Result, *cniTypesCurr.Result, error) {
 	var (
 		result   cniTypesCurr.Result
@@ -219,7 +220,7 @@ func (cnsClient *CNSClient) RequestIPAddress(orchestratorContext []byte) (*cniTy
 	var body bytes.Buffer
 
 	httpc := &http.Client{}
-	url := cnsClient.connectionURL + cns.AllocateIPConfig
+	url := cnsClient.connectionURL + cns.RequestIPConfig
 	log.Printf("RequestIPAddress url %v", url)
 
 	payload := &cns.GetNetworkContainerRequest{
@@ -280,6 +281,7 @@ func (cnsClient *CNSClient) RequestIPAddress(orchestratorContext []byte) (*cniTy
 	return &result, &resultV6, err
 }
 
+// ReleaseIPAddress calls releaseIPAddress on CNS
 func (cnsClient *CNSClient) ReleaseIPAddress(orchestratorContext []byte) (*cniTypesCurr.Result, *cniTypesCurr.Result, error) {
 
 	var (

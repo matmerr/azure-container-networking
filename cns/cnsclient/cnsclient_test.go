@@ -32,7 +32,7 @@ var (
 func addTestStateToRestServer(svc *restserver.HTTPRestService) {
 	// set state as already allocated
 	state1, _ := restserver.NewPodStateWithOrchestratorContext(testIP1, 24, testPod1GUID, testNCID, cns.Available, testPod1Info)
-	ipconfigs := []cns.ContainerIPConfigState{
+	ipconfigs := []*cns.ContainerIPConfigState{
 		state1,
 	}
 	svc.AddIPConfigsToState(ipconfigs)
