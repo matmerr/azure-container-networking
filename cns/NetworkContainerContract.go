@@ -54,8 +54,9 @@ const (
 
 // IPConfig States for CNS IPAM
 const (
-	Available = "Available"
-	Allocated = "Allocated"
+	Available      = "Available"
+	Allocated      = "Allocated"
+	PendingRelease = "PendingRelease"
 )
 
 // CreateNetworkContainerRequest specifies request to create a network container or network isolation boundary.

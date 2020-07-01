@@ -95,10 +95,10 @@ func (service *HTTPRestService) SetIPConfigAsAllocated(ipconfig *cns.ContainerIP
 }
 
 func (service *HTTPRestService) SetIPConfigAsAvailable(ipconfig *cns.ContainerIPConfigState, podInfo cns.KubernetesPodInfo) {
-	service.Lock()
-	defer service.Unlock()
 	ipconfig.State = cns.Available
 	ipconfig.OrchestratorContext = nil
+	service.Lock()
+	defer service.Unlock()
 	service.PodIPConfigState[ipconfig.ID] = ipconfig
 	service.PodIPIDByOrchestratorContext[podInfo.GetOrchestratorContextKey()] = ""
 	return
@@ -227,7 +227,7 @@ func getIPConfig(service *HTTPRestService, req cns.GetNetworkContainerRequest) (
 	if req.DesiredIPConfig.IPAddress != "" {
 		for _, ipState = range service.PodIPConfigState {
 			if ipState.IPConfig.IPAddress == req.DesiredIPConfig.IPAddress {
-				if ipState.State != cns.Allocated {
+				if ipState.State != cns.Allocated && ipState.State != cns.PendingRelease {
 					return service.SetIPConfigAsAllocated(ipState, podInfo, req.OrchestratorContext), nil
 				}
 				return ipState, fmt.Errorf("Desired IP has already been allocated")
