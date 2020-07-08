@@ -54,13 +54,17 @@ type HTTPRestService struct {
 	networkContainer             *networkcontainers.NetworkContainers
 	PodIPIDByOrchestratorContext map[string]string                      // OrchestratorContext is key and value is Pod IP uuid.
 	PodIPConfigState             map[string]*cns.ContainerIPConfigState // seondaryipid(uuid) is key
-	AllocatedIPCount             map[string]struct{ int }               // key - ncid
+	AllocatedIPCount             map[string]allocatedIPCount            // key - ncid
 	ContainerStatus              map[string]containerstatus
 	routingTable                 *routes.RoutingTable
 	store                        store.KeyValueStore
 	state                        *httpRestServiceState
-	sync.Mutex
+	sync.RWMutex
 	dncPartitionKey string
+}
+
+type allocatedIPCount struct {
+	Count int
 }
 
 // containerstatus is used to save status of an existing container
@@ -124,7 +128,7 @@ func NewHTTPRestService(config *common.ServiceConfig) (HTTPService, error) {
 
 	podIPIDByOrchestratorContext := make(map[string]string)
 	podIPConfigState := make(map[string]*cns.ContainerIPConfigState)
-	allocatedIPCount := make(map[string]struct{ int }) // key - ncid
+	allocatedIPCount := make(map[string]allocatedIPCount) // key - ncid
 
 	return &HTTPRestService{
 		Service:                      service,
