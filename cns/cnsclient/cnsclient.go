@@ -217,7 +217,6 @@ func (cnsClient *CNSClient) RequestIPAddress(orchestratorContext []byte) (*cns.G
 
 	httpc := &http.Client{}
 	url := cnsClient.connectionURL + cns.RequestIPConfig
-	log.Printf("RequestIPAddress url %v", url)
 
 	payload := &cns.GetNetworkContainerRequest{
 		OrchestratorContext: orchestratorContext,
@@ -243,17 +242,15 @@ func (cnsClient *CNSClient) RequestIPAddress(orchestratorContext []byte) (*cns.G
 		return response, fmt.Errorf(errMsg)
 	}
 
-	var resp cns.GetNetworkContainerResponse
-
-	err = json.NewDecoder(res.Body).Decode(&resp)
+	err = json.NewDecoder(res.Body).Decode(&response)
 	if err != nil {
 		log.Errorf("[Azure CNSClient] Error received while parsing RequestIPAddress response resp:%v err:%v", res.Body, err.Error())
 		return response, err
 	}
 
-	if resp.Response.ReturnCode != 0 {
-		log.Errorf("[Azure CNSClient] RequestIPAddress received error response :%v", resp.Response.Message)
-		return response, fmt.Errorf(resp.Response.Message)
+	if response.Response.ReturnCode != 0 {
+		log.Errorf("[Azure CNSClient] RequestIPAddress received error response :%v", response.Response.Message)
+		return response, fmt.Errorf(response.Response.Message)
 	}
 
 	return response, err
