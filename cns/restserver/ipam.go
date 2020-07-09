@@ -132,7 +132,7 @@ func (service *HTTPRestService) requestIPConfigHandler(w http.ResponseWriter, r 
 	}
 
 	// retrieve ipconfig from nc
-	if ipState, err = getIPConfig(service, ncrequest); err != nil {
+	if ipState, err = requestIPConfig(service, ncrequest); err != nil {
 		returnCode = UnexpectedError
 		returnMessage = fmt.Sprintf("AllocateIPConfig failed: %v", err)
 	}
@@ -205,7 +205,7 @@ func (service *HTTPRestService) releaseIPConfigHandler(w http.ResponseWriter, r 
 }
 
 // If IPConfig is already allocated for pod, it returns that else it returns one of the available ipconfigs.
-func getIPConfig(service *HTTPRestService, req cns.GetNetworkContainerRequest) (*cns.ContainerIPConfigState, error) {
+func requestIPConfig(service *HTTPRestService, req cns.GetNetworkContainerRequest) (*cns.ContainerIPConfigState, error) {
 
 	var (
 		podInfo cns.KubernetesPodInfo
@@ -253,12 +253,10 @@ func getIPConfig(service *HTTPRestService, req cns.GetNetworkContainerRequest) (
 		}
 		return ipState, fmt.Errorf("No more free IP's available, trigger batch")
 	}
-
-	// TODO Handle rebatching here
-
-	return ipState, nil
 }
 
+// this is called by the releaseIPConfig Handler, it releases an IPConfig to be allocated elsewhere,
+// but still keeps the ipconfig in the CNS state
 func releaseIPConfig(service *HTTPRestService, req cns.GetNetworkContainerRequest) error {
 
 	var (
