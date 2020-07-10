@@ -55,7 +55,7 @@ func TestIPAMGetAvailableIPConfig(t *testing.T) {
 	}
 	svc.AddIPConfigsToState(ipconfigs)
 
-	req := cns.GetNetworkContainerRequest{}
+	req := cns.GetIPConfigRequest{}
 	b, _ := json.Marshal(testPod1Info)
 	req.OrchestratorContext = b
 
@@ -86,7 +86,7 @@ func TestIPAMGetNextAvailableIPConfig(t *testing.T) {
 	}
 	svc.AddIPConfigsToState(ipconfigs)
 
-	req := cns.GetNetworkContainerRequest{}
+	req := cns.GetIPConfigRequest{}
 	b, _ := json.Marshal(testPod2Info)
 	req.OrchestratorContext = b
 
@@ -113,7 +113,7 @@ func TestIPAMGetAlreadyAllocatedIPConfigForSamePod(t *testing.T) {
 	}
 	svc.AddIPConfigsToState(ipconfigs)
 
-	req := cns.GetNetworkContainerRequest{}
+	req := cns.GetIPConfigRequest{}
 	b, _ := json.Marshal(testPod1Info)
 	req.OrchestratorContext = b
 
@@ -141,7 +141,7 @@ func TestIPAMAttemptToRequestIPNotFoundInPool(t *testing.T) {
 		t.Fatalf("Expected to not fail adding IP's to state: %+v", err)
 	}
 
-	req := cns.GetNetworkContainerRequest{}
+	req := cns.GetIPConfigRequest{}
 	b, _ := json.Marshal(testPod2Info)
 	req.OrchestratorContext = b
 	req.DesiredIPConfig = newIPConfig(testIP2, 24)
@@ -165,7 +165,7 @@ func TestIPAMGetDesiredIPConfigWithSpecfiedIP(t *testing.T) {
 		t.Fatalf("Expected to not fail adding IP's to state: %+v", err)
 	}
 
-	req := cns.GetNetworkContainerRequest{}
+	req := cns.GetIPConfigRequest{}
 	b, _ := json.Marshal(testPod1Info)
 	req.OrchestratorContext = b
 	req.DesiredIPConfig = newIPConfig(testIP1, 24)
@@ -196,7 +196,7 @@ func TestIPAMFailToGetDesiredIPConfigWithAlreadyAllocatedSpecfiedIP(t *testing.T
 	}
 
 	// request the already allocated ip with a new context
-	req := cns.GetNetworkContainerRequest{}
+	req := cns.GetIPConfigRequest{}
 	b, _ := json.Marshal(testPod2Info)
 	req.OrchestratorContext = b
 	req.DesiredIPConfig = newIPConfig(testIP1, 24)
@@ -224,7 +224,7 @@ func TestIPAMFailToGetIPWhenAllIPsAreAllocated(t *testing.T) {
 	}
 
 	// request the already allocated ip with a new context
-	req := cns.GetNetworkContainerRequest{}
+	req := cns.GetIPConfigRequest{}
 	b, _ := json.Marshal(testPod3Info)
 	req.OrchestratorContext = b
 
@@ -254,7 +254,7 @@ func TestIPAMRequestThenReleaseThenRequestAgain(t *testing.T) {
 	desiredIPConfig := newIPConfig(testIP1, 24)
 
 	// Use TestPodInfo2 to request TestIP1, which has already been allocated
-	req := cns.GetNetworkContainerRequest{}
+	req := cns.GetIPConfigRequest{}
 	b, _ := json.Marshal(testPod2Info)
 	req.OrchestratorContext = b
 	req.DesiredIPConfig = desiredIPConfig
@@ -271,7 +271,7 @@ func TestIPAMRequestThenReleaseThenRequestAgain(t *testing.T) {
 	}
 
 	// Rerequest
-	req = cns.GetNetworkContainerRequest{}
+	req = cns.GetIPConfigRequest{}
 	b, _ = json.Marshal(testPod2Info)
 	req.OrchestratorContext = b
 	req.DesiredIPConfig = desiredIPConfig
