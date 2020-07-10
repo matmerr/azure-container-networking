@@ -371,6 +371,7 @@ test-all:
         ./ipam/ \
         ./log/ \
         ./netlink/ \
+        ./network/ \
         ./store/ \
         ./telemetry/ \
 		./aitelemetry/ \
@@ -378,6 +379,7 @@ test-all:
         ./cni/ipam/ \
         ./cns/ipamclient/ \
         ./cns/cnsclient/ \
+        ./cns/requestcontroller/kubecontroller/ \
         ./cnms/service/ \
         ./npm/iptm/ \
         ./npm/ipsm/

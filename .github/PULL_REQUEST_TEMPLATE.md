@@ -6,7 +6,7 @@ or
 And read this for faster PR reviews: https://github.com/kubernetes/community/blob/master/contributors/guide/pull-requests.md#best-practices-for-faster-reviews -->
 
 **Reason for Change**:
-<!-- What does this PR improve or fix in AKS Engine? -->
+<!-- What does this PR improve or fix in Azure Container Networking? -->
 
 
 **Issue Fixed**:
