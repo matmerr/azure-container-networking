@@ -222,6 +222,7 @@ func (service *HTTPRestService) releaseIPConfigHandler(w http.ResponseWriter, r 
 		req        cns.GetNetworkContainerRequest
 		statusCode int
 	)
+
 	statusCode = UnexpectedError
 
 	err := service.Listener.Decode(w, r, &req)

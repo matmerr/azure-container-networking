@@ -99,8 +99,7 @@ func (cnsClient *CNSClient) GetNetworkConfiguration(orchestratorContext []byte) 
 }
 
 // CreateHostNCApipaEndpoint creates an endpoint in APIPA network for host container connectivity.
-func (cnsClient *CNSClient) CreateHostNCApipaEndpoint(
-	networkContainerID string) (string, error) {
+func (cnsClient *CNSClient) CreateHostNCApipaEndpoint(networkContainerID string) (string, error) {
 	var (
 		err  error
 		body bytes.Buffer
@@ -258,12 +257,10 @@ func (cnsClient *CNSClient) RequestIPAddress(orchestratorContext []byte) (*cns.G
 
 // ReleaseIPAddress calls releaseIPAddress on CNS
 func (cnsClient *CNSClient) ReleaseIPAddress(orchestratorContext []byte) error {
-
 	var (
-		err error
+		err  error
+		body bytes.Buffer
 	)
-
-	var body bytes.Buffer
 
 	httpc := &http.Client{}
 	url := cnsClient.connectionURL + cns.ReleaseIPConfig
