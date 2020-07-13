@@ -126,7 +126,6 @@ func (service *HTTPRestService) releaseIPConfigHandler(w http.ResponseWriter, r 
 //Used to add IPConfigs to the CNS pool, specifically in the scenario of rebatching.
 func (service *HTTPRestService) AddIPConfigsToState(ipconfigs []*cns.ContainerIPConfigState) error {
 	service.Lock()
-	defer service.Unlock()
 
 	for i, ipconfig := range ipconfigs {
 		service.PodIPConfigState[ipconfig.ID] = ipconfig
@@ -135,7 +134,7 @@ func (service *HTTPRestService) AddIPConfigsToState(ipconfigs []*cns.ContainerIP
 			var podInfo cns.KubernetesPodInfo
 
 			if err := json.Unmarshal(ipconfig.OrchestratorContext, &podInfo); err != nil {
-
+				service.Unlock()
 				if err := service.RemoveIPConfigsFromState(ipconfigs[0:i]); err != nil {
 					return fmt.Errorf("Failed remove IPConfig after AddIpConfigs: %v", err)
 				}
@@ -146,7 +145,7 @@ func (service *HTTPRestService) AddIPConfigsToState(ipconfigs []*cns.ContainerIP
 			service.PodIPIDByOrchestratorContext[podInfo.GetOrchestratorContextKey()] = ipconfig.ID
 		}
 	}
-
+	service.Unlock()
 	return nil
 }
 
@@ -199,7 +198,7 @@ func (service *HTTPRestService) ReleaseIPConfig(podInfo cns.KubernetesPodInfo) e
 		if ipconfig, isExist := service.PodIPConfigState[ipID]; isExist {
 			service.setIPConfigAsAvailable(ipconfig, podInfo)
 		} else {
-			return fmt.Errorf("Pod->IPIP exists but IPID to IPConfig doesn't exist")
+			return fmt.Errorf("Pod to IPID exists, but IPID to IPConfig doesn't exist")
 		}
 	} else {
 		return fmt.Errorf("SetIPConfigAsAvailable failed to release, no allocation found for pod")
@@ -211,7 +210,6 @@ func (service *HTTPRestService) GetExistingIPConfig(podInfo cns.KubernetesPodInf
 	var (
 		ipState *cns.ContainerIPConfigState
 		isExist bool
-		err     error
 	)
 
 	service.RLock()
@@ -222,10 +220,10 @@ func (service *HTTPRestService) GetExistingIPConfig(podInfo cns.KubernetesPodInf
 		if ipState, isExist = service.PodIPConfigState[ipID]; isExist {
 			return ipState, isExist, nil
 		}
-		return ipState, isExist, fmt.Errorf("Pod->IPIP exists but IPID to IPConfig doesn't exist")
+		return ipState, isExist, fmt.Errorf("Pod to IPID exists, but IPID to IPConfig doesn't exist")
 	}
 
-	return ipState, isExist, err
+	return ipState, isExist, nil
 }
 
 func (service *HTTPRestService) GetDesiredIPConfig(podInfo cns.KubernetesPodInfo, desiredIPAddress string, orchestratorContext json.RawMessage) (*cns.ContainerIPConfigState, error) {
@@ -278,7 +276,7 @@ func requestIPConfigHelper(service *HTTPRestService, req cns.GetIPConfigRequest)
 	}
 
 	// check if ipconfig already allocated for this pod and return if exists or error
-	if ipState, isExist, err = service.GetExistingIPConfig(podInfo); err != nil || isExist {
+	if ipState, isExist, err = service.GetExistingIPConfig(podInfo); err != nil && isExist {
 		return ipState, err
 	}
 
