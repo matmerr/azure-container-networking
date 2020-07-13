@@ -296,3 +296,32 @@ func TestIPAMRequestThenReleaseThenRequestAgain(t *testing.T) {
 		t.Fatalf("Desired state not matching actual state, expected: %+v, actual: %+v", state1, actualstate)
 	}
 }
+
+func TestIPAMFailToAddThenCleanThenRequestExpectFail(t *testing.T) {
+	svc := getTestService()
+
+	var err error
+
+	// set state as already allocated
+	state1, _ := NewPodStateWithOrchestratorContext(testIP1, 24, testPod1GUID, testNCID, cns.Available, testPod1Info)
+	state2, _ := NewPodStateWithOrchestratorContext("", 24, "", testNCID, cns.Available, testPod1Info)
+
+	ipconfigs := []*cns.ContainerIPConfigState{
+		state1,
+		state2,
+	}
+
+	err = svc.AddIPConfigsToState(ipconfigs)
+	if err == nil {
+		t.Fatalf("Expected add to fail when bad ipconfig is added.")
+	}
+
+	req := cns.GetIPConfigRequest{}
+	b, _ := json.Marshal(testPod1Info)
+	req.OrchestratorContext = b
+
+	_, err = requestIPConfigHelper(svc, req)
+	if err == nil {
+		t.Fatalf("Expected state to be clean when one ipconfig is bad in batch add.")
+	}
+}

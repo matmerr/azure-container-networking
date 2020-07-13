@@ -122,31 +122,65 @@ func (service *HTTPRestService) releaseIPConfigHandler(w http.ResponseWriter, r 
 	return
 }
 
+func validateIPConfig(ipconfig *cns.ContainerIPConfigState) error {
+	if ipconfig.ID == "" {
+		return fmt.Errorf("Failed to add IPConfig to state: %+v, empty ID", ipconfig)
+	}
+	if ipconfig.OrchestratorContext == nil {
+		return fmt.Errorf("Failed to add IPConfig to state: %+v, empty OrchestratorContext", ipconfig)
+	}
+	if ipconfig.State == "" {
+		return fmt.Errorf("Failed to add IPConfig to state: %+v, empty State", ipconfig)
+	}
+	if ipconfig.IPConfig.IPAddress == "" {
+		return fmt.Errorf("Failed to add IPConfig to state: %+v, empty IPSubnet.IPAddress", ipconfig)
+	}
+	if ipconfig.IPConfig.PrefixLength == 0 {
+		return fmt.Errorf("Failed to add IPConfig to state: %+v, empty IPSubnet.PrefixLength", ipconfig)
+	}
+	return nil
+}
+
 //AddIPConfigsToState takes a lock on the service object, and will add an array of ipconfigs to the CNS Service.
 //Used to add IPConfigs to the CNS pool, specifically in the scenario of rebatching.
 func (service *HTTPRestService) AddIPConfigsToState(ipconfigs []*cns.ContainerIPConfigState) error {
+	var (
+		err      error
+		index    int
+		ipconfig *cns.ContainerIPConfigState
+	)
+
 	service.Lock()
 
-	for i, ipconfig := range ipconfigs {
+	defer func() {
+		service.Unlock()
+
+		if err != nil {
+			if removeErr := service.RemoveIPConfigsFromState(ipconfigs[0:index]); removeErr != nil {
+				logger.Printf("Failed remove IPConfig after AddIpConfigs: %v", removeErr)
+			}
+		}
+	}()
+
+	for index, ipconfig = range ipconfigs {
+
+		if err = validateIPConfig(ipconfig); err != nil {
+			return err
+		}
+
 		service.PodIPConfigState[ipconfig.ID] = ipconfig
 
 		if ipconfig.State == cns.Allocated {
 			var podInfo cns.KubernetesPodInfo
 
-			if err := json.Unmarshal(ipconfig.OrchestratorContext, &podInfo); err != nil {
-				service.Unlock()
-				if err := service.RemoveIPConfigsFromState(ipconfigs[0:i]); err != nil {
-					return fmt.Errorf("Failed remove IPConfig after AddIpConfigs: %v", err)
-				}
-
+			if err = json.Unmarshal(ipconfig.OrchestratorContext, &podInfo); err != nil {
 				return fmt.Errorf("Failed to add IPConfig to state: %+v with error: %v", ipconfig, err)
 			}
 
 			service.PodIPIDByOrchestratorContext[podInfo.GetOrchestratorContextKey()] = ipconfig.ID
 		}
 	}
-	service.Unlock()
-	return nil
+	return err
 }
 
 //RemoveIPConfigsFromState takes a lock on the service object, and will remove an array of ipconfigs to the CNS Service.
