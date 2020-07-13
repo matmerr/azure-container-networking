@@ -85,7 +85,10 @@ func TestIPAMGetNextAvailableIPConfig(t *testing.T) {
 		state1,
 		state2,
 	}
-	svc.AddIPConfigsToState(ipconfigs)
+	err := svc.AddIPConfigsToState(ipconfigs)
+	if err != nil {
+		t.Fatalf("Expected to not fail adding IP's to state: %+v", err)
+	}
 
 	req := cns.GetIPConfigRequest{}
 	b, _ := json.Marshal(testPod2Info)
@@ -107,12 +110,14 @@ func TestIPAMGetAlreadyAllocatedIPConfigForSamePod(t *testing.T) {
 	svc := getTestService()
 
 	// Add Allocated Pod IP to state
-	svc.PodIPIDByOrchestratorContext[testPod1Info.GetOrchestratorContextKey()] = testPod1GUID
 	testState, _ := NewPodStateWithOrchestratorContext(testIP1, 24, testPod1GUID, testNCID, cns.Allocated, testPod1Info)
 	ipconfigs := []*cns.ContainerIPConfigState{
 		testState,
 	}
-	svc.AddIPConfigsToState(ipconfigs)
+	err := svc.AddIPConfigsToState(ipconfigs)
+	if err != nil {
+		t.Fatalf("Expected to not fail adding IP's to state: %+v", err)
+	}
 
 	req := cns.GetIPConfigRequest{}
 	b, _ := json.Marshal(testPod1Info)

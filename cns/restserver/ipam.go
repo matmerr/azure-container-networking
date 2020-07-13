@@ -126,9 +126,6 @@ func validateIPConfig(ipconfig *cns.ContainerIPConfigState) error {
 	if ipconfig.ID == "" {
 		return fmt.Errorf("Failed to add IPConfig to state: %+v, empty ID", ipconfig)
 	}
-	if ipconfig.OrchestratorContext == nil {
-		return fmt.Errorf("Failed to add IPConfig to state: %+v, empty OrchestratorContext", ipconfig)
-	}
 	if ipconfig.State == "" {
 		return fmt.Errorf("Failed to add IPConfig to state: %+v, empty State", ipconfig)
 	}
@@ -310,7 +307,8 @@ func requestIPConfigHelper(service *HTTPRestService, req cns.GetIPConfigRequest)
 	}
 
 	// check if ipconfig already allocated for this pod and return if exists or error
-	if ipState, isExist, err = service.GetExistingIPConfig(podInfo); err != nil && isExist {
+	// if error, ipstate is nil, if exists, ipstate is not nil and error is nil
+	if ipState, isExist, err = service.GetExistingIPConfig(podInfo); err != nil || isExist {
 		return ipState, err
 	}
 
