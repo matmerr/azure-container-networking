@@ -194,7 +194,6 @@ func (service *HTTPRestService) addIPConfigsToState(ipconfigs map[string]cns.Con
 
 			service.PodIPIDByOrchestratorContext[podInfo.GetOrchestratorContextKey()] = ipconfig.ID
 		}
-
 	}
 	return err
 }

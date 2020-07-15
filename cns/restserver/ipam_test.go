@@ -438,7 +438,7 @@ func TestIPAMAllocateIPIdempotency(t *testing.T) {
 	}
 }
 
-func TestIPAMAddAvailableToAllocated(t *testing.T) {
+func TestIPAMExpectStateToNotChangeWhenChangingAllocatedToAvailable(t *testing.T) {
 	svc := getTestService()
 	// add two ipconfigs, one as available, the other as allocated
 	state1, _ := NewPodStateWithOrchestratorContext(testIP1, 24, testPod1GUID, testNCID, cns.Available, testPod1Info)
