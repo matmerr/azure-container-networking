@@ -159,6 +159,19 @@ func (service *HTTPRestService) AddIPConfigsToState(ipconfigs []*cns.ContainerIP
 		}
 	}()
 
+	// ensure the ipconfigs we are not attempting to overwrite existing ipconfig state
+	existingIPConfigs := filterIPConfigSlice(ipconfigs, func(ipconfig *cns.ContainerIPConfigState) bool {
+		existingIPConfig, exists := service.PodIPConfigState[ipconfig.ID]
+		if exists && existingIPConfig.State != ipconfig.State {
+			return true
+		}
+		return false
+	})
+	if len(existingIPConfigs) > 0 {
+		return fmt.Errorf("Failed to add IPConfigs to state, attempting to overwrite existing ipconfig states: %v", existingIPConfigs)
+	}
+
+	// add ipconfigs to state
 	for index, ipconfig = range ipconfigs {
 		if err = validateIPConfig(ipconfig); err != nil {
 			return err
@@ -177,6 +190,42 @@ func (service *HTTPRestService) AddIPConfigsToState(ipconfigs []*cns.ContainerIP
 		}
 	}
 	return err
+}
+
+func filterIPConfigSlice(vs []*cns.ContainerIPConfigState, f func(*cns.ContainerIPConfigState) bool) []*cns.ContainerIPConfigState {
+	vsf := make([]*cns.ContainerIPConfigState, 0)
+	for _, v := range vs {
+		if f(v) {
+			vsf = append(vsf, v)
+		}
+	}
+	return vsf
+}
+
+func filterIPConfigMap(vs map[string]*cns.ContainerIPConfigState, f func(*cns.ContainerIPConfigState) bool) []*cns.ContainerIPConfigState {
+	vsf := make([]*cns.ContainerIPConfigState, 0)
+	for _, v := range vs {
+		if f(v) {
+			vsf = append(vsf, v)
+		}
+	}
+	return vsf
+}
+
+func (service *HTTPRestService) GetAllocatedIPConfigs() []*cns.ContainerIPConfigState {
+	service.RLock()
+	defer service.RUnlock()
+	return filterIPConfigMap(service.PodIPConfigState, func(ipconfig *cns.ContainerIPConfigState) bool {
+		return ipconfig.State == cns.Allocated
+	})
+}
+
+func (service *HTTPRestService) GetAvailableIPConfigs() []*cns.ContainerIPConfigState {
+	service.RLock()
+	defer service.RUnlock()
+	return filterIPConfigMap(service.PodIPConfigState, func(ipconfig *cns.ContainerIPConfigState) bool {
+		return ipconfig.State == cns.Available
+	})
 }
 
 //RemoveIPConfigsFromState takes a lock on the service object, and will remove an array of ipconfigs to the CNS Service.
