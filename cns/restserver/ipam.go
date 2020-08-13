@@ -30,7 +30,7 @@ func (service *HTTPRestService) requestIPConfigHandler(w http.ResponseWriter, r 
 	}
 
 	// retrieve ipconfig from nc
-	returnCode, returnMessage = service.validateIpConfigRequest(ipconfigRequest)
+	_, returnCode, returnMessage = service.validateIpConfigRequest(ipconfigRequest)
 	if returnCode == Success {
 		if ipconfiguration, err = requestIPConfigHelper(service, ipconfigRequest); err != nil {
 			returnCode = FailedToAllocateIpConfig
@@ -54,7 +54,7 @@ func (service *HTTPRestService) requestIPConfigHandler(w http.ResponseWriter, r 
 
 func (service *HTTPRestService) releaseIPConfigHandler(w http.ResponseWriter, r *http.Request) {
 	var (
-		podInfo       cns.KubernetesPodInfo
+		podInfo       *cns.KubernetesPodInfo
 		req           cns.GetIPConfigRequest
 		statusCode    int
 		returnMessage string
@@ -81,9 +81,9 @@ func (service *HTTPRestService) releaseIPConfigHandler(w http.ResponseWriter, r 
 		logger.Response(service.Name, resp, resp.ReturnCode, ReturnCodeToString(resp.ReturnCode), err)
 	}()
 
-	statusCode, returnMessage = service.validateIpConfigRequest(req)
+	podInfo, statusCode, returnMessage = service.validateIpConfigRequest(req)
 
-	if err = service.releaseIPConfig(podInfo); err != nil {
+	if err = service.releaseIPConfig(*podInfo); err != nil {
 		statusCode = NotFound
 		returnMessage = err.Error()
 		return
@@ -146,12 +146,14 @@ func (service *HTTPRestService) releaseIPConfig(podInfo cns.KubernetesPodInfo) e
 	if ipID != "" {
 		if ipconfig, isExist := service.PodIPConfigState[ipID]; isExist {
 			service.setIPConfigAsAvailable(ipconfig, podInfo)
+			logger.Printf("Released IP %+v for pod %+v", ipconfig.IPSubnet, podInfo)
+
 		} else {
 			logger.Errorf("Failed to get release ipconfig. Pod to IPID exists, but IPID to IPConfig doesn't exist, CNS State potentially corrupt")
 			return fmt.Errorf("releaseIPConfig failed. Pod to IPID exists, but IPID to IPConfig doesn't exist, CNS State potentially corrupt")
 		}
 	} else {
-		logger.Printf("SetIPConfigAsAvailable failed to release, no allocation found for pod")
+		logger.Errorf("SetIPConfigAsAvailable failed to release, no allocation found for pod")
 		return nil
 	}
 	return nil
