@@ -54,7 +54,6 @@ func (service *HTTPRestService) requestIPConfigHandler(w http.ResponseWriter, r 
 
 func (service *HTTPRestService) releaseIPConfigHandler(w http.ResponseWriter, r *http.Request) {
 	var (
-		podInfo       *cns.KubernetesPodInfo
 		req           cns.GetIPConfigRequest
 		statusCode    int
 		returnMessage string
@@ -81,9 +80,9 @@ func (service *HTTPRestService) releaseIPConfigHandler(w http.ResponseWriter, r 
 		logger.Response(service.Name, resp, resp.ReturnCode, ReturnCodeToString(resp.ReturnCode), err)
 	}()
 
-	podInfo, statusCode, returnMessage = service.validateIpConfigRequest(req)
+	podInfo, statusCode, returnMessage := service.validateIpConfigRequest(req)
 
-	if err = service.releaseIPConfig(*podInfo); err != nil {
+	if err = service.releaseIPConfig(podInfo); err != nil {
 		statusCode = NotFound
 		returnMessage = err.Error()
 		return
