@@ -14,12 +14,17 @@ import (
 	"github.com/Azure/azure-container-networking/log"
 	"github.com/Azure/azure-container-networking/network"
 	cniSkel "github.com/containernetworking/cni/pkg/skel"
+	cniTypes "github.com/containernetworking/cni/pkg/types"
 	cniTypesCurr "github.com/containernetworking/cni/pkg/types/current"
 )
 
 const (
 	cnsPort       = 10090
 	azureQueryUrl = "http://168.63.129.16/machine/plugins?comp=nmagent&type=getinterfaceinfov1"
+)
+
+var (
+	ipv4DefaultRouteDstPrefix = net.IPNet{net.IPv4zero, net.IPv4Mask(0, 0, 0, 0)}
 )
 
 type nmAgentInterfacesResponse struct {
@@ -50,7 +55,7 @@ type CNSIPAMInvoker struct {
 	cnsClient            *cnsclient.CNSClient
 }
 
-func GetHostSubnet(queryUrl string) (*net.IPNet, error) {
+func getHostSubnet(queryUrl string) (*net.IPNet, error) {
 	var (
 		nmagent nmAgentInterfacesResponse
 	)
@@ -70,10 +75,12 @@ func GetHostSubnet(queryUrl string) (*net.IPNet, error) {
 			if len(vmInterface.IPSubnet) == 0 {
 				return nil, fmt.Errorf("No subnet found for primary interface in host response")
 			}
+
 			_, subnet, err := net.ParseCIDR(vmInterface.IPSubnet[0].Prefix)
 			if err != nil {
 				return nil, err
 			}
+
 			return subnet, nil
 		}
 	}
@@ -81,7 +88,7 @@ func GetHostSubnet(queryUrl string) (*net.IPNet, error) {
 	return nil, fmt.Errorf("No primary host interface found from host response %v", nmagent)
 }
 
-func GetIPv4AddressWithHostSubnet(hostSubnet *net.IPNet) (string, net.IP, error) {
+func getIPv4AddressWithHostSubnet(hostSubnet *net.IPNet) (string, net.IP, error) {
 	interfaces, _ := net.Interfaces()
 	for _, iface := range interfaces {
 
@@ -92,9 +99,7 @@ func GetIPv4AddressWithHostSubnet(hostSubnet *net.IPNet) (string, net.IP, error)
 
 		for _, address := range addrs {
 			if ipnet, ok := address.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
-				log.Printf("CNIDEBUG %v - %v", iface.Name, ipnet.IP)
 				if hostSubnet.Contains(ipnet.IP) {
-					log.Printf("CNIDEBUG SELECTED %v - %v", iface.Name, ipnet.IP)
 					return iface.Name, ipnet.IP, nil
 				}
 			}
@@ -105,17 +110,22 @@ func GetIPv4AddressWithHostSubnet(hostSubnet *net.IPNet) (string, net.IP, error)
 }
 
 func SetSNATForPrimaryIP() {
-	//cmd := "iptables -t nat -A POSTROUTING -s 192.168.1.101/32 -j SNAT –to-source 10.10.10.99"
+	//cmd := "iptables -t nat -A POSTROUTING -s 10.0.0.0/24 -j SNAT –to-source 10.10.10.99"
+
+	// Create separate chain from POSTROUTING
+	// if destination ip is private, return from chain
+	// if destination is public, snat
+	//
+	// Check vnet peering case
 }
 
 func NewCNSInvoker(podName, namespace string) (*CNSIPAMInvoker, error) {
-
-	primaryMacAddress, err := GetHostSubnet(azureQueryUrl)
+	primaryMacAddress, err := getHostSubnet(azureQueryUrl)
 	if err != nil {
 		return nil, err
 	}
 
-	interfaceName, interfaceIP, err := GetIPv4AddressWithHostSubnet(primaryMacAddress)
+	interfaceName, interfaceIP, err := getIPv4AddressWithHostSubnet(primaryMacAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -123,6 +133,7 @@ func NewCNSInvoker(podName, namespace string) (*CNSIPAMInvoker, error) {
 	cnsURL := "http://" + interfaceIP.String() + ":" + strconv.Itoa(cnsPort)
 	cnsclient.InitCnsClient(cnsURL)
 	cnsClient, err := cnsclient.GetCnsClient()
+
 	return &CNSIPAMInvoker{
 		podName:              podName,
 		podNamespace:         namespace,
@@ -133,8 +144,8 @@ func NewCNSInvoker(podName, namespace string) (*CNSIPAMInvoker, error) {
 
 func (invoker *CNSIPAMInvoker) Add(args *cniSkel.CmdArgs, nwCfg *cni.NetworkConfig, nwInfo network.NetworkInfo, isDeletePoolOnError bool) (*cniTypesCurr.Result, *cniTypesCurr.Result, error) {
 	var (
-		result   cniTypesCurr.Result
-		resultV6 cniTypesCurr.Result
+		result   *cniTypesCurr.Result
+		resultV6 *cniTypesCurr.Result
 	)
 
 	// Parse Pod arguments.
@@ -146,11 +157,19 @@ func (invoker *CNSIPAMInvoker) Add(args *cniSkel.CmdArgs, nwCfg *cni.NetworkConf
 		return nil, nil, err
 	}
 
+	response.IPConfiguration.IPSubnet.PrefixLength = 24
+
 	// set result ipconfig from CNS Response Body
 	ip, ipnet, err := response.IPConfiguration.IPSubnet.GetIPNet()
 	if err != nil {
 		return nil, nil, err
 	}
+
+	gw := net.ParseIP(response.IPConfiguration.GatewayIPAddress)
+	if gw == nil {
+		return nil, nil, fmt.Errorf("Gateway address %v from response is invalid", gw)
+	}
+	log.Printf("Using Gateway %v", gw)
 
 	nwCfg.Master = invoker.primaryInterfaceName
 	log.Printf("Setting master interface to %v", nwInfo.MasterIfName)
@@ -161,11 +180,23 @@ func (invoker *CNSIPAMInvoker) Add(args *cniSkel.CmdArgs, nwCfg *cni.NetworkConf
 		Mask: ipnet.Mask,
 	}
 
-	result.IPs = make([]*cniTypesCurr.IPConfig, 1)
-	result.IPs[0] = &cniTypesCurr.IPConfig{
-		Address: resultIPnet,
+	result = &cniTypesCurr.Result{
+		IPs: []*cniTypesCurr.IPConfig{
+			{
+				Version: "4",
+				Address: resultIPnet,
+				Gateway: gw,
+			},
+		},
+		Routes: []*cniTypes.Route{
+			{
+				Dst: ipv4DefaultRouteDstPrefix,
+				GW:  gw,
+			},
+		},
 	}
-	return &result, &resultV6, nil
+	log.Printf("CNIDEBUG2 %+v", result)
+	return result, resultV6, nil
 }
 
 func (invoker *CNSIPAMInvoker) Delete(address net.IPNet, nwCfg *cni.NetworkConfig, nwInfo network.NetworkInfo, isDeletePoolOnError bool) error {
@@ -179,6 +210,6 @@ func (invoker *CNSIPAMInvoker) Delete(address net.IPNet, nwCfg *cni.NetworkConfi
 	}
 
 	nwInfo.MasterIfName = invoker.primaryInterfaceName
-
+	log.Printf("DELETING %v", podInfo)
 	return invoker.cnsClient.ReleaseIPAddress(orchestratorContext)
 }
