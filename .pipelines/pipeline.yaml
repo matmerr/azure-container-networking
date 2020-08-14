@@ -78,10 +78,9 @@ stages:
             displayName: "Install Go dependencies"
 
           - script: |
-              git stash
               git remote add upstream https://github.com/Azure/azure-container-networking
-              git pull --rebase upstream master
-              git stash pop
+              git fetch upstream
+              git rebase upstream/master
               echo Build tag is $(EnvironmentalVariables.Tag)
               export GOOS=windows
               make all-binaries VERSION=$(EnvironmentalVariables.Tag)
