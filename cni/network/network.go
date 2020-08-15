@@ -426,7 +426,7 @@ func (plugin *netPlugin) Add(args *cniSkel.CmdArgs) error {
 			return err
 		}
 	default:
-		plugin.ipamInvoker = AzureIpamInvoker(plugin)
+		plugin.ipamInvoker = NewAzureIpamInvoker(plugin)
 	}
 
 	if nwInfoErr != nil {
@@ -435,8 +435,6 @@ func (plugin *netPlugin) Add(args *cniSkel.CmdArgs) error {
 
 		if !nwCfg.MultiTenancy {
 			result, resultV6, err = plugin.ipamInvoker.Add(args, nwCfg, nwInfo, true)
-			log.Printf("RESULT %v.", result)
-			log.Printf("RESULTv6 %v", resultV6)
 
 			if err != nil {
 				return err
@@ -444,7 +442,6 @@ func (plugin *netPlugin) Add(args *cniSkel.CmdArgs) error {
 
 			defer func() {
 				if err != nil {
-					log.Printf("RESULT :%v", result)
 					if result != nil && result.IPs != nil && len(result.IPs) > 0 {
 						plugin.ipamInvoker.Delete(result.IPs[0].Address, nwCfg, nwInfo, true)
 					}
@@ -454,7 +451,6 @@ func (plugin *netPlugin) Add(args *cniSkel.CmdArgs) error {
 				}
 			}()
 
-			log.Printf("RESULT 2 %v.", result)
 			subnetPrefix = result.IPs[0].Address
 		}
 		gateway := result.IPs[0].Gateway
@@ -777,7 +773,7 @@ func (plugin *netPlugin) Delete(args *cniSkel.CmdArgs) error {
 			return err
 		}
 	default:
-		plugin.ipamInvoker = AzureIpamInvoker(plugin)
+		plugin.ipamInvoker = NewAzureIpamInvoker(plugin)
 	}
 
 	plugin.setCNIReportDetails(nwCfg, CNI_DEL, "")

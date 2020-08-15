@@ -195,7 +195,6 @@ func (invoker *CNSIPAMInvoker) Add(args *cniSkel.CmdArgs, nwCfg *cni.NetworkConf
 			},
 		},
 	}
-	log.Printf("CNIDEBUG2 %+v", result)
 	return result, resultV6, nil
 }
 
@@ -210,6 +209,5 @@ func (invoker *CNSIPAMInvoker) Delete(address net.IPNet, nwCfg *cni.NetworkConfi
 	}
 
 	nwInfo.MasterIfName = invoker.primaryInterfaceName
-	log.Printf("DELETING %v", podInfo)
 	return invoker.cnsClient.ReleaseIPAddress(orchestratorContext)
 }

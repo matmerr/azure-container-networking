@@ -11,17 +11,17 @@ import (
 	cniTypesCurr "github.com/containernetworking/cni/pkg/types/current"
 )
 
-type AzureInvoker struct {
+type AzureIPAMInvoker struct {
 	plugin *netPlugin
 }
 
-func AzureIpamInvoker(plugin *netPlugin) *AzureInvoker {
-	return &AzureInvoker{
+func NewAzureIpamInvoker(plugin *netPlugin) *AzureIPAMInvoker {
+	return &AzureIPAMInvoker{
 		plugin: plugin,
 	}
 }
 
-func (invoker *AzureInvoker) Add(args *cniSkel.CmdArgs, nwCfg *cni.NetworkConfig, nwInfo network.NetworkInfo, isDeletePoolOnError bool) (*cniTypesCurr.Result, *cniTypesCurr.Result, error) {
+func (invoker *AzureIPAMInvoker) Add(args *cniSkel.CmdArgs, nwCfg *cni.NetworkConfig, nwInfo network.NetworkInfo, isDeletePoolOnError bool) (*cniTypesCurr.Result, *cniTypesCurr.Result, error) {
 	var (
 		result   *cniTypesCurr.Result
 		resultV6 *cniTypesCurr.Result
@@ -63,7 +63,7 @@ func (invoker *AzureInvoker) Add(args *cniSkel.CmdArgs, nwCfg *cni.NetworkConfig
 	return result, resultV6, err
 }
 
-func (invoker *AzureInvoker) Delete(address net.IPNet, nwCfg *cni.NetworkConfig, nwInfo network.NetworkInfo, isDeletePoolOnError bool) error {
+func (invoker *AzureIPAMInvoker) Delete(address net.IPNet, nwCfg *cni.NetworkConfig, nwInfo network.NetworkInfo, isDeletePoolOnError bool) error {
 	var err error
 
 	if address.IP.To4() != nil {
