@@ -91,7 +91,6 @@ func getHostSubnet(queryUrl string) (*net.IPNet, error) {
 func getIPv4AddressWithHostSubnet(hostSubnet *net.IPNet) (string, net.IP, error) {
 	interfaces, _ := net.Interfaces()
 	for _, iface := range interfaces {
-
 		addrs, err := iface.Addrs()
 		if err != nil {
 			return "", nil, err
@@ -109,13 +108,13 @@ func getIPv4AddressWithHostSubnet(hostSubnet *net.IPNet) (string, net.IP, error)
 	return "", nil, fmt.Errorf("No interface on VM containing IP in supplied host subnet [%v] ", hostSubnet)
 }
 
+//TODO, once pod info is returned with Primary IP of NC
 func SetSNATForPrimaryIP() {
 	//cmd := "iptables -t nat -A POSTROUTING -s 10.0.0.0/24 -j SNAT –to-source 10.10.10.99"
 
 	// Create separate chain from POSTROUTING
 	// if destination ip is private, return from chain
 	// if destination is public, snat
-	//
 	// Check vnet peering case
 }
 
@@ -142,7 +141,8 @@ func NewCNSInvoker(podName, namespace string) (*CNSIPAMInvoker, error) {
 	}, err
 }
 
-func (invoker *CNSIPAMInvoker) Add(args *cniSkel.CmdArgs, nwCfg *cni.NetworkConfig, nwInfo network.NetworkInfo, isDeletePoolOnError bool) (*cniTypesCurr.Result, *cniTypesCurr.Result, error) {
+//Add uses the requestipconfig API in cns, and returns ipv4 and a nil ipv6 as CNS doesn't support IPv6 yet
+func (invoker *CNSIPAMInvoker) Add(args *cniSkel.CmdArgs, nwCfg *cni.NetworkConfig, nwInfo network.NetworkInfo, options map[string]string) (*cniTypesCurr.Result, *cniTypesCurr.Result, error) {
 	var (
 		result   *cniTypesCurr.Result
 		resultV6 *cniTypesCurr.Result
@@ -157,6 +157,7 @@ func (invoker *CNSIPAMInvoker) Add(args *cniSkel.CmdArgs, nwCfg *cni.NetworkConf
 		return nil, nil, err
 	}
 
+	// TODO: hardcoded until podinfo is passed
 	response.IPConfiguration.IPSubnet.PrefixLength = 24
 
 	// set result ipconfig from CNS Response Body
@@ -169,7 +170,6 @@ func (invoker *CNSIPAMInvoker) Add(args *cniSkel.CmdArgs, nwCfg *cni.NetworkConf
 	if gw == nil {
 		return nil, nil, fmt.Errorf("Gateway address %v from response is invalid", gw)
 	}
-	log.Printf("Using Gateway %v", gw)
 
 	nwCfg.Master = invoker.primaryInterfaceName
 	log.Printf("Setting master interface to %v", nwInfo.MasterIfName)
@@ -198,7 +198,8 @@ func (invoker *CNSIPAMInvoker) Add(args *cniSkel.CmdArgs, nwCfg *cni.NetworkConf
 	return result, resultV6, nil
 }
 
-func (invoker *CNSIPAMInvoker) Delete(address net.IPNet, nwCfg *cni.NetworkConfig, nwInfo network.NetworkInfo, isDeletePoolOnError bool) error {
+// Delete calls into the releaseipconfiguration API in CNS
+func (invoker *CNSIPAMInvoker) Delete(address net.IPNet, nwCfg *cni.NetworkConfig, nwInfo network.NetworkInfo, options map[string]string) error {
 
 	// Parse Pod arguments.
 	podInfo := cns.KubernetesPodInfo{PodName: invoker.podName, PodNamespace: invoker.podNamespace}

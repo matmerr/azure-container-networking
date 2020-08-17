@@ -21,7 +21,7 @@ func NewAzureIpamInvoker(plugin *netPlugin) *AzureIPAMInvoker {
 	}
 }
 
-func (invoker *AzureIPAMInvoker) Add(args *cniSkel.CmdArgs, nwCfg *cni.NetworkConfig, nwInfo network.NetworkInfo, isDeletePoolOnError bool) (*cniTypesCurr.Result, *cniTypesCurr.Result, error) {
+func (invoker *AzureIPAMInvoker) Add(args *cniSkel.CmdArgs, nwCfg *cni.NetworkConfig, nwInfo network.NetworkInfo, options map[string]string) (*cniTypesCurr.Result, *cniTypesCurr.Result, error) {
 	var (
 		result   *cniTypesCurr.Result
 		resultV6 *cniTypesCurr.Result
@@ -41,7 +41,7 @@ func (invoker *AzureIPAMInvoker) Add(args *cniSkel.CmdArgs, nwCfg *cni.NetworkCo
 
 	defer func() {
 		if err != nil {
-			invoker.plugin.ipamInvoker.Delete(result.IPs[0].Address, nwCfg, nwInfo, isDeletePoolOnError)
+			invoker.plugin.ipamInvoker.Delete(result.IPs[0].Address, nwCfg, nwInfo, options)
 		}
 	}()
 
@@ -63,12 +63,13 @@ func (invoker *AzureIPAMInvoker) Add(args *cniSkel.CmdArgs, nwCfg *cni.NetworkCo
 	return result, resultV6, err
 }
 
-func (invoker *AzureIPAMInvoker) Delete(address net.IPNet, nwCfg *cni.NetworkConfig, nwInfo network.NetworkInfo, isDeletePoolOnError bool) error {
+func (invoker *AzureIPAMInvoker) Delete(address net.IPNet, nwCfg *cni.NetworkConfig, nwInfo network.NetworkInfo, options map[string]string) error {
 	var err error
 
 	if address.IP.To4() != nil {
 
-		if isDeletePoolOnError {
+		// cleanup pool
+		if options[optKeyCleanupDependency] == optValPool {
 			nwCfg.Ipam.Address = ""
 		}
 

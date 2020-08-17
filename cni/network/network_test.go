@@ -13,7 +13,9 @@ import (
 	cniSkel "github.com/containernetworking/cni/pkg/skel"
 )
 
-func TestAdd(t *testing.T) {
+// the Add/Delete methods in Plugin require refactoring to have UT's written for them,
+// but the mocks in this test are a start
+func TestPlugin(t *testing.T) {
 	config := &common.PluginConfig{}
 	pluginName := "testplugin"
 

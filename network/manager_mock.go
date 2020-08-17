@@ -22,7 +22,7 @@ func NewMockNetworkmanager() *MockNetworkManager {
 }
 
 //Initialize mock
-func (nm *MockNetworkManager) Initialize(config *common.PluginConfig) error {
+func (nm *MockNetworkManager) Initialize(config *common.PluginConfig, isRehydrationRequired bool) error {
 	return nil
 }
 
