@@ -22,6 +22,9 @@ const (
 	Forward     = "FORWARD"
 	Prerouting  = "PREROUTING"
 	Postrouting = "POSTROUTING"
+	Swift       = "SWIFT"
+	Snat        = "SNAT"
+	Return      = "RETURN"
 )
 
 // Standard Table names

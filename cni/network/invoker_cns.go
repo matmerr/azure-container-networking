@@ -5,11 +5,14 @@ import (
 	"fmt"
 	"net"
 	"strconv"
+	"strings"
 
 	"github.com/Azure/azure-container-networking/cni"
 	"github.com/Azure/azure-container-networking/cns"
 	"github.com/Azure/azure-container-networking/cns/cnsclient"
+	ipt "github.com/Azure/azure-container-networking/iptables"
 	"github.com/Azure/azure-container-networking/log"
+	"github.com/Azure/azure-container-networking/netlink"
 	"github.com/Azure/azure-container-networking/network"
 	cniSkel "github.com/containernetworking/cni/pkg/skel"
 	cniTypes "github.com/containernetworking/cni/pkg/types"
@@ -54,14 +57,60 @@ func getHostInterfaceName(hostSubnet *net.IPNet, hostIP net.IP) (string, error) 
 	return "", fmt.Errorf("No interface on VM containing IP in supplied host subnet [%v] ", hostSubnet)
 }
 
-//TODO, once pod info is returned with Primary IP of NC
-func SetSNATForPrimaryIP() {
-	//cmd := "iptables -t nat -A POSTROUTING -s 10.0.0.0/24 -j SNAT –to-source 10.10.10.99"
+// SetSNATForPrimaryIP add's the snatting rules
+// Example, ncSubnetAddressSpace = 10.0.0.0, ncSubnetPrefix = 24
+func SetSNATForPrimaryIP(ncPrimaryIP string, ncSubnetAddressSpace string, ncSubnetPrefix uint8) (err error) {
+	// Create SWIFT chain, this checks if the chain already exists
+	err = ipt.CreateChain(ipt.V4, ipt.Nat, ipt.Swift)
+	if err != nil {
+		return
+	}
 
-	// Create separate chain from POSTROUTING
-	// if destination ip is private, return from chain
-	// if destination is public, snat
-	// Check vnet peering case
+	// add jump to SWIFT chain from POSTROUTING
+	err = ipt.AppendIptableRule(ipt.V4, ipt.Nat, ipt.Postrouting, "", ipt.Swift)
+	if err != nil {
+		return
+	}
+
+	// don't snat private address space traffic
+	privateAddressSpaceCondition := fmt.Sprint("-d 10.0.0.0/8,172.16.0.0/12,192.168.0.0/16")
+	err = ipt.InsertIptableRule(ipt.V4, ipt.Nat, ipt.Swift, privateAddressSpaceCondition, ipt.Return)
+	if err != nil {
+		return
+	}
+
+	// snat public IP address space
+	snatPublicTrafficCondition := fmt.Sprintf("-m addrtype ! --dst-type local -s %s/%d", ncSubnetAddressSpace, ncSubnetPrefix)
+	snatPrimaryIPJump := fmt.Sprintf("%s --to %s", ipt.Snat, ncPrimaryIP)
+	err = ipt.AppendIptableRule(ipt.V4, ipt.Nat, ipt.Swift, snatPublicTrafficCondition, snatPrimaryIPJump)
+	return
+}
+
+// SetNCAddressSpaceOnHostBrige Add's the NC subnet space to the primary interface
+func SetNCAddressSpaceOnHostBrige(ncSubnetAddressSpace string, ncSubnetPrefix uint8, hostPrimaryIfName string) error {
+	_, dst, err := net.ParseCIDR(fmt.Sprintf("%s/%d", ncSubnetAddressSpace, ncSubnetPrefix))
+	if err != nil {
+		return fmt.Errorf("Failed to parse address space for adding to bridge: %v", err)
+	}
+
+	devIf, _ := net.InterfaceByName(hostPrimaryIfName)
+	ifIndex := devIf.Index
+	family := netlink.GetIpAddressFamily(ipv4DefaultRouteDstPrefix.IP)
+
+	nlRoute := &netlink.Route{
+		Family:    family,
+		Dst:       dst,
+		Gw:        ipv4DefaultRouteDstPrefix.IP,
+		LinkIndex: ifIndex,
+	}
+
+	if err := netlink.AddIpRoute(nlRoute); err != nil {
+		if !strings.Contains(strings.ToLower(err.Error()), "file exists") {
+			return fmt.Errorf("Failed to add route to host interface with error: %v", err)
+		}
+		log.Printf("[cni-cns-net] route already exists: dst %+v, gw %+v, interfaceName %v", nlRoute.Dst, nlRoute.Gw, hostPrimaryIfName)
+	}
+	return nil
 }
 
 func NewCNSInvoker(podName, namespace string) (*CNSIPAMInvoker, error) {
@@ -92,29 +141,51 @@ func (invoker *CNSIPAMInvoker) Add(args *cniSkel.CmdArgs, nwCfg *cni.NetworkConf
 		return nil, nil, err
 	}
 
-	// set result ipconfig from CNS Response Body
-	ip, ipnet, err := net.ParseCIDR(response.PodIpInfo.PodIPConfig.IPAddress + "/" + fmt.Sprint(response.PodIpInfo.NetworkContainerPrimaryIPConfig.IPSubnet.PrefixLength))
-	if ip == nil {
-		return nil, nil, fmt.Errorf("Unable to parse IP from response: %v", response.PodIpInfo.PodIPConfig.IPAddress)
-	}
+	podIPAddress := response.PodIpInfo.PodIPConfig.IPAddress
+	ncSubnet := response.PodIpInfo.NetworkContainerPrimaryIPConfig.IPSubnet.IPAddress
+	ncSubnetPrefix := response.PodIpInfo.NetworkContainerPrimaryIPConfig.IPSubnet.PrefixLength
+	ncPrimaryIP := response.PodIpInfo.NetworkContainerPrimaryIPConfig.IPSubnet.IPAddress
+	gwIPAddress := response.PodIpInfo.NetworkContainerPrimaryIPConfig.GatewayIPAddress
+	hostSubnet := response.PodIpInfo.HostPrimaryIPInfo.Subnet
+	hostPrimaryIP := response.PodIpInfo.HostPrimaryIPInfo.PrimaryIP
 
-	gw := net.ParseIP(response.PodIpInfo.NetworkContainerPrimaryIPConfig.GatewayIPAddress)
+	gw := net.ParseIP(gwIPAddress)
 	if gw == nil {
 		return nil, nil, fmt.Errorf("Gateway address %v from response is invalid", gw)
 	}
 
+	hostIP := net.ParseIP(hostPrimaryIP)
+	if hostIP == nil {
+		return nil, nil, fmt.Errorf("Host IP address %v from response is invalid", hostIP)
+	}
+
+	// set result ipconfig from CNS Response Body
+	ip, ipnet, err := net.ParseCIDR(podIPAddress + "/" + fmt.Sprint(ncSubnetPrefix))
+	if ip == nil {
+		return nil, nil, fmt.Errorf("Unable to parse IP from response: %v", podIPAddress)
+	}
+
 	// get the name of the primary IP address
-	_, hostIPNet, err := net.ParseCIDR(response.PodIpInfo.HostPrimaryIPInfo.Subnet)
+	_, hostIPNet, err := net.ParseCIDR(hostSubnet)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	hostIP := net.ParseIP(response.PodIpInfo.HostPrimaryIPInfo.PrimaryIP)
+	// set host ip interface name
+	hostInterfaceName, err := getHostInterfaceName(hostIPNet, hostIP)
+	nwCfg.Master = hostInterfaceName
 
-	interfaceName, err := getHostInterfaceName(hostIPNet, hostIP)
+	// snat all internet traffic with NC primary IP, leave private traffic untouched
+	err = SetSNATForPrimaryIP(ncPrimaryIP, ncSubnet, ncSubnetPrefix)
+	if err != nil {
+		return nil, nil, fmt.Errorf("Failed to set snat rule for Primary NC IP: %v, NC Subnet %v/%v, with error: %v", ncPrimaryIP, ncSubnet, ncSubnetPrefix, err)
+	}
 
-	nwCfg.Master = interfaceName
-	log.Printf("Setting master interface to %v", nwInfo.MasterIfName)
+	err = SetNCAddressSpaceOnHostBrige(ncSubnet, ncSubnetPrefix, hostInterfaceName)
+	if err != nil {
+		log.Printf("Failed add address space on host primary interface: %v IP: %v, NC Subnet %v/%v, with error: %v", hostInterfaceName, ncPrimaryIP, ncSubnet, ncSubnetPrefix, err)
+		return nil, nil, fmt.Errorf("Failed add address space on host primary interface: %v IP: %v, NC Subnet %v/%v, with error: %v", hostInterfaceName, ncPrimaryIP, ncSubnet, ncSubnetPrefix, err)
+	}
 
 	// construct ipnet for result
 	resultIPnet := net.IPNet{
@@ -130,8 +201,14 @@ func (invoker *CNSIPAMInvoker) Add(args *cniSkel.CmdArgs, nwCfg *cni.NetworkConf
 				Gateway: gw,
 			},
 		},
-		Routes: []*cniTypes.Route{},
+		Routes: []*cniTypes.Route{
+			{
+				Dst: ipv4DefaultRouteDstPrefix,
+				GW:  gw,
+			},
+		},
 	}
+
 	return result, resultV6, nil
 }
 
