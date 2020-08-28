@@ -240,6 +240,44 @@ func AddSnatRule(match string, ip net.IP) error {
 	return iptables.InsertIptableRule(version, iptables.Nat, iptables.Postrouting, match, target)
 }
 
+// SNATPrivateIPSpaceWithIP snat's the snattedAddressSpace with the ipForSnat IP
+func SNATPrivateIPSpaceWithIP(ipForSNAT net.IP, snattedAddressSpace net.IPNet) (err error) {
+	// Create SWIFT chain, this checks if the chain already exists
+	// Check if theres a primary IP
+	if ipForSNAT != nil {
+		// Create SWIFT chain, this checks if the chain already exists
+		err := iptables.CreateChain(iptables.V4, iptables.Nat, iptables.Swift)
+		if err != nil {
+			return err
+		}
+
+		// add jump to SWIFT chain from POSTROUTING
+		err = iptables.AppendIptableRule(iptables.V4, iptables.Nat, iptables.Postrouting, "", iptables.Swift)
+		if err != nil {
+			return err
+		}
+
+		//options[network.NCPrimaryIPKey]
+
+		// don't snat private address space traffic
+		privateIPSpace := getPrivateIPSpace()
+		privateAddressSpaceCondition := fmt.Sprintf("-d %v,%v,%v,%v", privateIPSpace[0], privateIPSpace[1], privateIPSpace[2], privateIPSpace[3])
+		err = iptables.InsertIptableRule(iptables.V4, iptables.Nat, iptables.Swift, privateAddressSpaceCondition, iptables.Return)
+		if err != nil {
+			return err
+		}
+
+		// snat public IP address space
+		//primaryNCIP := fmt.Sprintf("%v", options[network.NCPrimaryIPKey])
+		snatPublicTrafficCondition := fmt.Sprintf("-m addrtype ! --dst-type local -s %s", snattedAddressSpace.String())
+		snatPrimaryIPJump := fmt.Sprintf("%s --to %s", iptables.Snat, ipForSNAT)
+		err = iptables.AppendIptableRule(iptables.V4, iptables.Nat, iptables.Swift, snatPublicTrafficCondition, snatPrimaryIPJump)
+		return err
+	}
+
+	return nil
+}
+
 func DisableRAForInterface(ifName string) error {
 	raFilePath := fmt.Sprintf(acceptRAV6File, ifName)
 	exist, err := common.CheckIfFileExists(raFilePath)
