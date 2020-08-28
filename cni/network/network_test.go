@@ -63,7 +63,8 @@ func TestPlugin(t *testing.T) {
 	plugin.nm.CreateEndpoint(nwCfg.Name, epInfo)
 
 	nwInfo := &network.NetworkInfo{
-		Id: "test-nwcfg",
+		Id:      "test-nwcfg",
+		Options: make(map[string]interface{}),
 	}
 	plugin.nm.CreateNetwork(nwInfo)
 	plugin.Delete(args)
