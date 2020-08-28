@@ -35,6 +35,7 @@ type NetworkClient interface {
 	DeleteL2Rules(extIf *externalInterface)
 	SetBridgeMasterToHostInterface() error
 	SetHairpinOnHostInterface(bool) error
+	AddRoutes(nwInfo *NetworkInfo, interfaceName string) error
 }
 
 type EndpointClient interface {

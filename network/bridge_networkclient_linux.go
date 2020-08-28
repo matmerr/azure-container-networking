@@ -45,9 +45,13 @@ func (client *LinuxBridgeClient) CreateBridge() error {
 		return err
 	}
 
+	return epcommon.DisableRAForInterface(client.bridgeName)
+}
+
+func (client *LinuxBridgeClient) AddRoutes(nwInfo *NetworkInfo, interfaceName string) error {
 	if client.nwInfo.IPAMType == AzureCNS {
 		// add pod subnet to host
-		devIf, _ := net.InterfaceByName(client.bridgeName)
+		devIf, _ := net.InterfaceByName(interfaceName)
 		ifIndex := devIf.Index
 		family := netlink.GetIpAddressFamily(Ipv4DefaultRouteDstPrefix.IP)
 
@@ -62,9 +66,10 @@ func (client *LinuxBridgeClient) CreateBridge() error {
 			if !strings.Contains(strings.ToLower(err.Error()), "file exists") {
 				return fmt.Errorf("Failed to add route to host interface with error: %v", err)
 			}
-			log.Printf("[cni-cns-net] route already exists: dst %+v, gw %+v, interfaceName %v", nlRoute.Dst, nlRoute.Gw, client.bridgeName)
+			log.Printf("[cni-cns-net] route already exists: dst %+v, gw %+v, interfaceName %v", nlRoute.Dst, nlRoute.Gw, interfaceName)
 		}
 
+		// Add snat Rules
 		snatIP := client.nwInfo.Options[SNATIPKey]
 		if snatIP == nil {
 			return fmt.Errorf("snatIP in Options not set %v", snatIP)
@@ -77,8 +82,7 @@ func (client *LinuxBridgeClient) CreateBridge() error {
 
 		epcommon.SNATPrivateIPSpaceWithIP(ncPrimaryIP, client.nwInfo.PodSubnet.Prefix)
 	}
-
-	return epcommon.DisableRAForInterface(client.bridgeName)
+	return nil
 }
 
 func (client *LinuxBridgeClient) DeleteBridge() error {

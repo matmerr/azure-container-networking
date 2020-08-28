@@ -430,48 +430,35 @@ func (plugin *netPlugin) Add(args *cniSkel.CmdArgs) error {
 		plugin.ipamInvoker = NewAzureIpamInvoker(plugin, &nwInfo)
 	}
 
-	//invoker options
+	options := make(map[string]interface{})
 
 	if nwInfoErr != nil {
 		// Network does not exist.
 		log.Printf("[cni-net] Creating network %v.", networkId)
 
 		if !nwCfg.MultiTenancy {
-			nwInfo.Options[optKeyCleanupDependency] = optValPool
-			result, resultV6, err = plugin.ipamInvoker.Add(args, nwCfg, &subnetPrefix, nwInfo.Options)
+
+			options[optKeyCleanupDependency] = optValPool
+			result, resultV6, err = plugin.ipamInvoker.Add(args, nwCfg, &subnetPrefix, options)
 			if err != nil {
 				return err
 			}
 
-			nwInfo.IPAMType = nwCfg.Ipam.Type
-
-			if len(result.IPs) > 0 {
-				_, podnetwork, err := net.ParseCIDR(result.IPs[0].Address.String())
-				if err != nil {
-					return err
-				}
-
-				nwInfo.PodSubnet = network.SubnetInfo{
-					Family:  platform.GetAddressFamily(&result.IPs[0].Address.IP),
-					Prefix:  *podnetwork,
-					Gateway: result.IPs[0].Gateway,
-				}
-			}
-
 			defer func() {
 				if err != nil {
-					nwInfo.Options[optKeyCleanupDependency] = optValPool
+					options[optKeyCleanupDependency] = optValPool
 					if result != nil && result.IPs != nil && len(result.IPs) > 0 {
-						plugin.ipamInvoker.Delete(result.IPs[0].Address, nwCfg, nwInfo.Options)
+						plugin.ipamInvoker.Delete(result.IPs[0].Address, nwCfg, options)
 					}
 					if resultV6 != nil && resultV6.IPs != nil && len(result.IPs) > 0 {
-						plugin.ipamInvoker.Delete(resultV6.IPs[0].Address, nwCfg, nwInfo.Options)
+						plugin.ipamInvoker.Delete(resultV6.IPs[0].Address, nwCfg, options)
 					}
 				}
 			}()
 
 			subnetPrefix = result.IPs[0].Address
 		}
+
 		gateway := result.IPs[0].Gateway
 		subnetPrefix.IP = subnetPrefix.IP.Mask(subnetPrefix.Mask)
 		// Find the master interface.
@@ -524,7 +511,22 @@ func (plugin *netPlugin) Add(args *cniSkel.CmdArgs) error {
 			ServiceCidrs:                  nwCfg.ServiceCidrs,
 		}
 
-		nwInfo.Options = make(map[string]interface{})
+		nwInfo.IPAMType = nwCfg.Ipam.Type
+
+		if len(result.IPs) > 0 {
+			_, podnetwork, err := net.ParseCIDR(result.IPs[0].Address.String())
+			if err != nil {
+				return err
+			}
+
+			nwInfo.PodSubnet = network.SubnetInfo{
+				Family:  platform.GetAddressFamily(&result.IPs[0].Address.IP),
+				Prefix:  *podnetwork,
+				Gateway: result.IPs[0].Gateway,
+			}
+		}
+
+		nwInfo.Options = options
 		setNetworkOptions(cnsNetworkConfig, &nwInfo)
 
 		addNatIPV6SubnetInfo(nwCfg, resultV6, &nwInfo)
