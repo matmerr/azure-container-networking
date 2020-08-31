@@ -65,6 +65,22 @@ const (
 	V6 = "6"
 )
 
+// known ports
+const (
+	DNSPort = 53
+)
+
+// known protocols
+const (
+	UDP = "udp"
+	TCP = "tcp"
+)
+
+// known IP's
+const (
+	AzureDNS = "168.63.129.16"
+)
+
 var (
 	DisableIPTableLock bool
 )

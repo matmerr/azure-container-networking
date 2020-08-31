@@ -242,11 +242,20 @@ func AddSnatRule(match string, ip net.IP) error {
 
 // SNATPrivateIPSpaceWithIP snat's the snattedAddressSpace with the ipForSnat IP
 func SNATPrivateIPSpaceWithIP(ipForSNAT net.IP, snattedAddressSpace net.IPNet) (err error) {
+
 	// Create SWIFT chain, this checks if the chain already exists
 	// Check if theres a primary IP
 	if ipForSNAT != nil {
 		// Create SWIFT chain, this checks if the chain already exists
 		err := iptables.CreateChain(iptables.V4, iptables.Nat, iptables.Swift)
+		if err != nil {
+			return err
+		}
+
+		// SNAT requests to Azure DNS
+		azureDNSMatch := fmt.Sprintf(" -m addrtype ! --dst-type local -s %s -d %s -p %s --dport %d", snattedAddressSpace.String(), iptables.AzureDNS, iptables.UDP, iptables.DNSPort)
+		snatPrimaryIPJump := fmt.Sprintf("%s --to %s", iptables.Snat, ipForSNAT)
+		err = iptables.InsertIptableRule(iptables.V4, iptables.Nat, iptables.Swift, azureDNSMatch, snatPrimaryIPJump)
 		if err != nil {
 			return err
 		}
@@ -257,9 +266,8 @@ func SNATPrivateIPSpaceWithIP(ipForSNAT net.IP, snattedAddressSpace net.IPNet) (
 			return err
 		}
 
-		//options[network.NCPrimaryIPKey]
+		// TODO: Remove once SNAT on Host is enabled: don't snat private address space traffic
 
-		// don't snat private address space traffic
 		privateIPSpace := getPrivateIPSpace()
 		privateAddressSpaceCondition := fmt.Sprintf("-d %v,%v,%v,%v", privateIPSpace[0], privateIPSpace[1], privateIPSpace[2], privateIPSpace[3])
 		err = iptables.InsertIptableRule(iptables.V4, iptables.Nat, iptables.Swift, privateAddressSpaceCondition, iptables.Return)
@@ -267,12 +275,14 @@ func SNATPrivateIPSpaceWithIP(ipForSNAT net.IP, snattedAddressSpace net.IPNet) (
 			return err
 		}
 
+		// TODO: Remove once SNAT on Host is enabled:
 		// snat public IP address space
 		//primaryNCIP := fmt.Sprintf("%v", options[network.NCPrimaryIPKey])
 		snatPublicTrafficCondition := fmt.Sprintf("-m addrtype ! --dst-type local -s %s", snattedAddressSpace.String())
-		snatPrimaryIPJump := fmt.Sprintf("%s --to %s", iptables.Snat, ipForSNAT)
+		snatPrimaryIPJump = fmt.Sprintf("%s --to %s", iptables.Snat, ipForSNAT)
 		err = iptables.AppendIptableRule(iptables.V4, iptables.Nat, iptables.Swift, snatPublicTrafficCondition, snatPrimaryIPJump)
 		return err
+
 	}
 
 	return nil
