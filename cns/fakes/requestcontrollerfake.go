@@ -2,21 +2,66 @@ package fakes
 
 import (
 	"context"
+	"fmt"
+	"net"
 
+	"github.com/Azure/azure-container-networking/cns"
 	nnc "github.com/Azure/azure-container-networking/nodenetworkconfig/api/v1alpha"
+	"github.com/google/uuid"
+)
+
+const (
+	PrivateIPRangeClassA = "10.0.0.1/8"
+)
+
+var (
+	ip net.IP
 )
 
 type RequestControllerFake struct {
+	cnsService   *HTTPServiceFake
+	scalarUnits  cns.ScalarUnits
+	desiredState nnc.NodeNetworkConfigSpec
 }
 
-func NewRequestControllerFake() *RequestControllerFake {
-	return &RequestControllerFake{}
+func NewRequestControllerFake(cnsService *HTTPServiceFake, scalarUnits cns.ScalarUnits, numberOfIPConfigs int) *RequestControllerFake {
+
+	ip, _, _ = net.ParseCIDR(PrivateIPRangeClassA)
+
+	ipconfigs := carveIPs(numberOfIPConfigs)
+
+	cnsService.IPStateManager.AddIPConfigs(ipconfigs[0:numberOfIPConfigs])
+	fmt.Println(cnsService.IPStateManager.AvailableIPConfigState)
+
+	return &RequestControllerFake{
+		cnsService:  cnsService,
+		scalarUnits: scalarUnits,
+	}
 }
 
-func (rc RequestControllerFake) StartRequestController(exitChan <-chan struct{}) error {
+func carveIPs(ipCount int) []cns.IPConfigurationStatus {
+	var ipconfigs []cns.IPConfigurationStatus
+	for i := 0; i < ipCount; i++ {
+		ipconfig := cns.IPConfigurationStatus{
+			ID:        uuid.New().String(),
+			IPAddress: ip.String(),
+			State:     cns.Available,
+		}
+		ipconfigs = append(ipconfigs, ipconfig)
+		incrementIP(ip)
+	}
+	return ipconfigs
+}
+
+func (rc *RequestControllerFake) StartRequestController(exitChan <-chan struct{}) error {
 	return nil
 }
 
-func (rc RequestControllerFake) UpdateCRDSpec(cntxt context.Context, crdSpec nnc.NodeNetworkConfigSpec) error {
+func (rc *RequestControllerFake) UpdateCRDSpec(cntxt context.Context, crdSpec nnc.NodeNetworkConfigSpec) error {
+
+	return nil
+}
+
+func (rc *RequestControllerFake) UpdateIPCountInCNS(cntxt context.Context, crdSpec nnc.NodeNetworkConfigSpec) error {
 	return nil
 }
