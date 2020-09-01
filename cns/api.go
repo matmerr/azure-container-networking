@@ -37,6 +37,7 @@ type HTTPService interface {
 	SyncNodeStatus(string, string, string, json.RawMessage) (int, string)
 	GetAvailableIPConfigs() []IPConfigurationStatus
 	GetAllocatedIPConfigs() []IPConfigurationStatus
+	GetPendingAllocationIPCount() int
 	GetPodIPConfigState() map[string]IPConfigurationStatus
 	MarkIPsAsPending(numberToMark int) (map[string]SecondaryIPConfig, error)
 }
@@ -164,14 +165,13 @@ type NodeConfiguration struct {
 
 type IPAMPoolMonitor interface {
 	Start() error
-	UpdatePoolLimitsTransacted(scalarUnits ScalarUnits)
+	UpdatePoolLimits(scalarUnits ScalarUnits)
 }
 
 type ScalarUnits struct {
-	BatchSize               int64
-	RequestThresholdPercent int64
-	ReleaseThresholdPercent int64
-	IPConfigCount           int
+	BatchSize               int
+	RequestThresholdPercent int
+	ReleaseThresholdPercent int
 }
 
 // Response describes generic response from CNS.

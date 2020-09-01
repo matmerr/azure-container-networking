@@ -2,7 +2,6 @@ package fakes
 
 import (
 	"context"
-	"fmt"
 	"net"
 
 	"github.com/Azure/azure-container-networking/cns"
@@ -19,23 +18,21 @@ var (
 )
 
 type RequestControllerFake struct {
-	cnsService   *HTTPServiceFake
-	scalarUnits  cns.ScalarUnits
-	desiredState nnc.NodeNetworkConfigSpec
+	fakecns         *HTTPServiceFake
+	testScalarUnits cns.ScalarUnits
+	desiredState    nnc.NodeNetworkConfigSpec
 }
 
 func NewRequestControllerFake(cnsService *HTTPServiceFake, scalarUnits cns.ScalarUnits, numberOfIPConfigs int) *RequestControllerFake {
 
 	ip, _, _ = net.ParseCIDR(PrivateIPRangeClassA)
-
 	ipconfigs := carveIPs(numberOfIPConfigs)
 
 	cnsService.IPStateManager.AddIPConfigs(ipconfigs[0:numberOfIPConfigs])
-	fmt.Println(cnsService.IPStateManager.AvailableIPConfigState)
 
 	return &RequestControllerFake{
-		cnsService:  cnsService,
-		scalarUnits: scalarUnits,
+		fakecns:         cnsService,
+		testScalarUnits: scalarUnits,
 	}
 }
 
@@ -58,10 +55,23 @@ func (rc *RequestControllerFake) StartRequestController(exitChan <-chan struct{}
 }
 
 func (rc *RequestControllerFake) UpdateCRDSpec(cntxt context.Context, crdSpec nnc.NodeNetworkConfigSpec) error {
-
+	rc.desiredState = crdSpec
 	return nil
 }
 
-func (rc *RequestControllerFake) UpdateIPCountInCNS(cntxt context.Context, crdSpec nnc.NodeNetworkConfigSpec) error {
+func (rc *RequestControllerFake) Reconcile() error {
+
+	rc.fakecns.GetPodIPConfigState()
+	diff := int(rc.desiredState.RequestedIPCount) - len(rc.fakecns.GetPodIPConfigState())
+
+	// carve the difference of test IPs
+	ipconfigs := carveIPs(diff)
+
+	// add IPConfigs to CNS
+	rc.fakecns.IPStateManager.AddIPConfigs(ipconfigs)
+
+	// update
+	rc.fakecns.PoolMonitor.UpdatePoolLimits(rc.testScalarUnits)
+
 	return nil
 }

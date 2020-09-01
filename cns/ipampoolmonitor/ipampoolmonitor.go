@@ -65,36 +65,37 @@ func (pm *CNSIPAMPoolMonitor) Reconcile() error {
 }
 
 // UpdatePoolLimitsTransacted called by request controller on reconcile to set the batch size limits
-func (pm *CNSIPAMPoolMonitor) UpdatePoolLimitsTransacted(scalarUnits cns.ScalarUnits) {
+func (pm *CNSIPAMPoolMonitor) UpdatePoolLimits(scalarUnits cns.ScalarUnits) {
 	pm.Lock()
 	defer pm.Unlock()
 	pm.scalarUnits = scalarUnits
-
-	if !pm.initialized {
-		pm.goalIPCount = pm.scalarUnits.IPConfigCount
-	}
 
 	// TODO rounding?
 	pm.MinimumFreeIps = int(float64(pm.scalarUnits.BatchSize) * (float64(pm.scalarUnits.RequestThresholdPercent) / 100))
 	pm.MaximumFreeIps = int(float64(pm.scalarUnits.BatchSize) * (float64(pm.scalarUnits.ReleaseThresholdPercent) / 100))
 
-	pm.initialized = true
+	if !pm.initialized && len(pm.cns.GetPodIPConfigState()) > 0 {
+		pm.goalIPCount = len(pm.cns.GetPodIPConfigState())
+		pm.initialized = true
+	}
 }
 
 func (pm *CNSIPAMPoolMonitor) checkForResize() int {
 
-	allocatedIPCount := len(pm.cns.GetAllocatedIPConfigs())
-	freeIPConfigCount := pm.goalIPCount - allocatedIPCount
+	podIPCount := len(pm.cns.GetAllocatedIPConfigs()) + pm.cns.GetPendingAllocationIPCount() // TODO: add pending allocation count to real cns
+	freeIPConfigCount := pm.goalIPCount - podIPCount
 
 	switch {
 	// pod count is increasing
+	case podIPCount == 0:
+		logger.Printf("No pods scheduled")
+		return doNothing
+
 	case freeIPConfigCount < pm.MinimumFreeIps:
-		logger.Printf("Number of free IP's (%d) < minimum free IPs (%d), request batch increase\n", freeIPConfigCount, pm.MinimumFreeIps)
 		return increasePoolSize
 
 	// pod count is decreasing
 	case freeIPConfigCount > pm.MaximumFreeIps:
-		logger.Printf("Number of free IP's (%d) > maximum free IPs (%d), request batch decrease\n", freeIPConfigCount, pm.MaximumFreeIps)
 		return decreasePoolSize
 	}
 	return doNothing
@@ -110,6 +111,7 @@ func (pm *CNSIPAMPoolMonitor) increasePoolSize() error {
 		return err
 	}
 
+	logger.Printf("Increasing pool size, Current Pool Size: %v, Existing Goal IP Count: %v, Pods with IP's:%v, Pods waiting for IP's %v", len(pm.cns.GetPodIPConfigState()), pm.goalIPCount, len(pm.cns.GetAllocatedIPConfigs()), pm.cns.GetPendingAllocationIPCount())
 	return pm.rc.UpdateCRDSpec(context.Background(), pm.cachedSpec)
 }
 
@@ -132,6 +134,7 @@ func (pm *CNSIPAMPoolMonitor) decreasePoolSize() error {
 		return err
 	}
 
+	logger.Printf("Decreasing pool size, Current Pool Size: %v, Existing Goal IP Count: %v, Pods with IP's:%v", len(pm.cns.GetPodIPConfigState()), pm.goalIPCount, pm.cns.GetAllocatedIPConfigs())
 	return pm.rc.UpdateCRDSpec(context.Background(), pm.cachedSpec)
 }
 

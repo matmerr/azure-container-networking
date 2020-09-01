@@ -191,9 +191,9 @@ func (crdRC *crdRequestController) initCNS() error {
 		}
 
 		scalarUnits = cns.ScalarUnits{
-			BatchSize:               nodeNetConfig.Status.Scaler.BatchSize,
-			RequestThresholdPercent: nodeNetConfig.Status.Scaler.RequestThresholdPercent,
-			ReleaseThresholdPercent: nodeNetConfig.Status.Scaler.ReleaseThresholdPercent,
+			BatchSize:               int(nodeNetConfig.Status.Scaler.BatchSize),
+			RequestThresholdPercent: int(nodeNetConfig.Status.Scaler.RequestThresholdPercent),
+			ReleaseThresholdPercent: int(nodeNetConfig.Status.Scaler.ReleaseThresholdPercent),
 		}
 
 		// If instance of crd is not found, pass nil to CNSClient
