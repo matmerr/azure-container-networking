@@ -3,6 +3,7 @@ package fakes
 import (
 	"encoding/json"
 	"errors"
+	"log"
 	"net"
 	"sync"
 
@@ -79,9 +80,6 @@ func (ipm *IPStateManager) AddIPConfigs(ipconfigs []cns.IPConfigurationStatus) {
 		if ipconfigs[i].State == cns.Available {
 			ipm.AvailableIPConfigState[ipconfigs[i].ID] = ipconfigs[i]
 			ipm.AvailableIPIDStack.Push(ipconfigs[i].ID)
-			if ipm.PendingAllocationIPCount > 0 {
-				ipm.PendingAllocationIPCount--
-			}
 		} else if ipconfigs[i].State == cns.Allocated {
 			ipm.AllocatedIPConfigState[ipconfigs[i].ID] = ipconfigs[i]
 		} else if ipconfigs[i].State == cns.PendingRelease {
@@ -128,7 +126,7 @@ func NewHTTPServiceFake() *HTTPServiceFake {
 }
 
 func (fake *HTTPServiceFake) SetNumberOfAllocatedIPs(desiredAllocatedIPCount int) error {
-
+	log.Printf("[cns] Setting Allocated IPConfig count to %v", desiredAllocatedIPCount)
 	currentAllocatedIPCount := len(fake.IPStateManager.AllocatedIPConfigState)
 	delta := (desiredAllocatedIPCount - currentAllocatedIPCount)
 	// need to free some IP's
@@ -190,6 +188,19 @@ func (fake *HTTPServiceFake) GetPodIPConfigState() map[string]cns.IPConfiguratio
 		ipconfigs[key] = val
 	}
 	return ipconfigs
+}
+
+func (fake *HTTPServiceFake) AllocateTestIPConfigsToPendingPods() error {
+	for fake.IPStateManager.PendingAllocationIPCount > 0 {
+		_, err := fake.IPStateManager.ReserveIPConfig()
+		if err != nil {
+			return err
+		}
+
+		fake.IPStateManager.PendingAllocationIPCount--
+	}
+
+	return nil
 }
 
 // TODO: Populate on scale down

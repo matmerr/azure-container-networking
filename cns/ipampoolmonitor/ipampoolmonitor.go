@@ -2,10 +2,10 @@ package ipampoolmonitor
 
 import (
 	"context"
+	"log"
 	"sync"
 
 	"github.com/Azure/azure-container-networking/cns"
-	"github.com/Azure/azure-container-networking/cns/logger"
 	"github.com/Azure/azure-container-networking/cns/requestcontroller"
 	nnc "github.com/Azure/azure-container-networking/nodenetworkconfig/api/v1alpha"
 )
@@ -47,7 +47,6 @@ func (pm *CNSIPAMPoolMonitor) Start() error {
 
 func (pm *CNSIPAMPoolMonitor) Reconcile() error {
 	// get pool size, and if the size is the same size as desired spec size, mark the spec as the current state
-	// if
 
 	if pm.initialized {
 		//get number of allocated IP configs, and calculate free IP's against the cached spec
@@ -88,7 +87,7 @@ func (pm *CNSIPAMPoolMonitor) checkForResize() int {
 	switch {
 	// pod count is increasing
 	case podIPCount == 0:
-		logger.Printf("No pods scheduled")
+		log.Printf("[ipam-pool-monitor] No pods scheduled")
 		return doNothing
 
 	case freeIPConfigCount < pm.MinimumFreeIps:
@@ -111,7 +110,7 @@ func (pm *CNSIPAMPoolMonitor) increasePoolSize() error {
 		return err
 	}
 
-	logger.Printf("Increasing pool size, Current Pool Size: %v, Existing Goal IP Count: %v, Pods with IP's:%v, Pods waiting for IP's %v", len(pm.cns.GetPodIPConfigState()), pm.goalIPCount, len(pm.cns.GetAllocatedIPConfigs()), pm.cns.GetPendingAllocationIPCount())
+	log.Printf("[ipam-pool-monitor] Increasing pool size, Current Pool Size: %v, Existing Goal IP Count: %v, Pods with IP's:%v, Pods waiting for IP's %v", len(pm.cns.GetPodIPConfigState()), pm.goalIPCount, len(pm.cns.GetAllocatedIPConfigs()), pm.cns.GetPendingAllocationIPCount())
 	return pm.rc.UpdateCRDSpec(context.Background(), pm.cachedSpec)
 }
 
@@ -134,7 +133,7 @@ func (pm *CNSIPAMPoolMonitor) decreasePoolSize() error {
 		return err
 	}
 
-	logger.Printf("Decreasing pool size, Current Pool Size: %v, Existing Goal IP Count: %v, Pods with IP's:%v", len(pm.cns.GetPodIPConfigState()), pm.goalIPCount, pm.cns.GetAllocatedIPConfigs())
+	log.Printf("[ipam-pool-monitor] Decreasing pool size, Current Pool Size: %v, Existing Goal IP Count: %v, Pods with IP's:%v", len(pm.cns.GetPodIPConfigState()), pm.goalIPCount, pm.cns.GetAllocatedIPConfigs())
 	return pm.rc.UpdateCRDSpec(context.Background(), pm.cachedSpec)
 }
 

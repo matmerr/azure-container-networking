@@ -2,6 +2,7 @@ package fakes
 
 import (
 	"context"
+	"log"
 	"net"
 
 	"github.com/Azure/azure-container-networking/cns"
@@ -69,6 +70,7 @@ func (rc *RequestControllerFake) Reconcile() error {
 
 	// add IPConfigs to CNS
 	rc.fakecns.IPStateManager.AddIPConfigs(ipconfigs)
+	log.Printf("[fake-rc] Carved %v IP's to set total IPConfigs in CNS to %v", diff, len(rc.fakecns.GetPodIPConfigState()))
 
 	// update
 	rc.fakecns.PoolMonitor.UpdatePoolLimits(rc.testScalarUnits)
