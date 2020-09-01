@@ -1,6 +1,7 @@
 package ipampoolmonitor
 
 import (
+	"log"
 	"testing"
 
 	"github.com/Azure/azure-container-networking/cns"
@@ -78,6 +79,18 @@ func TestPoolSizeIncrease(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to reconcile pool monitor after request controller updates CNS state: %v", err)
 	}
+
+	// make sure IPConfig state size reflects the new pool size
+	if len(fakecns.GetPodIPConfigState()) != initialIPConfigCount+(1*batchSize) {
+		t.Fatalf("CNS Pod IPConfig state count doesn't match, expected: %v, actual %v", len(fakecns.GetPodIPConfigState()), initialIPConfigCount+(2*batchSize))
+	}
+
+	// ensure pool monitor has reached quorum with cns
+	if poolmonitor.goalIPCount != initialIPConfigCount+(1*batchSize) {
+		t.Fatalf("Pool monitor target IP count doesn't match CNS pool state after reconcile: %v, actual %v", poolmonitor.goalIPCount, len(fakecns.GetPodIPConfigState()))
+	}
+
+	log.Printf("Pool size %v, Target pool size %v, Allocated IP's %v, ", len(fakecns.GetPodIPConfigState()), poolmonitor.goalIPCount, len(fakecns.GetAllocatedIPConfigs()))
 }
 
 func TestPoolSizeIncreaseWhenAllocationCountExceedsRequestedIPCount(t *testing.T) {
@@ -124,6 +137,27 @@ func TestPoolSizeIncreaseWhenAllocationCountExceedsRequestedIPCount(t *testing.T
 		t.Fatalf("Failed to issue second CRD update when total IP count exceeds the requested IP count: %v", err)
 	}
 
+	// request controller populates CNS state with new ipconfigs
 	fakerc.Reconcile()
-	logger.Printf("Pool size %v, Target pool size %v, Allocated IP's %v, ", len(fakecns.GetPodIPConfigState()), poolmonitor.goalIPCount, len(fakecns.GetAllocatedIPConfigs()))
+	if err != nil {
+		t.Fatalf("Fake request controller failed to reconcile state with err: %v", err)
+	}
+
+	// for test scenario, assign IP's to pods that previously were unable to get IPs before pool resize
+	err = fakecns.AllocateTestIPConfigsToPendingPods()
+	if err != nil {
+		t.Fatalf("Failed to assign ipconfigs to pending pods with err: %v", err)
+	}
+
+	// make sure IPConfig state size reflects the new pool size
+	if len(fakecns.GetPodIPConfigState()) != initialIPConfigCount+(2*batchSize) {
+		t.Fatalf("CNS Pod IPConfig state count doesn't match, expected: %v, actual %v", len(fakecns.GetPodIPConfigState()), initialIPConfigCount+(2*batchSize))
+	}
+
+	// ensure pool monitor has reached quorum with cns
+	if poolmonitor.goalIPCount != initialIPConfigCount+(2*batchSize) {
+		t.Fatalf("Pool monitor target IP count doesn't match CNS pool state after reconcile: %v, actual %v", poolmonitor.goalIPCount, len(fakecns.GetPodIPConfigState()))
+	}
+
+	log.Printf("Pool size %v, Target pool size %v, Allocated IP's %v, ", len(fakecns.GetPodIPConfigState()), poolmonitor.goalIPCount, len(fakecns.GetAllocatedIPConfigs()))
 }
