@@ -56,9 +56,9 @@ func (r *CrdReconciler) Reconcile(request reconcile.Request) (reconcile.Result, 
 	}
 
 	scalarUnits := cns.ScalarUnits{
-		BatchSize:               nodeNetConfig.Status.Scaler.BatchSize,
-		RequestThresholdPercent: nodeNetConfig.Status.Scaler.RequestThresholdPercent,
-		ReleaseThresholdPercent: nodeNetConfig.Status.Scaler.ReleaseThresholdPercent,
+		BatchSize:               int(nodeNetConfig.Status.Scaler.BatchSize),
+		RequestThresholdPercent: int(nodeNetConfig.Status.Scaler.RequestThresholdPercent),
+		ReleaseThresholdPercent: int(nodeNetConfig.Status.Scaler.ReleaseThresholdPercent),
 	}
 
 	if err = r.CNSClient.CreateOrUpdateNC(ncRequest, scalarUnits); err != nil {
