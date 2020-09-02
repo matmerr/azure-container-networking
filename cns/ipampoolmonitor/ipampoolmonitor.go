@@ -61,16 +61,23 @@ func (pm *CNSIPAMPoolMonitor) Reconcile() error {
 
 func (pm *CNSIPAMPoolMonitor) checkForResize() int64 {
 
+	cnsPodIPConfigCount := len(pm.cns.GetPodIPConfigState())
+	allocatedPodIPCount := len(pm.cns.GetAllocatedIPConfigs())
+	pendingReleaseIPCount := len(pm.cns.GetPendingReleaseIPConfigs())
+	availableIPConfigCount := len(pm.cns.GetAvailableIPConfigs()) // TODO: add pending allocation count to real cns
+	freeIPConfigCount := int64(availableIPConfigCount + (int(pm.cachedSpec.RequestedIPCount) - cnsPodIPConfigCount))
+
+	// if cns pending pending ip release map is empty, request controller has already reconciled the CNS state,
+	// so we can remove it from our cache
+	if pendingReleaseIPCount == 0 {
+		pm.cachedSpec.IPsNotInUse = []string{}
+	}
+
 	// if there's a pending change to the spec count, and the pending release state is nonzero,
 	// skip so we don't thrash the UpdateCRD
 	if pm.cachedSpec.RequestedIPCount != int64(len(pm.cns.GetPodIPConfigState())) && len(pm.cns.GetPendingReleaseIPConfigs()) > 0 {
 		return doNothing
 	}
-
-	cnsPodIPConfigCount := len(pm.cns.GetPodIPConfigState())
-	allocatedPodIPCount := len(pm.cns.GetAllocatedIPConfigs())
-	availableIPConfigCount := len(pm.cns.GetAvailableIPConfigs()) // TODO: add pending allocation count to real cns
-	freeIPConfigCount := int64(availableIPConfigCount + (int(pm.cachedSpec.RequestedIPCount) - cnsPodIPConfigCount))
 
 	switch {
 	// pod count is increasing
@@ -121,12 +128,12 @@ func (pm *CNSIPAMPoolMonitor) decreasePoolSize() error {
 		return err
 	}
 
-	log.Printf("[ipam-pool-monitor] Decreasing pool size, Current Pool Size: %v, Existing Goal IP Count: %v, Pods with IP's:%v", len(pm.cns.GetPodIPConfigState()), pm.cachedSpec.RequestedIPCount, pm.cns.GetAllocatedIPConfigs())
+	log.Printf("[ipam-pool-monitor] Decreasing pool size, Current Pool Size: %v, Goal IP Count: %v, Pods with IP's: %v", len(pm.cns.GetPodIPConfigState()), pm.cachedSpec.RequestedIPCount, len(pm.cns.GetAllocatedIPConfigs()))
 	return pm.rc.UpdateCRDSpec(context.Background(), pm.cachedSpec)
 }
 
 // CNSToCRDSpec translates CNS's map of Ips to be released and requested ip count into a CRD Spec
-func CNSToCRDSpec(toBeDeletedSecondaryIPConfigs map[string]cns.SecondaryIPConfig, ipCount int64) (nnc.NodeNetworkConfigSpec, error) {
+func CNSToCRDSpec(toBeDeletedSecondaryIPConfigs map[string]cns.IPConfigurationStatus, ipCount int64) (nnc.NodeNetworkConfigSpec, error) {
 	var (
 		spec nnc.NodeNetworkConfigSpec
 		uuid string

@@ -9,14 +9,11 @@ import (
 	"github.com/google/uuid"
 )
 
-const (
-	PrivateIPRangeClassA = "10.0.0.1/8"
-)
-
 type RequestControllerFake struct {
 	fakecns         *HTTPServiceFake
 	testScalarUnits cns.ScalarUnits
-	desiredState    nnc.NodeNetworkConfigSpec
+	desiredSpec     nnc.NodeNetworkConfigSpec
+	currentStatus   nnc.NodeNetworkConfigStatus
 	ip              net.IP
 }
 
@@ -25,51 +22,102 @@ func NewRequestControllerFake(cnsService *HTTPServiceFake, scalarUnits cns.Scala
 	rc := &RequestControllerFake{
 		fakecns:         cnsService,
 		testScalarUnits: scalarUnits,
+		currentStatus: nnc.NodeNetworkConfigStatus{Scaler: nnc.Scaler{
+			BatchSize:               scalarUnits.BatchSize,
+			RequestThresholdPercent: scalarUnits.RequestThresholdPercent,
+			ReleaseThresholdPercent: scalarUnits.ReleaseThresholdPercent,
+		},
+			NetworkContainers: []nnc.NetworkContainer{
+				nnc.NetworkContainer{
+					IPAssignments:      []nnc.IPAssignment{},
+					SubnetAddressSpace: "10.0.0.0/8",
+				},
+			},
+		},
 	}
 
-	rc.ip, _, _ = net.ParseCIDR(PrivateIPRangeClassA)
-	ipconfigs := rc.carveIPs(numberOfIPConfigs)
-
-	cnsService.IPStateManager.AddIPConfigs(ipconfigs[0:numberOfIPConfigs])
+	rc.ip, _, _ = net.ParseCIDR(rc.currentStatus.NetworkContainers[0].SubnetAddressSpace)
+	rc.CarveIPConfigsAndAddToStatusAndCNS(numberOfIPConfigs)
 
 	return rc
 }
 
-func (rc *RequestControllerFake) carveIPs(ipCount int) []cns.IPConfigurationStatus {
-	var ipconfigs []cns.IPConfigurationStatus
-	for i := 0; i < ipCount; i++ {
-		ipconfig := cns.IPConfigurationStatus{
-			ID:        uuid.New().String(),
-			IPAddress: rc.ip.String(),
+func (rc *RequestControllerFake) CarveIPConfigsAndAddToStatusAndCNS(numberOfIPConfigs int) []cns.IPConfigurationStatus {
+	var cnsIPConfigs []cns.IPConfigurationStatus
+	for i := 0; i < numberOfIPConfigs; i++ {
+
+		ipconfigCRD := nnc.IPAssignment{
+			Name: uuid.New().String(),
+			IP:   rc.ip.String(),
+		}
+		rc.currentStatus.NetworkContainers[0].IPAssignments = append(rc.currentStatus.NetworkContainers[0].IPAssignments, ipconfigCRD)
+
+		ipconfigCNS := cns.IPConfigurationStatus{
+			ID:        ipconfigCRD.Name,
+			IPAddress: ipconfigCRD.IP,
 			State:     cns.Available,
 		}
-		ipconfigs = append(ipconfigs, ipconfig)
+		cnsIPConfigs = append(cnsIPConfigs, ipconfigCNS)
+
 		incrementIP(rc.ip)
 	}
-	return ipconfigs
+
+	rc.fakecns.IPStateManager.AddIPConfigs(cnsIPConfigs)
+
+	return cnsIPConfigs
 }
 
 func (rc *RequestControllerFake) StartRequestController(exitChan <-chan struct{}) error {
 	return nil
 }
 
-func (rc *RequestControllerFake) UpdateCRDSpec(cntxt context.Context, crdSpec nnc.NodeNetworkConfigSpec) error {
-	rc.desiredState = crdSpec
+func (rc *RequestControllerFake) UpdateCRDSpec(cntxt context.Context, desiredSpec nnc.NodeNetworkConfigSpec) error {
+	rc.desiredSpec = desiredSpec
+
 	return nil
+}
+
+func remove(slice []nnc.IPAssignment, s int) []nnc.IPAssignment {
+	return append(slice[:s], slice[s+1:]...)
 }
 
 func (rc *RequestControllerFake) Reconcile() error {
 
-	rc.fakecns.GetPodIPConfigState()
-	diff := int(rc.desiredState.RequestedIPCount) - len(rc.fakecns.GetPodIPConfigState())
+	diff := int(rc.desiredSpec.RequestedIPCount) - len(rc.fakecns.GetPodIPConfigState())
 
-	// carve the difference of test IPs
-	ipconfigs := rc.carveIPs(diff)
+	if diff > 0 {
+		// carve the difference of test IPs and add them to CNS, assume dnc has populated the CRD status
+		rc.CarveIPConfigsAndAddToStatusAndCNS(diff)
 
-	// add IPConfigs to CNS
-	rc.fakecns.IPStateManager.AddIPConfigs(ipconfigs)
+	} else if diff < 0 {
 
-	return rc.fakecns.PoolMonitor.UpdatePoolLimits(rc.testScalarUnits)
+		// Assume DNC has removed the IPConfigs from the status
+
+		// mimic DNC removing IPConfigs from the CRD
+		for _, notInUseIPConfigName := range rc.desiredSpec.IPsNotInUse {
+
+			// remove ipconfig from status
+			index := 0
+			for _, ipconfig := range rc.currentStatus.NetworkContainers[0].IPAssignments {
+				if notInUseIPConfigName == ipconfig.Name {
+					break
+				}
+				index++
+			}
+			rc.currentStatus.NetworkContainers[0].IPAssignments = remove(rc.currentStatus.NetworkContainers[0].IPAssignments, index)
+
+		}
+
+		// remove ipconfig from CNS
+		rc.fakecns.IPStateManager.RemovePendingReleaseIPConfigs(rc.desiredSpec.IPsNotInUse)
+
+		// empty the not in use ip's from the spec
+		rc.desiredSpec.IPsNotInUse = []string{}
+	}
+	// update
+	rc.fakecns.PoolMonitor.UpdatePoolLimits(rc.testScalarUnits)
+
+	return nil
 }
 
 func incrementIP(ip net.IP) {
