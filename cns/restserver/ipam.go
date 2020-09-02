@@ -90,8 +90,8 @@ func (service *HTTPRestService) releaseIPConfigHandler(w http.ResponseWriter, r 
 	return
 }
 
-func (service *HTTPRestService) MarkIPsAsPending(numberToMark int) (map[string]cns.SecondaryIPConfig, error) {
-	pendingReleaseIPs := make(map[string]cns.SecondaryIPConfig)
+func (service *HTTPRestService) MarkIPsAsPending(numberToMark int) (map[string]cns.IPConfigurationStatus, error) {
+	pendingReleaseIPs := make(map[string]cns.IPConfigurationStatus)
 	markedIPCount := 0
 
 	service.Lock()
@@ -99,9 +99,7 @@ func (service *HTTPRestService) MarkIPsAsPending(numberToMark int) (map[string]c
 	for uuid, ipconfig := range service.PodIPConfigState {
 		if ipconfig.State == cns.Available {
 			ipconfig.State = cns.PendingRelease
-			pendingReleaseIPs[uuid] = cns.SecondaryIPConfig{
-				IPAddress: ipconfig.IPAddress,
-			}
+			pendingReleaseIPs[uuid] = service.PodIPConfigState[uuid]
 			markedIPCount++
 			if markedIPCount == numberToMark {
 				return pendingReleaseIPs, nil
