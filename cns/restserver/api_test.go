@@ -18,7 +18,6 @@ import (
 	"github.com/Azure/azure-container-networking/cns"
 	"github.com/Azure/azure-container-networking/cns/common"
 	"github.com/Azure/azure-container-networking/cns/fakes"
-	"github.com/Azure/azure-container-networking/cns/ipampoolmonitor"
 	"github.com/Azure/azure-container-networking/cns/logger"
 	acncommon "github.com/Azure/azure-container-networking/common"
 )
@@ -678,9 +677,7 @@ func startService() {
 		}
 	}
 
-	fakecns := fakes.NewHTTPServiceFake()
-	fakerc := fakes.NewRequestControllerFake(fakecns, cns.ScalarUnits{BatchSize: 10, RequestThresholdPercent: 30, ReleaseThresholdPercent: 100}, 10)
-	service.(*HTTPRestService).PoolMonitor = ipampoolmonitor.NewCNSIPAMPoolMonitor(fakecns, fakerc)
+	service.(*HTTPRestService).PoolMonitor = fakes.NewIPAMPoolMonitorFake()
 
 	// Get the internal http mux as test hook.
 	mux = service.(*HTTPRestService).Listener.GetMux()

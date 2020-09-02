@@ -18,7 +18,6 @@ type RequestControllerFake struct {
 }
 
 func NewRequestControllerFake(cnsService *HTTPServiceFake, scalarUnits cns.ScalarUnits, numberOfIPConfigs int) *RequestControllerFake {
-
 	rc := &RequestControllerFake{
 		fakecns:         cnsService,
 		testScalarUnits: scalarUnits,
@@ -28,16 +27,18 @@ func NewRequestControllerFake(cnsService *HTTPServiceFake, scalarUnits cns.Scala
 			ReleaseThresholdPercent: scalarUnits.ReleaseThresholdPercent,
 		},
 			NetworkContainers: []nnc.NetworkContainer{
-				nnc.NetworkContainer{
+				{
 					IPAssignments:      []nnc.IPAssignment{},
 					SubnetAddressSpace: "10.0.0.0/8",
 				},
 			},
 		},
+		desiredSpec: nnc.NodeNetworkConfigSpec{
+			RequestedIPCount: int64(numberOfIPConfigs),
+		},
 	}
 
 	rc.ip, _, _ = net.ParseCIDR(rc.currentStatus.NetworkContainers[0].SubnetAddressSpace)
-	rc.CarveIPConfigsAndAddToStatusAndCNS(numberOfIPConfigs)
 
 	return rc
 }
@@ -63,6 +64,7 @@ func (rc *RequestControllerFake) CarveIPConfigsAndAddToStatusAndCNS(numberOfIPCo
 	}
 
 	rc.fakecns.IPStateManager.AddIPConfigs(cnsIPConfigs)
+	rc.desiredSpec.RequestedIPCount = int64(len(cnsIPConfigs))
 
 	return cnsIPConfigs
 }
@@ -114,8 +116,9 @@ func (rc *RequestControllerFake) Reconcile() error {
 		// empty the not in use ip's from the spec
 		rc.desiredSpec.IPsNotInUse = []string{}
 	}
+
 	// update
-	rc.fakecns.PoolMonitor.UpdatePoolLimits(rc.testScalarUnits)
+	rc.fakecns.PoolMonitor.UpdatePoolMonitor(rc.testScalarUnits)
 
 	return nil
 }

@@ -38,11 +38,12 @@ import (
 
 const (
 	// Service name.
-	name                            = "azure-cns"
-	pluginName                      = "azure-vnet"
-	defaultCNINetworkConfigFileName = "10-azure.conflist"
-	configFileName                  = "config.json"
-	dncApiVersion                   = "?api-version=2018-03-01"
+	name                              = "azure-cns"
+	pluginName                        = "azure-vnet"
+	defaultCNINetworkConfigFileName   = "10-azure.conflist"
+	configFileName                    = "config.json"
+	dncApiVersion                     = "?api-version=2018-03-01"
+	poolIPAMRefreshRateInMilliseconds = 1000
 )
 
 // Version is populated by make during build.
@@ -472,9 +473,15 @@ func main() {
 			}
 		}()
 
-		poolMonitor := ipampoolmonitor.NewCNSIPAMPoolMonitor(httpRestService, requestController)
-
-		httpRestServiceImplementation.PoolMonitor = poolMonitor
+		ipamPoolMonitorControllerStopChannel := make(chan struct{})
+		defer close(ipamPoolMonitorControllerStopChannel)
+		go func() {
+			poolMonitor := ipampoolmonitor.NewCNSIPAMPoolMonitor(httpRestService, requestController)
+			httpRestServiceImplementation.PoolMonitor = poolMonitor
+			if err := poolMonitor.Start(poolIPAMRefreshRateInMilliseconds, ipamPoolMonitorControllerStopChannel); err != nil {
+				logger.Errorf("[Azure CNS] Failed to start pool monitor with err: %v", err)
+			}
+		}()
 	}
 
 	var netPlugin network.NetPlugin

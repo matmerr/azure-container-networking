@@ -251,8 +251,12 @@ func (crdRC *crdRequestController) UpdateCRDSpec(cntxt context.Context, crdSpec 
 		return err
 	}
 
+	logger.Printf("[cns-rc] Received update for IP count %+v", crdSpec)
+
 	//Update the CRD spec
 	crdSpec.DeepCopyInto(&nodeNetworkConfig.Spec)
+
+	logger.Printf("[cns-rc] After deep copy %+v", nodeNetworkConfig.Spec)
 
 	//Send update to API server
 	if err := crdRC.updateNodeNetConfig(cntxt, nodeNetworkConfig); err != nil {

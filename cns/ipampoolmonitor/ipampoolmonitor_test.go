@@ -23,7 +23,8 @@ func initFakes(batchSize, initialIPConfigCount, requestThresholdPercent, release
 	poolmonitor := NewCNSIPAMPoolMonitor(fakecns, fakerc)
 	fakecns.PoolMonitor = poolmonitor
 
-	poolmonitor.UpdatePoolLimits(scalarUnits)
+	fakerc.Reconcile()
+
 	return fakecns, fakerc, poolmonitor
 }
 
@@ -37,19 +38,8 @@ func TestPoolSizeIncrease(t *testing.T) {
 
 	fakecns, fakerc, poolmonitor := initFakes(batchSize, initialIPConfigCount, requestThresholdPercent, releaseThresholdPercent)
 
-	// Effectively calling reconcile on start
-	err := poolmonitor.Reconcile()
-	if err != nil {
-		t.Fatalf("Failed to initialize poolmonitor on start with err: %v", err)
-	}
-
-	// ensure pool monitor has reached quorum with cns
-	if poolmonitor.cachedSpec.RequestedIPCount != int64(initialIPConfigCount) {
-		t.Fatalf("Pool monitor target IP count doesn't match CNS pool state after reconcile: %v, actual %v", poolmonitor.cachedSpec.RequestedIPCount, len(fakecns.GetPodIPConfigState()))
-	}
-
 	// increase number of allocated IP's in CNS
-	err = fakecns.SetNumberOfAllocatedIPs(8)
+	err := fakecns.SetNumberOfAllocatedIPs(8)
 	if err != nil {
 		t.Fatalf("Failed to allocate test ipconfigs with err: %v", err)
 	}
@@ -101,19 +91,8 @@ func TestPoolIncreaseDoesntChangeWhenIncreaseIsAlreadyInProgress(t *testing.T) {
 
 	fakecns, fakerc, poolmonitor := initFakes(batchSize, initialIPConfigCount, requestThresholdPercent, releaseThresholdPercent)
 
-	// Effectively calling reconcile on start
-	err := poolmonitor.Reconcile()
-	if err != nil {
-		t.Fatalf("Failed to initialize poolmonitor on start with err: %v", err)
-	}
-
-	// ensure pool monitor has reached quorum with cns
-	if poolmonitor.cachedSpec.RequestedIPCount != int64(initialIPConfigCount) {
-		t.Fatalf("Pool monitor target IP count doesn't match CNS pool state after reconcile: %v, actual %v", poolmonitor.cachedSpec.RequestedIPCount, len(fakecns.GetPodIPConfigState()))
-	}
-
 	// increase number of allocated IP's in CNS
-	err = fakecns.SetNumberOfAllocatedIPs(8)
+	err := fakecns.SetNumberOfAllocatedIPs(8)
 	if err != nil {
 		t.Fatalf("Failed to allocate test ipconfigs with err: %v", err)
 	}
@@ -180,9 +159,6 @@ func TestPoolSizeIncreaseIdempotency(t *testing.T) {
 	t.Logf("Minimum free IPs to request: %v", poolmonitor.MinimumFreeIps)
 	t.Logf("Maximum free IPs to release: %v", poolmonitor.MaximumFreeIps)
 
-	// Effectively calling reconcile on start
-	poolmonitor.Reconcile()
-
 	// increase number of allocated IP's in CNS
 	err := fakecns.SetNumberOfAllocatedIPs(8)
 	if err != nil {
@@ -225,34 +201,28 @@ func TestPoolDecrease(t *testing.T) {
 	log.Printf("Min free IP's %v", poolmonitor.MinimumFreeIps)
 	log.Printf("Max free IP %v", poolmonitor.MaximumFreeIps)
 
-	// Effectively calling reconcile on start, likely when no pods are scheduled
-	err := poolmonitor.Reconcile()
-	if err != nil {
-		t.Errorf("%v", err)
-	}
-
 	// initial pool count is 20, set 15 of them to be allocated
-	err = fakecns.SetNumberOfAllocatedIPs(15)
+	err := fakecns.SetNumberOfAllocatedIPs(15)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	// Pool monitor does nothing, as the current number of IP's falls in the threshold
 	err = poolmonitor.Reconcile()
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	// Decrease the number of allocated IP's down to 5. This should trigger a scale down
 	err = fakecns.SetNumberOfAllocatedIPs(4)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	// Pool monitor will adjust the spec so the pool size will be 1 batch size smaller
 	err = poolmonitor.Reconcile()
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	// ensure that the adjusted spec is smaller than the initial pool size
@@ -263,7 +233,7 @@ func TestPoolDecrease(t *testing.T) {
 	// reconcile the fake request controller
 	err = fakerc.Reconcile()
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	// Ensure the size of the requested spec is still the same
@@ -287,14 +257,8 @@ func TestPoolSizeDecreaseWhenDecreaseHasAlreadyBeenRequested(t *testing.T) {
 	log.Printf("Min free IP's %v", poolmonitor.MinimumFreeIps)
 	log.Printf("Max free IP %v", poolmonitor.MaximumFreeIps)
 
-	// Effectively calling reconcile on start
-	err := poolmonitor.Reconcile()
-	if err != nil {
-		t.Fatalf("Failed reconcile pool on start %v", err)
-	}
-
 	// initial pool count is 30, set 25 of them to be allocated
-	err = fakecns.SetNumberOfAllocatedIPs(5)
+	err := fakecns.SetNumberOfAllocatedIPs(5)
 	if err != nil {
 		t.Error(err)
 	}

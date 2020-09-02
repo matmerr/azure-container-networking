@@ -96,10 +96,12 @@ func (service *HTTPRestService) MarkIPsAsPending(numberToMark int) (map[string]c
 
 	service.Lock()
 	defer service.Unlock()
-	for uuid, ipconfig := range service.PodIPConfigState {
-		if ipconfig.State == cns.Available {
-			ipconfig.State = cns.PendingRelease
-			pendingReleaseIPs[uuid] = service.PodIPConfigState[uuid]
+	for uuid, _ := range service.PodIPConfigState {
+		mutableIPConfig := service.PodIPConfigState[uuid]
+		if mutableIPConfig.State == cns.Available {
+			mutableIPConfig.State = cns.PendingRelease
+			service.PodIPConfigState[uuid] = mutableIPConfig
+			pendingReleaseIPs[uuid] = mutableIPConfig
 			markedIPCount++
 			if markedIPCount == numberToMark {
 				return pendingReleaseIPs, nil
@@ -111,6 +113,8 @@ func (service *HTTPRestService) MarkIPsAsPending(numberToMark int) (map[string]c
 }
 
 func (service *HTTPRestService) GetPodIPConfigState() map[string]cns.IPConfigurationStatus {
+	service.RLock()
+	defer service.RUnlock()
 	return service.PodIPConfigState
 }
 

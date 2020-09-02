@@ -12,10 +12,8 @@ import (
 	"reflect"
 
 	"github.com/Azure/azure-container-networking/cns"
-	"github.com/Azure/azure-container-networking/cns/ipampoolmonitor"
 	"github.com/Azure/azure-container-networking/cns/logger"
 	"github.com/Azure/azure-container-networking/cns/nmagentclient"
-	"github.com/Azure/azure-container-networking/cns/requestcontroller"
 	"github.com/Azure/azure-container-networking/common"
 	"github.com/Azure/azure-container-networking/log"
 )
@@ -152,12 +150,6 @@ func (service *HTTPRestService) SyncNodeStatus(dncEP, infraVnet, nodeID string, 
 	return
 }
 
-func (service *HTTPRestService) StartCNSIPAMPoolMonitor(cnsService cns.HTTPService, requestController requestcontroller.RequestController) {
-
-	// TODO, start pool monitor as well
-	service.PoolMonitor = ipampoolmonitor.NewCNSIPAMPoolMonitor(cnsService, requestController)
-}
-
 // This API will be called by CNS RequestController on CRD update.
 func (service *HTTPRestService) ReconcileNCState(ncRequest *cns.CreateNetworkContainerRequest, podInfoByIp map[string]cns.KubernetesPodInfo, scalarUnits cns.ScalarUnits) int {
 	// check if ncRequest is null, then return as there is no CRD state yet
@@ -252,7 +244,7 @@ func (service *HTTPRestService) CreateOrUpdateNetworkContainerInternal(req cns.C
 		logger.Errorf(returnMessage)
 	}
 
-	err = service.PoolMonitor.UpdatePoolLimits(scalarUnits)
+	err = service.PoolMonitor.UpdatePoolMonitor(scalarUnits)
 	if err != nil {
 		logger.Errorf("[Azure CNS] Error. Reference to CNS not set in IPAM Pool Monitor: %v", req)
 		return UnexpectedError

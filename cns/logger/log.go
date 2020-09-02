@@ -137,9 +137,9 @@ func Request(tag string, request interface{}, err error) {
 
 	var msg string
 	if err == nil {
-		msg = fmt.Sprintf("[%s] Received %T %+v.", tag, request, request)
+		//msg = fmt.Sprintf("[%s] Received %T %+v.", tag, request, request)
 	} else {
-		msg = fmt.Sprintf("[%s] Failed to decode %T %+v %s.", tag, request, request, err.Error())
+		//msg = fmt.Sprintf("[%s] Failed to decode %T %+v %s.", tag, request, request, err.Error())
 	}
 
 	sendTraceInternal(msg)
@@ -154,7 +154,7 @@ func Response(tag string, response interface{}, returnCode int, returnStr string
 
 	var msg string
 	if err == nil && returnCode == 0 {
-		msg = fmt.Sprintf("[%s] Sent %T %+v.", tag, response, response)
+		//msg = fmt.Sprintf("[%s] Sent %T %+v.", tag, response, response)
 	} else if err != nil {
 		msg = fmt.Sprintf("[%s] Code:%s, %+v %s.", tag, returnStr, response, err.Error())
 	} else {
