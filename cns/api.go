@@ -169,9 +169,9 @@ type IPAMPoolMonitor interface {
 }
 
 type ScalarUnits struct {
-	BatchSize               int
-	RequestThresholdPercent int
-	ReleaseThresholdPercent int
+	BatchSize               int64
+	RequestThresholdPercent int64
+	ReleaseThresholdPercent int64
 }
 
 // Response describes generic response from CNS.

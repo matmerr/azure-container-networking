@@ -2,8 +2,8 @@ package fakes
 
 import (
 	"context"
-	"log"
 	"net"
+	"testing"
 
 	"github.com/Azure/azure-container-networking/cns"
 	nnc "github.com/Azure/azure-container-networking/nodenetworkconfig/api/v1alpha"
@@ -19,12 +19,13 @@ var (
 )
 
 type RequestControllerFake struct {
+	t               *testing.T
 	fakecns         *HTTPServiceFake
 	testScalarUnits cns.ScalarUnits
 	desiredState    nnc.NodeNetworkConfigSpec
 }
 
-func NewRequestControllerFake(cnsService *HTTPServiceFake, scalarUnits cns.ScalarUnits, numberOfIPConfigs int) *RequestControllerFake {
+func NewRequestControllerFake(t *testing.T, cnsService *HTTPServiceFake, scalarUnits cns.ScalarUnits, numberOfIPConfigs int) *RequestControllerFake {
 
 	ip, _, _ = net.ParseCIDR(PrivateIPRangeClassA)
 	ipconfigs := carveIPs(numberOfIPConfigs)
@@ -34,6 +35,7 @@ func NewRequestControllerFake(cnsService *HTTPServiceFake, scalarUnits cns.Scala
 	return &RequestControllerFake{
 		fakecns:         cnsService,
 		testScalarUnits: scalarUnits,
+		t:               t,
 	}
 }
 
@@ -70,7 +72,7 @@ func (rc *RequestControllerFake) Reconcile() error {
 
 	// add IPConfigs to CNS
 	rc.fakecns.IPStateManager.AddIPConfigs(ipconfigs)
-	log.Printf("[fake-rc] Carved %v IP's to set total IPConfigs in CNS to %v", diff, len(rc.fakecns.GetPodIPConfigState()))
+	rc.t.Logf("[fake-rc] Carved %v IP's to set total IPConfigs in CNS to %v", diff, len(rc.fakecns.GetPodIPConfigState()))
 
 	// update
 	rc.fakecns.PoolMonitor.UpdatePoolLimits(rc.testScalarUnits)

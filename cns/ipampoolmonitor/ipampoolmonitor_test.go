@@ -1,7 +1,6 @@
 package ipampoolmonitor
 
 import (
-	"log"
 	"testing"
 
 	"github.com/Azure/azure-container-networking/cns"
@@ -9,17 +8,17 @@ import (
 	"github.com/Azure/azure-container-networking/cns/logger"
 )
 
-func initFakes(batchSize, initialIPConfigCount, requestThresholdPercent, releaseThresholdPercent int) (*fakes.HTTPServiceFake, *fakes.RequestControllerFake, *CNSIPAMPoolMonitor) {
+func initFakes(t *testing.T, batchSize, initialIPConfigCount, requestThresholdPercent, releaseThresholdPercent int) (*fakes.HTTPServiceFake, *fakes.RequestControllerFake, *CNSIPAMPoolMonitor) {
 	logger.InitLogger("testlogs", 0, 0, "./")
 
 	scalarUnits := cns.ScalarUnits{
-		BatchSize:               batchSize,
-		RequestThresholdPercent: requestThresholdPercent,
-		ReleaseThresholdPercent: releaseThresholdPercent,
+		BatchSize:               int64(batchSize),
+		RequestThresholdPercent: int64(requestThresholdPercent),
+		ReleaseThresholdPercent: int64(releaseThresholdPercent),
 	}
 
-	fakecns := fakes.NewHTTPServiceFake()
-	fakerc := fakes.NewRequestControllerFake(fakecns, scalarUnits, initialIPConfigCount)
+	fakecns := fakes.NewHTTPServiceFake(t)
+	fakerc := fakes.NewRequestControllerFake(t, fakecns, scalarUnits, initialIPConfigCount)
 	poolmonitor := NewCNSIPAMPoolMonitor(fakecns, fakerc)
 	fakecns.PoolMonitor = poolmonitor
 
@@ -35,7 +34,7 @@ func TestPoolSizeIncrease(t *testing.T) {
 		releaseThresholdPercent = 150
 	)
 
-	fakecns, fakerc, poolmonitor := initFakes(batchSize, initialIPConfigCount, requestThresholdPercent, releaseThresholdPercent)
+	fakecns, fakerc, poolmonitor := initFakes(t, batchSize, initialIPConfigCount, requestThresholdPercent, releaseThresholdPercent)
 
 	t.Logf("Minimum free IPs to request: %v", poolmonitor.MinimumFreeIps)
 	t.Logf("Maximum free IPs to release: %v", poolmonitor.MaximumFreeIps)
@@ -86,11 +85,11 @@ func TestPoolSizeIncrease(t *testing.T) {
 	}
 
 	// ensure pool monitor has reached quorum with cns
-	if poolmonitor.goalIPCount != initialIPConfigCount+(1*batchSize) {
-		t.Fatalf("Pool monitor target IP count doesn't match CNS pool state after reconcile: %v, actual %v", poolmonitor.goalIPCount, len(fakecns.GetPodIPConfigState()))
+	if poolmonitor.cachedSpec.RequestedIPCount != int64(initialIPConfigCount+(1*batchSize)) {
+		t.Fatalf("Pool monitor target IP count doesn't match CNS pool state after reconcile: %v, actual %v", poolmonitor.cachedSpec.RequestedIPCount, len(fakecns.GetPodIPConfigState()))
 	}
 
-	log.Printf("Pool size %v, Target pool size %v, Allocated IP's %v, ", len(fakecns.GetPodIPConfigState()), poolmonitor.goalIPCount, len(fakecns.GetAllocatedIPConfigs()))
+	t.Logf("Pool size %v, Target pool size %v, Allocated IP's %v, ", len(fakecns.GetPodIPConfigState()), poolmonitor.cachedSpec.RequestedIPCount, len(fakecns.GetAllocatedIPConfigs()))
 }
 
 func TestPoolSizeIncreaseWhenAllocationCountExceedsRequestedIPCount(t *testing.T) {
@@ -101,7 +100,7 @@ func TestPoolSizeIncreaseWhenAllocationCountExceedsRequestedIPCount(t *testing.T
 		releaseThresholdPercent = 150
 	)
 
-	fakecns, fakerc, poolmonitor := initFakes(batchSize, initialIPConfigCount, requestThresholdPercent, releaseThresholdPercent)
+	fakecns, fakerc, poolmonitor := initFakes(t, batchSize, initialIPConfigCount, requestThresholdPercent, releaseThresholdPercent)
 
 	t.Logf("Minimum free IPs to request: %v", poolmonitor.MinimumFreeIps)
 	t.Logf("Maximum free IPs to release: %v", poolmonitor.MaximumFreeIps)
@@ -124,8 +123,9 @@ func TestPoolSizeIncreaseWhenAllocationCountExceedsRequestedIPCount(t *testing.T
 		t.Fatalf("Failed to allocate test ipconfigs with err: %v", err)
 	}
 
-	// increase number of allocated IP's in CNS, such that the new IP count won't fit in the pending update
-	err = fakecns.SetNumberOfAllocatedIPs(25)
+	// at this point pool size is 20, increase number of allocated IP's to 35,
+	// pool will need to be resized to 40, which is 2x the batch size
+	err = fakecns.SetNumberOfAllocatedIPs(35)
 	if err != nil {
 		t.Fatalf("Failed to allocate test ipconfigs with err: %v", err)
 	}
@@ -150,14 +150,59 @@ func TestPoolSizeIncreaseWhenAllocationCountExceedsRequestedIPCount(t *testing.T
 	}
 
 	// make sure IPConfig state size reflects the new pool size
-	if len(fakecns.GetPodIPConfigState()) != initialIPConfigCount+(2*batchSize) {
-		t.Fatalf("CNS Pod IPConfig state count doesn't match, expected: %v, actual %v", len(fakecns.GetPodIPConfigState()), initialIPConfigCount+(2*batchSize))
+	if len(fakecns.GetPodIPConfigState()) != initialIPConfigCount+(3*batchSize) {
+		t.Fatalf("CNS Pod IPConfig state count doesn't match, expected: %v, actual %v", len(fakecns.GetPodIPConfigState()), initialIPConfigCount+(3*batchSize))
 	}
 
 	// ensure pool monitor has reached quorum with cns
-	if poolmonitor.goalIPCount != initialIPConfigCount+(2*batchSize) {
-		t.Fatalf("Pool monitor target IP count doesn't match CNS pool state after reconcile: %v, actual %v", poolmonitor.goalIPCount, len(fakecns.GetPodIPConfigState()))
+	if int(poolmonitor.cachedSpec.RequestedIPCount) != initialIPConfigCount+(3*batchSize) {
+		t.Fatalf("Pool monitor target IP count doesn't match CNS pool state after reconcile: %v, actual %v", poolmonitor.cachedSpec.RequestedIPCount, initialIPConfigCount+(3*batchSize))
 	}
 
-	log.Printf("Pool size %v, Target pool size %v, Allocated IP's %v, ", len(fakecns.GetPodIPConfigState()), poolmonitor.goalIPCount, len(fakecns.GetAllocatedIPConfigs()))
+	t.Logf("Pool size %v, Target pool size %v, Allocated IP's %v, ", len(fakecns.GetPodIPConfigState()), poolmonitor.cachedSpec.RequestedIPCount, initialIPConfigCount+(3*batchSize))
+}
+
+func TestPoolSizeIncreaseIdempotency(t *testing.T) {
+	var (
+		batchSize               = 10
+		initialIPConfigCount    = 10
+		requestThresholdPercent = 30
+		releaseThresholdPercent = 150
+	)
+
+	fakecns, _, poolmonitor := initFakes(t, batchSize, initialIPConfigCount, requestThresholdPercent, releaseThresholdPercent)
+
+	t.Logf("Minimum free IPs to request: %v", poolmonitor.MinimumFreeIps)
+	t.Logf("Maximum free IPs to release: %v", poolmonitor.MaximumFreeIps)
+
+	// Effectively calling reconcile on start
+	poolmonitor.Reconcile()
+
+	// increase number of allocated IP's in CNS
+	err := fakecns.SetNumberOfAllocatedIPs(8)
+	if err != nil {
+		t.Fatalf("Failed to allocate test ipconfigs with err: %v", err)
+	}
+
+	// When poolmonitor reconcile is called, trigger increase and cache goal state
+	err = poolmonitor.Reconcile()
+	if err != nil {
+		t.Fatalf("Failed to allocate test ipconfigs with err: %v", err)
+	}
+
+	// ensure pool monitor has increased batch size
+	if poolmonitor.cachedSpec.RequestedIPCount != int64(initialIPConfigCount+(1*batchSize)) {
+		t.Fatalf("Pool monitor target IP count doesn't match CNS pool state after reconcile: %v, actual %v", poolmonitor.cachedSpec.RequestedIPCount, len(fakecns.GetPodIPConfigState()))
+	}
+
+	// reconcile pool monitor a second time, then verify requested ip count is still the same
+	err = poolmonitor.Reconcile()
+	if err != nil {
+		t.Fatalf("Failed to allocate test ipconfigs with err: %v", err)
+	}
+
+	// ensure pool monitor requested pool size is unchanged as request controller hasn't reconciled yet
+	if poolmonitor.cachedSpec.RequestedIPCount != int64(initialIPConfigCount+(1*batchSize)) {
+		t.Fatalf("Pool monitor target IP count doesn't match CNS pool state after reconcile: %v, actual %v", poolmonitor.cachedSpec.RequestedIPCount, len(fakecns.GetPodIPConfigState()))
+	}
 }
