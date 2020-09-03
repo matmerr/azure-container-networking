@@ -132,9 +132,12 @@ func (service *HTTPRestService) GetAvailableIPConfigs() []cns.IPConfigurationSta
 	})
 }
 
-// TODO: implement this for pool resizing to know how many IP's have requested above the current pool size
-func (service *HTTPRestService) GetPendingAllocationIPCount() int {
-	return 0
+func (service *HTTPRestService) GetPendingReleaseIPConfigs() []cns.IPConfigurationStatus {
+	service.RLock()
+	defer service.RUnlock()
+	return filterIPConfigMap(service.PodIPConfigState, func(ipconfig cns.IPConfigurationStatus) bool {
+		return ipconfig.State == cns.PendingRelease
+	})
 }
 
 func filterIPConfigMap(toBeAdded map[string]cns.IPConfigurationStatus, f func(cns.IPConfigurationStatus) bool) []cns.IPConfigurationStatus {

@@ -58,7 +58,6 @@ type IPStateManager struct {
 	AllocatedIPConfigState      map[string]cns.IPConfigurationStatus
 	PendingReleaseIPConfigState map[string]cns.IPConfigurationStatus
 	AvailableIPIDStack          StringStack
-	PendingAllocationIPCount    int
 	sync.RWMutex
 }
 
@@ -68,7 +67,6 @@ func NewIPStateManager() IPStateManager {
 		AllocatedIPConfigState:      make(map[string]cns.IPConfigurationStatus),
 		PendingReleaseIPConfigState: make(map[string]cns.IPConfigurationStatus),
 		AvailableIPIDStack:          StringStack{},
-		PendingAllocationIPCount:    0,
 	}
 }
 
@@ -134,7 +132,7 @@ func (fake *HTTPServiceFake) SetNumberOfAllocatedIPs(desiredAllocatedIPCount int
 	for i := 0; i < delta; i++ {
 		_, err := fake.IPStateManager.ReserveIPConfig()
 		if err != nil {
-			fake.IPStateManager.PendingAllocationIPCount++
+			return err
 		}
 	}
 
@@ -172,8 +170,12 @@ func (fake *HTTPServiceFake) GetAllocatedIPConfigs() []cns.IPConfigurationStatus
 	return ipconfigs
 }
 
-func (fake *HTTPServiceFake) GetPendingAllocationIPCount() int {
-	return fake.IPStateManager.PendingAllocationIPCount
+func (fake *HTTPServiceFake) GetPendingReleaseIPConfigs() []cns.IPConfigurationStatus {
+	ipconfigs := []cns.IPConfigurationStatus{}
+	for _, ipconfig := range fake.IPStateManager.PendingReleaseIPConfigState {
+		ipconfigs = append(ipconfigs, ipconfig)
+	}
+	return ipconfigs
 }
 
 // Return union of all state maps
@@ -189,19 +191,6 @@ func (fake *HTTPServiceFake) GetPodIPConfigState() map[string]cns.IPConfiguratio
 		ipconfigs[key] = val
 	}
 	return ipconfigs
-}
-
-func (fake *HTTPServiceFake) AllocateTestIPConfigsToPendingPods() error {
-	for fake.IPStateManager.PendingAllocationIPCount > 0 {
-		_, err := fake.IPStateManager.ReserveIPConfig()
-		if err != nil {
-			return err
-		}
-
-		fake.IPStateManager.PendingAllocationIPCount--
-	}
-
-	return nil
 }
 
 // TODO: Populate on scale down
