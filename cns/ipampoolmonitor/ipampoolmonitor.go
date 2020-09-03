@@ -3,7 +3,6 @@ package ipampoolmonitor
 import (
 	"context"
 	"log"
-	"math"
 	"sync"
 
 	"github.com/Azure/azure-container-networking/cns"
@@ -47,43 +46,50 @@ func (pm *CNSIPAMPoolMonitor) Start() error {
 func (pm *CNSIPAMPoolMonitor) Reconcile() error {
 	if pm.initialized {
 		//get number of allocated IP configs, and calculate free IP's against the cached spec
-		rebatchAction, batchSizeMultiplier := pm.checkForResize()
+		rebatchAction := pm.checkForResize()
 		switch rebatchAction {
 		case increasePoolSize:
-			return pm.increasePoolSize(int64(batchSizeMultiplier))
+			return pm.increasePoolSize()
 		case decreasePoolSize:
-			return pm.decreasePoolSize(int64(batchSizeMultiplier))
+			return pm.decreasePoolSize()
 		}
 	}
 
 	return nil
 }
 
-func (pm *CNSIPAMPoolMonitor) checkForResize() (int64, float64) {
-	podIPCount := len(pm.cns.GetAllocatedIPConfigs()) + pm.cns.GetPendingAllocationIPCount() // TODO: add pending allocation count to real cns
-	freeIPConfigCount := pm.cachedSpec.RequestedIPCount - int64(podIPCount)
+func (pm *CNSIPAMPoolMonitor) checkForResize() int64 {
 
-	batchSizeMultiplier := math.Ceil(float64(podIPCount) / float64(pm.cachedSpec.RequestedIPCount))
+	// if there's a pending change to the spec count, and the pending release state is nonzero,
+	// skip so we don't thrash the UpdateCRD
+	if pm.cachedSpec.RequestedIPCount != int64(len(pm.cns.GetPodIPConfigState())) && len(pm.cns.GetPendingReleaseIPConfigs()) > 0 {
+		return doNothing
+	}
+
+	cnsPodIPConfigCount := len(pm.cns.GetPodIPConfigState())
+	allocatedPodIPCount := len(pm.cns.GetAllocatedIPConfigs())
+	availableIPConfigCount := len(pm.cns.GetAvailableIPConfigs()) // TODO: add pending allocation count to real cns
+	freeIPConfigCount := int64(availableIPConfigCount + (int(pm.cachedSpec.RequestedIPCount) - cnsPodIPConfigCount))
 
 	switch {
 	// pod count is increasing
-	case podIPCount == 0:
+	case allocatedPodIPCount == 0:
 		log.Printf("[ipam-pool-monitor] No pods scheduled")
-		return doNothing, batchSizeMultiplier
+		return doNothing
 
 	case freeIPConfigCount < pm.MinimumFreeIps:
-		return increasePoolSize, batchSizeMultiplier
+		return increasePoolSize
 
 	// pod count is decreasing
 	case freeIPConfigCount > pm.MaximumFreeIps:
-		return decreasePoolSize, batchSizeMultiplier
+		return decreasePoolSize
 	}
-	return doNothing, batchSizeMultiplier
+	return doNothing
 }
 
-func (pm *CNSIPAMPoolMonitor) increasePoolSize(batchSizeMultiplier int64) error {
+func (pm *CNSIPAMPoolMonitor) increasePoolSize() error {
 	var err error
-	pm.cachedSpec.RequestedIPCount += pm.scalarUnits.BatchSize * batchSizeMultiplier
+	pm.cachedSpec.RequestedIPCount += pm.scalarUnits.BatchSize
 
 	// pass nil map to CNStoCRDSpec because we don't want to modify the to be deleted ipconfigs
 	pm.cachedSpec, err = CNSToCRDSpec(nil, pm.cachedSpec.RequestedIPCount)
@@ -91,16 +97,16 @@ func (pm *CNSIPAMPoolMonitor) increasePoolSize(batchSizeMultiplier int64) error 
 		return err
 	}
 
-	log.Printf("[ipam-pool-monitor] Increasing pool size, Current Pool Size: %v, Existing Goal IP Count: %v, Pods with IP's:%v, Pods waiting for IP's %v", len(pm.cns.GetPodIPConfigState()), pm.cachedSpec.RequestedIPCount, len(pm.cns.GetAllocatedIPConfigs()), pm.cns.GetPendingAllocationIPCount())
+	log.Printf("[ipam-pool-monitor] Increasing pool size, Current Pool Size: %v, Existing Goal IP Count: %v, Pods with IP's:%v", len(pm.cns.GetPodIPConfigState()), pm.cachedSpec.RequestedIPCount, len(pm.cns.GetAllocatedIPConfigs()))
 	return pm.rc.UpdateCRDSpec(context.Background(), pm.cachedSpec)
 }
 
-func (pm *CNSIPAMPoolMonitor) decreasePoolSize(batchSizeMultiplier int64) error {
+func (pm *CNSIPAMPoolMonitor) decreasePoolSize() error {
 
 	// TODO: Better handling here, negatives
 	// TODO: Maintain desired state to check against if pool size adjustment is already happening
 	decreaseIPCount := pm.cachedSpec.RequestedIPCount - pm.scalarUnits.BatchSize
-	pm.cachedSpec.RequestedIPCount -= pm.scalarUnits.BatchSize * batchSizeMultiplier
+	pm.cachedSpec.RequestedIPCount -= pm.scalarUnits.BatchSize
 
 	// mark n number of IP's as pending
 	pendingIPAddresses, err := pm.cns.MarkIPsAsPending(int(decreaseIPCount))
