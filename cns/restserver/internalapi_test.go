@@ -189,7 +189,6 @@ func validateCreateOrUpdateNCInternal(t *testing.T, secondaryIpCount int) {
 func createAndValidateNCRequest(t *testing.T, secondaryIPConfigs map[string]cns.SecondaryIPConfig, ncId string) {
 	req := generateNetworkContainerRequest(secondaryIPConfigs, ncId)
 	var scalarUnits cns.ScalarUnits
-	svc.PoolMonitor = ipampoolmonitor.NewCNSIPAMPoolMonitor(nil, nil)
 	returnCode := svc.CreateOrUpdateNetworkContainerInternal(req, scalarUnits)
 	if returnCode != 0 {
 		t.Fatalf("Failed to createNetworkContainerRequest, req: %+v, err: %d", req, returnCode)
