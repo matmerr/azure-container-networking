@@ -5,7 +5,6 @@ import (
 	"errors"
 	"net"
 	"sync"
-	"testing"
 
 	"github.com/Azure/azure-container-networking/cns"
 	"github.com/Azure/azure-container-networking/cns/common"
@@ -110,22 +109,19 @@ func (ipm *IPStateManager) ReleaseIPConfig(ipconfigID string) (cns.IPConfigurati
 }
 
 type HTTPServiceFake struct {
-	t              *testing.T
 	IPStateManager IPStateManager
 	PoolMonitor    cns.IPAMPoolMonitor
 }
 
-func NewHTTPServiceFake(t *testing.T) *HTTPServiceFake {
+func NewHTTPServiceFake() *HTTPServiceFake {
 	svc := &HTTPServiceFake{
 		IPStateManager: NewIPStateManager(),
-		t:              t,
 	}
 
 	return svc
 }
 
 func (fake *HTTPServiceFake) SetNumberOfAllocatedIPs(desiredAllocatedIPCount int) error {
-	fake.t.Logf("[cns] Setting Allocated IPConfig count to %v", desiredAllocatedIPCount)
 	currentAllocatedIPCount := len(fake.IPStateManager.AllocatedIPConfigState)
 	delta := (desiredAllocatedIPCount - currentAllocatedIPCount)
 	// need to free some IP's
