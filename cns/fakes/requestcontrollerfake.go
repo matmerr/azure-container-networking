@@ -22,12 +22,11 @@ type RequestControllerFake struct {
 	ip              net.IP
 }
 
-func NewRequestControllerFake(t *testing.T, cnsService *HTTPServiceFake, scalarUnits cns.ScalarUnits, numberOfIPConfigs int) *RequestControllerFake {
+func NewRequestControllerFake(cnsService *HTTPServiceFake, scalarUnits cns.ScalarUnits, numberOfIPConfigs int) *RequestControllerFake {
 
 	rc := &RequestControllerFake{
 		fakecns:         cnsService,
 		testScalarUnits: scalarUnits,
-		t:               t,
 	}
 
 	rc.ip, _, _ = net.ParseCIDR(PrivateIPRangeClassA)
@@ -71,7 +70,6 @@ func (rc *RequestControllerFake) Reconcile() error {
 
 	// add IPConfigs to CNS
 	rc.fakecns.IPStateManager.AddIPConfigs(ipconfigs)
-	rc.t.Logf("[fake-rc] Carved %v IP's to set total IPConfigs in CNS to %v", diff, len(rc.fakecns.GetPodIPConfigState()))
 
 	// update
 	rc.fakecns.PoolMonitor.UpdatePoolLimits(rc.testScalarUnits)
