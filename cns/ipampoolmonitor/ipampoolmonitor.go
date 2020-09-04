@@ -2,6 +2,7 @@ package ipampoolmonitor
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"sync"
 
@@ -141,7 +142,7 @@ func CNSToCRDSpec(toBeDeletedSecondaryIPConfigs map[string]cns.SecondaryIPConfig
 }
 
 // UpdatePoolLimitsTransacted called by request controller on reconcile to set the batch size limits
-func (pm *CNSIPAMPoolMonitor) UpdatePoolLimits(scalarUnits cns.ScalarUnits) {
+func (pm *CNSIPAMPoolMonitor) UpdatePoolLimits(scalarUnits cns.ScalarUnits) error {
 	pm.Lock()
 	defer pm.Unlock()
 	pm.scalarUnits = scalarUnits
@@ -149,8 +150,14 @@ func (pm *CNSIPAMPoolMonitor) UpdatePoolLimits(scalarUnits cns.ScalarUnits) {
 	pm.MinimumFreeIps = int64(float64(pm.scalarUnits.BatchSize) * (float64(pm.scalarUnits.RequestThresholdPercent) / 100))
 	pm.MaximumFreeIps = int64(float64(pm.scalarUnits.BatchSize) * (float64(pm.scalarUnits.ReleaseThresholdPercent) / 100))
 
+	if pm.cns == nil {
+		return fmt.Errorf("Error Updating Pool Limits, reference to CNS is nil")
+	}
+
 	if !pm.initialized && len(pm.cns.GetPodIPConfigState()) > 0 {
 		pm.cachedSpec.RequestedIPCount = int64(len(pm.cns.GetPodIPConfigState()))
 		pm.initialized = true
 	}
+
+	return nil
 }

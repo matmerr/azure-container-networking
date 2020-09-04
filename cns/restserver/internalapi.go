@@ -252,7 +252,11 @@ func (service *HTTPRestService) CreateOrUpdateNetworkContainerInternal(req cns.C
 		logger.Errorf(returnMessage)
 	}
 
-	service.PoolMonitor.UpdatePoolLimits(scalarUnits)
+	err = service.PoolMonitor.UpdatePoolLimits(scalarUnits)
+	if err != nil {
+		logger.Errorf("[Azure CNS] Error. Reference to CNS not set in IPAM Pool Monitor: %v", req)
+		return UnexpectedError
+	}
 
 	return returnCode
 }
