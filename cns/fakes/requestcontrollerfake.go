@@ -69,8 +69,5 @@ func (rc *RequestControllerFake) Reconcile() error {
 	// add IPConfigs to CNS
 	rc.fakecns.IPStateManager.AddIPConfigs(ipconfigs)
 
-	// update
-	rc.fakecns.PoolMonitor.UpdatePoolLimits(rc.testScalarUnits)
-
-	return nil
+	return rc.fakecns.PoolMonitor.UpdatePoolLimits(rc.testScalarUnits)
 }

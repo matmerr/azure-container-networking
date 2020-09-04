@@ -11,7 +11,6 @@ import (
 	"testing"
 
 	"github.com/Azure/azure-container-networking/cns"
-	"github.com/Azure/azure-container-networking/cns/ipampoolmonitor"
 	"github.com/google/uuid"
 )
 
@@ -54,7 +53,6 @@ func TestReconcileNCWithEmptyState(t *testing.T) {
 func TestReconcileNCWithExistingState(t *testing.T) {
 	restartService()
 	var scalarUnits cns.ScalarUnits
-	svc.PoolMonitor = ipampoolmonitor.NewCNSIPAMPoolMonitor(nil, nil)
 	setEnv(t)
 	setOrchestratorTypeInternal(cns.KubernetesCRD)
 
@@ -92,7 +90,6 @@ func TestReconcileNCWithExistingState(t *testing.T) {
 
 func TestReconcileNCWithSystemPods(t *testing.T) {
 	restartService()
-	svc.PoolMonitor = ipampoolmonitor.NewCNSIPAMPoolMonitor(nil, nil)
 	var scalarUnits cns.ScalarUnits
 	setEnv(t)
 	setOrchestratorTypeInternal(cns.KubernetesCRD)

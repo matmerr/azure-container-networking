@@ -12,6 +12,7 @@ import (
 	"github.com/Azure/azure-container-networking/cns"
 	"github.com/Azure/azure-container-networking/cns/common"
 	"github.com/Azure/azure-container-networking/cns/fakes"
+	"github.com/Azure/azure-container-networking/cns/ipampoolmonitor"
 )
 
 var (
@@ -43,6 +44,11 @@ func getTestService() *HTTPRestService {
 	var config common.ServiceConfig
 	httpsvc, _ := NewHTTPRestService(&config, fakes.NewFakeImdsClient())
 	svc = httpsvc.(*HTTPRestService)
+
+	fakecns := fakes.NewHTTPServiceFake()
+	fakerc := fakes.NewRequestControllerFake(fakecns, cns.ScalarUnits{BatchSize: 10, RequestThresholdPercent: 30, ReleaseThresholdPercent: 150}, 10)
+	svc.PoolMonitor = ipampoolmonitor.NewCNSIPAMPoolMonitor(fakecns, fakerc)
+
 	setOrchestratorTypeInternal(cns.KubernetesCRD)
 
 	return svc

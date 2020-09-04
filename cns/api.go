@@ -165,7 +165,7 @@ type NodeConfiguration struct {
 
 type IPAMPoolMonitor interface {
 	Start() error
-	UpdatePoolLimits(scalarUnits ScalarUnits)
+	UpdatePoolLimits(scalarUnits ScalarUnits) error
 }
 
 type ScalarUnits struct {
