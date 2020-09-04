@@ -3,7 +3,6 @@ package fakes
 import (
 	"context"
 	"net"
-	"testing"
 
 	"github.com/Azure/azure-container-networking/cns"
 	nnc "github.com/Azure/azure-container-networking/nodenetworkconfig/api/v1alpha"
@@ -15,7 +14,6 @@ const (
 )
 
 type RequestControllerFake struct {
-	t               *testing.T
 	fakecns         *HTTPServiceFake
 	testScalarUnits cns.ScalarUnits
 	desiredState    nnc.NodeNetworkConfigSpec

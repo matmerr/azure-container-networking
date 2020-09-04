@@ -8,7 +8,7 @@ import (
 	"github.com/Azure/azure-container-networking/cns/logger"
 )
 
-func initFakes(t *testing.T, batchSize, initialIPConfigCount, requestThresholdPercent, releaseThresholdPercent int) (*fakes.HTTPServiceFake, *fakes.RequestControllerFake, *CNSIPAMPoolMonitor) {
+func initFakes(batchSize, initialIPConfigCount, requestThresholdPercent, releaseThresholdPercent int) (*fakes.HTTPServiceFake, *fakes.RequestControllerFake, *CNSIPAMPoolMonitor) {
 	logger.InitLogger("testlogs", 0, 0, "./")
 
 	scalarUnits := cns.ScalarUnits{
@@ -17,8 +17,8 @@ func initFakes(t *testing.T, batchSize, initialIPConfigCount, requestThresholdPe
 		ReleaseThresholdPercent: int64(releaseThresholdPercent),
 	}
 
-	fakecns := fakes.NewHTTPServiceFake(t)
-	fakerc := fakes.NewRequestControllerFake(t, fakecns, scalarUnits, initialIPConfigCount)
+	fakecns := fakes.NewHTTPServiceFake()
+	fakerc := fakes.NewRequestControllerFake(fakecns, scalarUnits, initialIPConfigCount)
 	poolmonitor := NewCNSIPAMPoolMonitor(fakecns, fakerc)
 	fakecns.PoolMonitor = poolmonitor
 
@@ -34,7 +34,7 @@ func TestPoolSizeIncrease(t *testing.T) {
 		releaseThresholdPercent = 150
 	)
 
-	fakecns, fakerc, poolmonitor := initFakes(t, batchSize, initialIPConfigCount, requestThresholdPercent, releaseThresholdPercent)
+	fakecns, fakerc, poolmonitor := initFakes(batchSize, initialIPConfigCount, requestThresholdPercent, releaseThresholdPercent)
 
 	t.Logf("Minimum free IPs to request: %v", poolmonitor.MinimumFreeIps)
 	t.Logf("Maximum free IPs to release: %v", poolmonitor.MaximumFreeIps)
@@ -101,7 +101,7 @@ func TestPoolIncreaseDoesntChangeWhenIncreaseIsAlreadyInProgress(t *testing.T) {
 		releaseThresholdPercent = 150
 	)
 
-	fakecns, fakerc, poolmonitor := initFakes(t, batchSize, initialIPConfigCount, requestThresholdPercent, releaseThresholdPercent)
+	fakecns, fakerc, poolmonitor := initFakes(batchSize, initialIPConfigCount, requestThresholdPercent, releaseThresholdPercent)
 
 	t.Logf("Minimum free IPs to request: %v", poolmonitor.MinimumFreeIps)
 	t.Logf("Maximum free IPs to release: %v", poolmonitor.MaximumFreeIps)
@@ -180,7 +180,7 @@ func TestPoolSizeIncreaseIdempotency(t *testing.T) {
 		releaseThresholdPercent = 150
 	)
 
-	fakecns, _, poolmonitor := initFakes(t, batchSize, initialIPConfigCount, requestThresholdPercent, releaseThresholdPercent)
+	fakecns, _, poolmonitor := initFakes(batchSize, initialIPConfigCount, requestThresholdPercent, releaseThresholdPercent)
 
 	t.Logf("Minimum free IPs to request: %v", poolmonitor.MinimumFreeIps)
 	t.Logf("Maximum free IPs to release: %v", poolmonitor.MaximumFreeIps)
