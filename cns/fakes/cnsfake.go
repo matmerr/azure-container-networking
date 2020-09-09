@@ -3,7 +3,6 @@ package fakes
 import (
 	"encoding/json"
 	"errors"
-	"net"
 	"sync"
 
 	"github.com/Azure/azure-container-networking/cns"
@@ -43,15 +42,6 @@ func (stack *StringStack) Pop() (string, error) {
 	return res, nil
 }
 
-func incrementIP(ip net.IP) {
-	for j := len(ip) - 1; j >= 0; j-- {
-		ip[j]++
-		if ip[j] > 0 {
-			break
-		}
-	}
-}
-
 type IPStateManager struct {
 	AvailableIPConfigState      map[string]cns.IPConfigurationStatus
 	AllocatedIPConfigState      map[string]cns.IPConfigurationStatus
@@ -74,12 +64,14 @@ func (ipm *IPStateManager) AddIPConfigs(ipconfigs []cns.IPConfigurationStatus) {
 	defer ipm.Unlock()
 
 	for i := 0; i < len(ipconfigs); i++ {
-		if ipconfigs[i].State == cns.Available {
+
+		switch {
+		case ipconfigs[i].State == cns.Available:
 			ipm.AvailableIPConfigState[ipconfigs[i].ID] = ipconfigs[i]
 			ipm.AvailableIPIDStack.Push(ipconfigs[i].ID)
-		} else if ipconfigs[i].State == cns.Allocated {
+		case ipconfigs[i].State == cns.Allocated:
 			ipm.AllocatedIPConfigState[ipconfigs[i].ID] = ipconfigs[i]
-		} else if ipconfigs[i].State == cns.PendingRelease {
+		case ipconfigs[i].State == cns.PendingRelease:
 			ipm.PendingReleaseIPConfigState[ipconfigs[i].ID] = ipconfigs[i]
 		}
 	}
@@ -124,7 +116,7 @@ func NewHTTPServiceFake() *HTTPServiceFake {
 func (fake *HTTPServiceFake) SetNumberOfAllocatedIPs(desiredAllocatedIPCount int) error {
 	currentAllocatedIPCount := len(fake.IPStateManager.AllocatedIPConfigState)
 	delta := (desiredAllocatedIPCount - currentAllocatedIPCount)
-	// need to free some IP's
+	// reserver IP configs
 	for i := 0; i < delta; i++ {
 		_, err := fake.IPStateManager.ReserveIPConfig()
 		if err != nil {
@@ -132,7 +124,6 @@ func (fake *HTTPServiceFake) SetNumberOfAllocatedIPs(desiredAllocatedIPCount int
 		}
 	}
 
-	// TODO decrease number of IP's
 	return nil
 }
 
@@ -148,21 +139,21 @@ func (fake *HTTPServiceFake) SyncNodeStatus(string, string, string, json.RawMess
 	return 0, ""
 }
 
-// TODO: change real CNS return map instead
 func (fake *HTTPServiceFake) GetAvailableIPConfigs() []cns.IPConfigurationStatus {
 	ipconfigs := []cns.IPConfigurationStatus{}
 	for _, ipconfig := range fake.IPStateManager.AvailableIPConfigState {
 		ipconfigs = append(ipconfigs, ipconfig)
 	}
+
 	return ipconfigs
 }
 
-// TODO: change real CNS return map instead
 func (fake *HTTPServiceFake) GetAllocatedIPConfigs() []cns.IPConfigurationStatus {
 	ipconfigs := []cns.IPConfigurationStatus{}
 	for _, ipconfig := range fake.IPStateManager.AllocatedIPConfigState {
 		ipconfigs = append(ipconfigs, ipconfig)
 	}
+
 	return ipconfigs
 }
 
@@ -171,6 +162,7 @@ func (fake *HTTPServiceFake) GetPendingReleaseIPConfigs() []cns.IPConfigurationS
 	for _, ipconfig := range fake.IPStateManager.PendingReleaseIPConfigState {
 		ipconfigs = append(ipconfigs, ipconfig)
 	}
+
 	return ipconfigs
 }
 
@@ -180,12 +172,15 @@ func (fake *HTTPServiceFake) GetPodIPConfigState() map[string]cns.IPConfiguratio
 	for key, val := range fake.IPStateManager.AllocatedIPConfigState {
 		ipconfigs[key] = val
 	}
+
 	for key, val := range fake.IPStateManager.AvailableIPConfigState {
 		ipconfigs[key] = val
 	}
+
 	for key, val := range fake.IPStateManager.PendingReleaseIPConfigState {
 		ipconfigs[key] = val
 	}
+
 	return ipconfigs
 }
 
@@ -198,14 +193,10 @@ func (fake *HTTPServiceFake) GetOption(string) interface{} {
 	return nil
 }
 
-func (fake *HTTPServiceFake) SetOption(string, interface{}) {
-
-}
+func (fake *HTTPServiceFake) SetOption(string, interface{}) {}
 
 func (fake *HTTPServiceFake) Start(*common.ServiceConfig) error {
 	return nil
 }
 
-func (fake *HTTPServiceFake) Stop() {
-
-}
+func (fake *HTTPServiceFake) Stop() {}
