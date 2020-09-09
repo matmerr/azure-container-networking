@@ -9,7 +9,6 @@ import (
 	"github.com/Azure/azure-container-networking/cni"
 	"github.com/Azure/azure-container-networking/cns"
 	"github.com/Azure/azure-container-networking/cns/cnsclient"
-	"github.com/Azure/azure-container-networking/log"
 	"github.com/Azure/azure-container-networking/network"
 	cniSkel "github.com/containernetworking/cni/pkg/skel"
 	cniTypes "github.com/containernetworking/cni/pkg/types"
@@ -26,32 +25,6 @@ type CNSIPAMInvoker struct {
 	primaryInterfaceName string
 	cnsClient            *cnsclient.CNSClient
 }
-
-func getHostInterfaceName(hostSubnet *net.IPNet, hostIP net.IP) (string, error) {
-	interfaces, _ := net.Interfaces()
-	for _, iface := range interfaces {
-		addrs, err := iface.Addrs()
-		if err != nil {
-			return "", err
-		}
-		for _, address := range addrs {
-			if ipnet, ok := address.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
-				if hostSubnet.Contains(ipnet.IP) {
-					if !ipnet.IP.Equal(hostIP) {
-						return "", fmt.Errorf("Host IP specified by CNS and IMDS does not match IP found on host interface")
-					}
-
-					return iface.Name, nil
-				}
-			}
-		}
-	}
-
-	return "", fmt.Errorf("No interface on VM containing IP in supplied host subnet [%v] ", hostSubnet)
-}
-
-// SetSNATForPrimaryIP add's the snatting rules
-// Example, ncSubnetAddressSpace = 10.0.0.0, ncSubnetPrefix = 24
 
 func NewCNSInvoker(podName, namespace string) (*CNSIPAMInvoker, error) {
 	cnsURL := "http://localhost:" + strconv.Itoa(cnsPort)
@@ -82,7 +55,6 @@ func (invoker *CNSIPAMInvoker) Add(args *cniSkel.CmdArgs, nwCfg *cni.NetworkConf
 	}
 
 	podIPAddress := response.PodIpInfo.PodIPConfig.IPAddress
-	ncSubnet := response.PodIpInfo.NetworkContainerPrimaryIPConfig.IPSubnet.IPAddress
 	ncSubnetPrefix := response.PodIpInfo.NetworkContainerPrimaryIPConfig.IPSubnet.PrefixLength
 	ncPrimaryIP := response.PodIpInfo.NetworkContainerPrimaryIPConfig.IPSubnet.IPAddress
 	gwIPAddress := response.PodIpInfo.NetworkContainerPrimaryIPConfig.GatewayIPAddress
@@ -105,30 +77,14 @@ func (invoker *CNSIPAMInvoker) Add(args *cniSkel.CmdArgs, nwCfg *cni.NetworkConf
 		return nil, nil, fmt.Errorf("Unable to parse IP from response: %v", podIPAddress)
 	}
 
-	// set subnet prefix
-	*subnetPrefix = *ipnet
-
 	// get the name of the primary IP address
 	_, hostIPNet, err := net.ParseCIDR(hostSubnet)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	// set host ip interface name
-	hostInterfaceName, err := getHostInterfaceName(hostIPNet, hostIP)
-	nwCfg.Master = hostInterfaceName
-
-	// snat all internet traffic with NC primary IP, leave private traffic untouched
-	//err = SetSNATForPrimaryIP(ncPrimaryIP, ncSubnet, ncSubnetPrefix)
-	if err != nil {
-		return nil, nil, fmt.Errorf("Failed to set snat rule for Primary NC IP: %v, NC Subnet %v/%v, with error: %v", ncPrimaryIP, ncSubnet, ncSubnetPrefix, err)
-	}
-
-	//err = SetNCAddressSpaceOnHostBrige(ncSubnet, ncSubnetPrefix, hostInterfaceName)
-	if err != nil {
-		log.Printf("Failed add address space on host primary interface: %v IP: %v, NC Subnet %v/%v, with error: %v", hostInterfaceName, ncPrimaryIP, ncSubnet, ncSubnetPrefix, err)
-		return nil, nil, fmt.Errorf("Failed add address space on host primary interface: %v IP: %v, NC Subnet %v/%v, with error: %v", hostInterfaceName, ncPrimaryIP, ncSubnet, ncSubnetPrefix, err)
-	}
+	// set subnet prefix for host vm
+	*subnetPrefix = *hostIPNet
 
 	// construct ipnet for result
 	resultIPnet := net.IPNet{
@@ -137,7 +93,7 @@ func (invoker *CNSIPAMInvoker) Add(args *cniSkel.CmdArgs, nwCfg *cni.NetworkConf
 	}
 
 	// set the NC Primary IP in options
-	options[network.SNATIPKey] = response.PodIpInfo.NetworkContainerPrimaryIPConfig.IPSubnet.IPAddress
+	options[network.SNATIPKey] = ncPrimaryIP
 
 	result = &cniTypesCurr.Result{
 		IPs: []*cniTypesCurr.IPConfig{
