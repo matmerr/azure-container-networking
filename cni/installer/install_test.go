@@ -9,7 +9,8 @@ import (
 const (
 	testSourceDir     = "/home/matmerr/go/src/github.com/Azure/azure-container-networking/output/"
 	testSourceFileDir = "/home/matmerr/go/src/github.com/Azure/azure-container-networking/output/linux_amd64/cni/"
-	testOutputDir     = "./bin/"
+	testOutputDir     = "/home/matmerr/go/src/github.com/Azure/azure-container-networking/bin/"
+	testConflistDir   = "/home/matmerr/go/src/github.com/Azure/azure-container-networking/bin/"
 )
 
 func TestEnv(t *testing.T) {
@@ -18,6 +19,7 @@ func TestEnv(t *testing.T) {
 	os.Setenv(envCNISourceDir, testSourceDir)
 	os.Setenv(envCNIDestinationBinDir, testOutputDir)
 	os.Setenv(envCNIIPAMType, azureCNSIPAM)
+	os.Setenv(envCNIDestinationConflistDir, testConflistDir)
 
 	envs, err := getDirectoriesFromEnv()
 	if err != nil {

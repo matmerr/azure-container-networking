@@ -16,6 +16,10 @@ spec:
             value: linux
           - name: CNI_TYPE
             value: singletenancy
+          - name: CNI_IPAM_TYPE
+            value: azure-cns
+          - name: CNI_EXCEMPT_BINS
+            value: azure-vnet-telemetry,azure-vnet-telemetry.config
         securityContext:
           privileged: true
         volumeMounts:
