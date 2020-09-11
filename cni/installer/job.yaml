@@ -3,6 +3,7 @@ kind: Job
 metadata:
   name: azure-cni-installer 
 spec:
+  ttlSecondsAfterFinished: 20
   template:
     spec:
       hostNetwork: true
@@ -10,7 +11,7 @@ spec:
       - name: acndev-acr-latest
       containers:
       - name: azure-cni-installer
-        image: acndev.azurecr.io/azure-cni-installer:e6105605e5e8
+        image: acndev.azurecr.io/azure-cni-installer:bc3eb9f0b19e
         env:
           - name: CNI_OS
             value: linux
