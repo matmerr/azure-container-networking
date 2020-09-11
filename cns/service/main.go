@@ -5,6 +5,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -473,12 +474,12 @@ func main() {
 			}
 		}()
 
-		ipamPoolMonitorControllerStopChannel := make(chan struct{})
-		defer close(ipamPoolMonitorControllerStopChannel)
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
 		go func() {
 			poolMonitor := ipampoolmonitor.NewCNSIPAMPoolMonitor(httpRestService, requestController)
 			httpRestServiceImplementation.PoolMonitor = poolMonitor
-			if err := poolMonitor.Start(poolIPAMRefreshRateInMilliseconds, ipamPoolMonitorControllerStopChannel); err != nil {
+			if err := poolMonitor.Start(ctx, poolIPAMRefreshRateInMilliseconds); err != nil {
 				logger.Errorf("[Azure CNS] Failed to start pool monitor with err: %v", err)
 			}
 		}()

@@ -12,14 +12,7 @@ import (
 	nnc "github.com/Azure/azure-container-networking/nodenetworkconfig/api/v1alpha"
 )
 
-var (
-	increasePoolSize = int64(1)
-	decreasePoolSize = int64(-1)
-	doNothing        = int64(0)
-)
-
 type CNSIPAMPoolMonitor struct {
-	initialized    bool
 	pendingRelease bool
 
 	cachedSpec               nnc.NodeNetworkConfigSpec
@@ -31,12 +24,11 @@ type CNSIPAMPoolMonitor struct {
 	MinimumFreeIps int64
 	MaximumFreeIps int64
 
-	sync.RWMutex
+	mu sync.RWMutex
 }
 
 func NewCNSIPAMPoolMonitor(cnsService cns.HTTPService, requestController requestcontroller.RequestController) *CNSIPAMPoolMonitor {
 	return &CNSIPAMPoolMonitor{
-		initialized:    false,
 		pendingRelease: false,
 		cns:            cnsService,
 		rc:             requestController,
@@ -53,69 +45,68 @@ func stopReconcile(ch <-chan struct{}) bool {
 	return false
 }
 
-func (pm *CNSIPAMPoolMonitor) Start(poolMonitorRefreshMilliseconds int, exitChan <-chan struct{}) error {
+func (pm *CNSIPAMPoolMonitor) Start(ctx context.Context, poolMonitorRefreshMilliseconds int) error {
 	logger.Printf("[ipam-pool-monitor] Starting CNS IPAM Pool Monitor")
-	for {
-		if stopReconcile(exitChan) {
-			return fmt.Errorf("CNS IPAM Pool Monitor received cancellation signal")
-		}
 
+	ticker := time.NewTicker(time.Duration(poolMonitorRefreshMilliseconds) * time.Millisecond)
+	select {
+	case <-ctx.Done():
+		return fmt.Errorf("CNS IPAM Pool Monitor received cancellation signal")
+	case <-ticker.C:
 		err := pm.Reconcile()
 		if err != nil {
-			logger.Printf("[ipam-pool-monitor] CRITICAL %v", err)
+			logger.Printf("[ipam-pool-monitor] Reconcile failed with err %v", err)
 		}
-
-		time.Sleep(time.Duration(poolMonitorRefreshMilliseconds) * time.Millisecond)
 	}
+
+	return nil
 }
 
 func (pm *CNSIPAMPoolMonitor) Reconcile() error {
-	if pm.initialized {
-		cnsPodIPConfigCount := len(pm.cns.GetPodIPConfigState())
-		allocatedPodIPCount := len(pm.cns.GetAllocatedIPConfigs())
-		pendingReleaseIPCount := len(pm.cns.GetPendingReleaseIPConfigs())
-		availableIPConfigCount := len(pm.cns.GetAvailableIPConfigs()) // TODO: add pending allocation count to real cns
-		freeIPConfigCount := int64(availableIPConfigCount + (int(pm.cachedSpec.RequestedIPCount) - cnsPodIPConfigCount))
+	cnsPodIPConfigCount := len(pm.cns.GetPodIPConfigState())
+	allocatedPodIPCount := len(pm.cns.GetAllocatedIPConfigs())
+	pendingReleaseIPCount := len(pm.cns.GetPendingReleaseIPConfigs())
+	availableIPConfigCount := len(pm.cns.GetAvailableIPConfigs()) // TODO: add pending allocation count to real cns
+	freeIPConfigCount := int64(availableIPConfigCount + (int(pm.cachedSpec.RequestedIPCount) - cnsPodIPConfigCount))
 
-		logger.Printf("[ipam-pool-monitor] Checking pool for resize, Pool Size: %v, Goal Size: %v, BatchSize: %v, MinFree: %v, MaxFree:%v, Allocated: %v, Available: %v, Pending Release: %v, Free: %v", cnsPodIPConfigCount, pm.cachedSpec.RequestedIPCount, pm.scalarUnits.BatchSize, pm.MinimumFreeIps, pm.MaximumFreeIps, allocatedPodIPCount, availableIPConfigCount, pendingReleaseIPCount, freeIPConfigCount)
+	logger.Printf("[ipam-pool-monitor] Checking pool for resize, Pool Size: %v, Goal Size: %v, BatchSize: %v, MinFree: %v, MaxFree:%v, Allocated: %v, Available: %v, Pending Release: %v, Free: %v", cnsPodIPConfigCount, pm.cachedSpec.RequestedIPCount, pm.scalarUnits.BatchSize, pm.MinimumFreeIps, pm.MaximumFreeIps, allocatedPodIPCount, availableIPConfigCount, pendingReleaseIPCount, freeIPConfigCount)
 
-		// if there's a pending change to the spec count, and the pending release state is nonzero,
-		// skip so we don't thrash the UpdateCRD
-		if pm.cachedSpec.RequestedIPCount != int64(len(pm.cns.GetPodIPConfigState())) && len(pm.cns.GetPendingReleaseIPConfigs()) > 0 {
-			return nil
-		}
+	// if there's a pending change to the spec count, and the pending release state is nonzero,
+	// skip so we don't thrash the UpdateCRD
+	if pm.cachedSpec.RequestedIPCount != int64(len(pm.cns.GetPodIPConfigState())) && len(pm.cns.GetPendingReleaseIPConfigs()) > 0 {
+		return nil
+	}
 
-		switch {
-		// pod count is increasing
-		case freeIPConfigCount < pm.MinimumFreeIps:
-			logger.Printf("[ipam-pool-monitor] Increasing pool size...")
-			return pm.increasePoolSize()
+	switch {
+	// pod count is increasing
+	case freeIPConfigCount < pm.MinimumFreeIps:
+		logger.Printf("[ipam-pool-monitor] Increasing pool size...")
+		return pm.increasePoolSize()
 
-		// pod count is decreasing
-		case freeIPConfigCount > pm.MaximumFreeIps:
-			logger.Printf("[ipam-pool-monitor] Decreasing pool size...")
-			return pm.decreasePoolSize()
+	// pod count is decreasing
+	case freeIPConfigCount > pm.MaximumFreeIps:
+		logger.Printf("[ipam-pool-monitor] Decreasing pool size...")
+		return pm.decreasePoolSize()
 
-		// CRD has reconciled CNS state, and target spec is now the same size as the state
-		// free to remove the IP's from the CRD
-		case pm.pendingRelease && int(pm.cachedSpec.RequestedIPCount) == cnsPodIPConfigCount:
-			logger.Printf("[ipam-pool-monitor] Removing Pending Release IP's from CRD...")
-			return pm.cleanPendingRelease()
+	// CRD has reconciled CNS state, and target spec is now the same size as the state
+	// free to remove the IP's from the CRD
+	case pm.pendingRelease && int(pm.cachedSpec.RequestedIPCount) == cnsPodIPConfigCount:
+		logger.Printf("[ipam-pool-monitor] Removing Pending Release IP's from CRD...")
+		return pm.cleanPendingRelease()
 
-		// no pods scheduled
-		case allocatedPodIPCount == 0:
-			logger.Printf("[ipam-pool-monitor] No pods scheduled")
-			return fmt.Errorf("No pods scheduled")
-		}
-	} else if !pm.initialized {
-		return fmt.Errorf("CNS Pool monitor not initialized")
-
+	// no pods scheduled
+	case allocatedPodIPCount == 0:
+		logger.Printf("[ipam-pool-monitor] No pods scheduled")
+		return nil
 	}
 
 	return nil
 }
 
 func (pm *CNSIPAMPoolMonitor) increasePoolSize() error {
+	pm.mu.Lock()
+	defer pm.mu.Unlock()
+
 	var err error
 	pm.cachedSpec.RequestedIPCount += pm.scalarUnits.BatchSize
 
@@ -130,7 +121,10 @@ func (pm *CNSIPAMPoolMonitor) increasePoolSize() error {
 }
 
 func (pm *CNSIPAMPoolMonitor) decreasePoolSize() error {
-	// TODO: Better handling here, negatives
+	pm.mu.Lock()
+	defer pm.mu.Unlock()
+
+	// TODO: Better handling here for negatives
 	pm.cachedSpec.RequestedIPCount -= pm.scalarUnits.BatchSize
 
 	// mark n number of IP's as pending
@@ -152,6 +146,9 @@ func (pm *CNSIPAMPoolMonitor) decreasePoolSize() error {
 // if cns pending ip release map is empty, request controller has already reconciled the CNS state,
 // so we can remove it from our cache and remove the IP's from the CRD
 func (pm *CNSIPAMPoolMonitor) cleanPendingRelease() error {
+	pm.mu.Lock()
+	defer pm.mu.Unlock()
+
 	var err error
 	pm.cachedSpec, err = CNSToCRDSpec(nil, pm.cachedSpec.RequestedIPCount)
 	if err != nil {
@@ -164,7 +161,6 @@ func (pm *CNSIPAMPoolMonitor) cleanPendingRelease() error {
 
 // CNSToCRDSpec translates CNS's map of Ips to be released and requested ip count into a CRD Spec
 func CNSToCRDSpec(toBeDeletedSecondaryIPConfigs map[string]cns.IPConfigurationStatus, ipCount int64) (nnc.NodeNetworkConfigSpec, error) {
-
 	var (
 		spec nnc.NodeNetworkConfigSpec
 		uuid string
@@ -185,8 +181,8 @@ func CNSToCRDSpec(toBeDeletedSecondaryIPConfigs map[string]cns.IPConfigurationSt
 
 // UpdatePoolLimitsTransacted called by request controller on reconcile to set the batch size limits
 func (pm *CNSIPAMPoolMonitor) UpdatePoolMonitor(scalarUnits cns.ScalarUnits) error {
-	pm.Lock()
-	defer pm.Unlock()
+	pm.mu.Lock()
+	defer pm.mu.Unlock()
 	pm.scalarUnits = scalarUnits
 
 	pm.MinimumFreeIps = int64(float64(pm.scalarUnits.BatchSize) * (float64(pm.scalarUnits.RequestThresholdPercent) / 100))
@@ -196,10 +192,7 @@ func (pm *CNSIPAMPoolMonitor) UpdatePoolMonitor(scalarUnits cns.ScalarUnits) err
 		return fmt.Errorf("Error Updating Pool Limits, reference to CNS is nil")
 	}
 
-	if !pm.initialized && len(pm.cns.GetPodIPConfigState()) > 0 {
-		pm.cachedSpec.RequestedIPCount = int64(len(pm.cns.GetPodIPConfigState()))
-		pm.initialized = true
-	}
+	pm.cachedSpec.RequestedIPCount = int64(len(pm.cns.GetPodIPConfigState()))
 
 	return nil
 }

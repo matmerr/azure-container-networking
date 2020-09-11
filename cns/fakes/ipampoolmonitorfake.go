@@ -1,6 +1,10 @@
 package fakes
 
-import "github.com/Azure/azure-container-networking/cns"
+import (
+	"context"
+
+	"github.com/Azure/azure-container-networking/cns"
+)
 
 type IPAMPoolMonitorFake struct{}
 
@@ -8,7 +12,7 @@ func NewIPAMPoolMonitorFake() *IPAMPoolMonitorFake {
 	return &IPAMPoolMonitorFake{}
 }
 
-func (ipm *IPAMPoolMonitorFake) Start(poolMonitorRefreshMilliseconds int, exitChan <-chan struct{}) error {
+func (ipm *IPAMPoolMonitorFake) Start(ctx context.Context, poolMonitorRefreshMilliseconds int) error {
 	return nil
 }
 

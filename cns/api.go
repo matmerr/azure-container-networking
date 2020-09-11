@@ -4,6 +4,7 @@
 package cns
 
 import (
+	"context"
 	"encoding/json"
 
 	"github.com/Azure/azure-container-networking/cns/common"
@@ -164,7 +165,7 @@ type NodeConfiguration struct {
 }
 
 type IPAMPoolMonitor interface {
-	Start(poolMonitorRefreshMilliseconds int, exitChan <-chan struct{}) error
+	Start(ctx context.Context, poolMonitorRefreshMilliseconds int) error
 	UpdatePoolMonitor(scalarUnits ScalarUnits) error
 }
 
