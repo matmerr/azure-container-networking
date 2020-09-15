@@ -26,16 +26,11 @@ type CNSIPAMPoolMonitor struct {
 	mu sync.RWMutex
 }
 
-func (pm *CNSIPAMPoolMonitor) UpdateReferences(cnsService cns.HTTPService, requestController requestcontroller.RequestController) {
-	pm.mu.Lock()
-	defer pm.mu.Unlock()
-	pm.cns = cnsService
-	pm.rc = requestController
-}
-
-func NewCNSIPAMPoolMonitor() *CNSIPAMPoolMonitor {
+func NewCNSIPAMPoolMonitor(cns cns.HTTPService, rc requestcontroller.RequestController) *CNSIPAMPoolMonitor {
 	return &CNSIPAMPoolMonitor{
 		pendingRelease: false,
+		cns:            cns,
+		rc:             rc,
 	}
 }
 
@@ -179,15 +174,15 @@ func MarkIPsAsPendingInCRD(toBeDeletedSecondaryIPConfigs map[string]cns.IPConfig
 }
 
 // UpdatePoolLimitsTransacted called by request controller on reconcile to set the batch size limits
-func (pm *CNSIPAMPoolMonitor) Update(nodeConfig nnc.NodeNetworkConfig) error {
+func (pm *CNSIPAMPoolMonitor) Update(scalar nnc.Scaler, spec nnc.NodeNetworkConfigSpec) error {
 	pm.mu.Lock()
 	defer pm.mu.Unlock()
-	pm.scalarUnits = nodeConfig.Status.Scaler
+	pm.scalarUnits = scalar
 
 	pm.MinimumFreeIps = int64(float64(pm.scalarUnits.BatchSize) * (float64(pm.scalarUnits.RequestThresholdPercent) / 100))
 	pm.MaximumFreeIps = int64(float64(pm.scalarUnits.BatchSize) * (float64(pm.scalarUnits.ReleaseThresholdPercent) / 100))
 
-	pm.cachedNNC = nodeConfig
+	pm.cachedNNC.Spec = spec
 
 	return nil
 }

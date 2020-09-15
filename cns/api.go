@@ -166,7 +166,7 @@ type NodeConfiguration struct {
 }
 type IPAMPoolMonitor interface {
 	Start(ctx context.Context, poolMonitorRefreshMilliseconds int) error
-	Update(nodeConfig nnc.NodeNetworkConfig) error
+	Update(scalar nnc.Scaler, spec nnc.NodeNetworkConfigSpec) error
 }
 
 // Response describes generic response from CNS.

@@ -7,6 +7,7 @@ import (
 
 	"github.com/Azure/azure-container-networking/cns"
 	"github.com/Azure/azure-container-networking/cns/common"
+	nnc "github.com/Azure/azure-container-networking/nodenetworkconfig/api/v1alpha"
 )
 
 // available IP's stack
@@ -15,6 +16,20 @@ import (
 type StringStack struct {
 	lock  sync.Mutex // you don't have to do this if you don't want thread safety
 	items []string
+}
+
+func NewFakeScalar(releaseThreshold, requestThreshold, batchSize int) nnc.Scaler {
+	return nnc.Scaler{
+		BatchSize:               int64(batchSize),
+		ReleaseThresholdPercent: int64(releaseThreshold),
+		RequestThresholdPercent: int64(requestThreshold),
+	}
+}
+
+func NewFakeNodeNetworkConfigSpec(requestedIPCount int) nnc.NodeNetworkConfigSpec {
+	return nnc.NodeNetworkConfigSpec{
+		RequestedIPCount: int64(requestedIPCount),
+	}
 }
 
 func NewStack() *StringStack {

@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	"github.com/Azure/azure-container-networking/cns"
-	"github.com/Azure/azure-container-networking/cns/fakes"
 	"github.com/Azure/azure-container-networking/cns/logger"
 	nnc "github.com/Azure/azure-container-networking/nodenetworkconfig/api/v1alpha"
 	corev1 "k8s.io/api/core/v1"
@@ -100,12 +99,12 @@ type MockCNSClient struct {
 }
 
 // we're just testing that reconciler interacts with CNS on Reconcile().
-func (mi *MockCNSClient) CreateOrUpdateNC(ncRequest cns.CreateNetworkContainerRequest) error {
+func (mi *MockCNSClient) CreateOrUpdateNC(ncRequest cns.CreateNetworkContainerRequest, scalar nnc.Scaler, spec nnc.NodeNetworkConfigSpec) error {
 	mi.MockCNSUpdated = true
 	return nil
 }
 
-func (mi *MockCNSClient) ReconcileNCState(ncRequest *cns.CreateNetworkContainerRequest, podInfoByIP map[string]cns.KubernetesPodInfo) error {
+func (mi *MockCNSClient) ReconcileNCState(ncRequest *cns.CreateNetworkContainerRequest, podInfoByIP map[string]cns.KubernetesPodInfo, scalar nnc.Scaler, spec nnc.NodeNetworkConfigSpec) error {
 	mi.MockCNSInitialized = true
 	mi.Pods = podInfoByIP
 	mi.NCRequest = ncRequest
@@ -168,7 +167,7 @@ func (mc *MockDirectAPIClient) ListPods(cntxt context.Context, namespace, node s
 }
 func TestNewCrdRequestController(t *testing.T) {
 	//Test making request controller without logger initialized, should fail
-	_, err := NewCrdRequestController(nil, fakes.NewIPAMPoolMonitorFake(), nil)
+	_, err := NewCrdRequestController(nil, nil)
 	if err == nil {
 		t.Fatalf("Expected error when making NewCrdRequestController without initializing logger, got nil error")
 	} else if !strings.Contains(err.Error(), "logger") {
@@ -188,7 +187,7 @@ func TestNewCrdRequestController(t *testing.T) {
 		}
 	}()
 
-	_, err = NewCrdRequestController(nil, fakes.NewIPAMPoolMonitorFake(), nil)
+	_, err = NewCrdRequestController(nil, nil)
 	if err == nil {
 		t.Fatalf("Expected error when making NewCrdRequestController without setting " + nodeNameEnvVar + " env var, got nil error")
 	} else if !strings.Contains(err.Error(), nodeNameEnvVar) {

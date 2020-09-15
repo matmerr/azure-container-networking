@@ -30,6 +30,10 @@ const (
 	gatewayIp           = "10.0.0.1"
 	subnetPrfixLength   = 24
 	dockerContainerType = cns.Docker
+	releasePercent      = 50
+	requestPercent      = 100
+	batchSize           = 10
+	initPoolSize        = 10
 )
 
 var (
@@ -61,7 +65,7 @@ func addTestStateToRestServer(t *testing.T, secondaryIps []string) {
 		SecondaryIPConfigs:   secondaryIPConfigs,
 	}
 
-	returnCode := svc.CreateOrUpdateNetworkContainerInternal(req)
+	returnCode := svc.CreateOrUpdateNetworkContainerInternal(req, fakes.NewFakeScalar(releasePercent, requestPercent, batchSize), fakes.NewFakeNodeNetworkConfigSpec(initPoolSize))
 	if returnCode != 0 {
 		t.Fatalf("Failed to createNetworkContainerRequest, req: %+v, err: %d", req, returnCode)
 	}

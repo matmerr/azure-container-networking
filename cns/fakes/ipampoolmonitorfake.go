@@ -16,7 +16,7 @@ func (ipm *IPAMPoolMonitorFake) Start(ctx context.Context, poolMonitorRefreshMil
 	return nil
 }
 
-func (ipm *IPAMPoolMonitorFake) Update(nnc nnc.NodeNetworkConfig) error {
+func (ipm *IPAMPoolMonitorFake) Update(scalar nnc.Scaler, spec nnc.NodeNetworkConfigSpec) error {
 	return nil
 }
 

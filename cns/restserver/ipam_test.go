@@ -43,7 +43,7 @@ func getTestService() *HTTPRestService {
 	var config common.ServiceConfig
 	httpsvc, _ := NewHTTPRestService(&config, fakes.NewFakeImdsClient())
 	svc = httpsvc.(*HTTPRestService)
-
+	svc.IPAMPoolMonitor = fakes.NewIPAMPoolMonitorFake()
 	setOrchestratorTypeInternal(cns.KubernetesCRD)
 
 	return svc

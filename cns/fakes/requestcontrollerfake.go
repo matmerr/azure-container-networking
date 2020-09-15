@@ -15,7 +15,7 @@ type RequestControllerFake struct {
 	ip        net.IP
 }
 
-func NewRequestControllerFake(cnsService *HTTPServiceFake, ipamPoolMonitor cns.IPAMPoolMonitor, scalar nnc.Scaler, subnetAddressSpace string, numberOfIPConfigs int) *RequestControllerFake {
+func NewRequestControllerFake(cnsService *HTTPServiceFake, scalar nnc.Scaler, subnetAddressSpace string, numberOfIPConfigs int) *RequestControllerFake {
 	rc := &RequestControllerFake{
 		fakecns: cnsService,
 		cachedCRD: nnc.NodeNetworkConfig{
@@ -111,7 +111,7 @@ func (rc *RequestControllerFake) Reconcile() error {
 	}
 
 	// update
-	rc.fakecns.PoolMonitor.Update(rc.cachedCRD)
+	rc.fakecns.PoolMonitor.Update(rc.cachedCRD.Status.Scaler, rc.cachedCRD.Spec)
 
 	return nil
 }

@@ -19,10 +19,10 @@ func initFakes(batchSize, initialIPConfigCount, requestThresholdPercent, release
 	}
 	subnetaddresspace := "10.0.0.0/8"
 
-	poolmonitor := NewCNSIPAMPoolMonitor()
 	fakecns := fakes.NewHTTPServiceFake()
-	fakerc := fakes.NewRequestControllerFake(fakecns, poolmonitor, scalarUnits, subnetaddresspace, initialIPConfigCount)
-	poolmonitor.UpdateReferences(fakecns, fakerc)
+	fakerc := fakes.NewRequestControllerFake(fakecns, scalarUnits, subnetaddresspace, initialIPConfigCount)
+
+	poolmonitor := NewCNSIPAMPoolMonitor(fakecns, fakerc)
 
 	fakecns.PoolMonitor = poolmonitor
 
