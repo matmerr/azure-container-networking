@@ -240,8 +240,8 @@ func TestPoolDecrease(t *testing.T) {
 	}
 
 	// Ensure the size of the requested spec is still the same
-	if len(poolmonitor.cachedNNC.Spec.IPsNotInUse) != (initialIPConfigCount - batchSize) {
-		t.Fatalf("Expected pool size to be one batch size smaller after reconcile, expected %v, actual %v", (initialIPConfigCount - batchSize), len(poolmonitor.cachedNNC.Spec.IPsNotInUse))
+	if len(poolmonitor.cachedNNC.Spec.IPsNotInUse) != 0 {
+		t.Fatalf("Expected IPsNotInUse to be 0 after request controller reconcile, actual %v", poolmonitor.cachedNNC.Spec.IPsNotInUse)
 	}
 
 	return

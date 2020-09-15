@@ -187,7 +187,7 @@ func (pm *CNSIPAMPoolMonitor) Update(nodeConfig nnc.NodeNetworkConfig) error {
 	pm.MinimumFreeIps = int64(float64(pm.scalarUnits.BatchSize) * (float64(pm.scalarUnits.RequestThresholdPercent) / 100))
 	pm.MaximumFreeIps = int64(float64(pm.scalarUnits.BatchSize) * (float64(pm.scalarUnits.ReleaseThresholdPercent) / 100))
 
-	pm.cachedNNC.Spec.RequestedIPCount = int64(len(pm.cns.GetPodIPConfigState()))
+	pm.cachedNNC = nodeConfig
 
 	return nil
 }

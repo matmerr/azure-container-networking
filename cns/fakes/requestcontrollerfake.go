@@ -31,6 +31,8 @@ func NewRequestControllerFake(cnsService *HTTPServiceFake, ipamPoolMonitor cns.I
 
 	rc.ip, _, _ = net.ParseCIDR(subnetAddressSpace)
 
+	rc.CarveIPConfigsAndAddToStatusAndCNS(numberOfIPConfigs)
+
 	return rc
 }
 
