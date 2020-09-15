@@ -451,6 +451,8 @@ func main() {
 			return
 		}
 
+		poolMonitor := ipampoolmonitor.NewCNSIPAMPoolMonitor()
+
 		// Set orchestrator type
 		orchestrator := cns.SetOrchestratorTypeRequest{
 			OrchestratorType: cns.KubernetesCRD,
@@ -458,11 +460,13 @@ func main() {
 		httpRestServiceImplementation.SetNodeOrchestrator(&orchestrator)
 
 		// Get crd implementation of request controller
-		requestController, err = kubecontroller.NewCrdRequestController(httpRestServiceImplementation, kubeConfig)
+		requestController, err = kubecontroller.NewCrdRequestController(httpRestServiceImplementation, poolMonitor, kubeConfig)
 		if err != nil {
 			logger.Errorf("[Azure CNS] Failed to make crd request controller :%v", err)
 			return
 		}
+
+		poolMonitor.UpdateReferences(httpRestService, requestController)
 
 		//Start the RequestController which starts the reconcile loop
 		requestControllerStopChannel := make(chan struct{})
@@ -477,7 +481,6 @@ func main() {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 		go func() {
-			poolMonitor := ipampoolmonitor.NewCNSIPAMPoolMonitor(httpRestService, requestController)
 			httpRestServiceImplementation.PoolMonitor = poolMonitor
 			if err := poolMonitor.Start(ctx, poolIPAMRefreshRateInMilliseconds); err != nil {
 				logger.Errorf("[Azure CNS] Failed to start pool monitor with err: %v", err)

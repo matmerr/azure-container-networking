@@ -151,14 +151,14 @@ func (service *HTTPRestService) SyncNodeStatus(dncEP, infraVnet, nodeID string, 
 }
 
 // This API will be called by CNS RequestController on CRD update.
-func (service *HTTPRestService) ReconcileNCState(ncRequest *cns.CreateNetworkContainerRequest, podInfoByIp map[string]cns.KubernetesPodInfo, scalarUnits cns.ScalarUnits) int {
+func (service *HTTPRestService) ReconcileNCState(ncRequest *cns.CreateNetworkContainerRequest, podInfoByIp map[string]cns.KubernetesPodInfo) int {
 	// check if ncRequest is null, then return as there is no CRD state yet
 	if ncRequest == nil {
 		log.Logf("CNS starting with no NC state, podInfoMap count %d", len(podInfoByIp))
 		return Success
 	}
 
-	returnCode := service.CreateOrUpdateNetworkContainerInternal(*ncRequest, scalarUnits)
+	returnCode := service.CreateOrUpdateNetworkContainerInternal(*ncRequest)
 
 	// If the NC was created successfully, then reconcile the allocated pod state
 	if returnCode != Success {
@@ -194,7 +194,7 @@ func (service *HTTPRestService) ReconcileNCState(ncRequest *cns.CreateNetworkCon
 }
 
 // This API will be called by CNS RequestController on CRD update.
-func (service *HTTPRestService) CreateOrUpdateNetworkContainerInternal(req cns.CreateNetworkContainerRequest, scalarUnits cns.ScalarUnits) int {
+func (service *HTTPRestService) CreateOrUpdateNetworkContainerInternal(req cns.CreateNetworkContainerRequest) int {
 	if req.NetworkContainerid == "" {
 		logger.Errorf("[Azure CNS] Error. NetworkContainerid is empty")
 		return NetworkContainerNotSpecified
@@ -242,12 +242,6 @@ func (service *HTTPRestService) CreateOrUpdateNetworkContainerInternal(req cns.C
 		logNCSnapshot(req)
 	} else {
 		logger.Errorf(returnMessage)
-	}
-
-	err = service.PoolMonitor.UpdatePoolMonitor(scalarUnits)
-	if err != nil {
-		logger.Errorf("[Azure CNS] Error. Reference to CNS not set in IPAM Pool Monitor: %v", req)
-		return UnexpectedError
 	}
 
 	return returnCode

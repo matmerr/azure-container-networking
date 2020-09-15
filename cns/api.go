@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 
 	"github.com/Azure/azure-container-networking/cns/common"
+	nnc "github.com/Azure/azure-container-networking/nodenetworkconfig/api/v1alpha"
 )
 
 // Container Network Service remote API Contract
@@ -163,16 +164,9 @@ type NodeConfiguration struct {
 	NodeID     string
 	NodeSubnet Subnet
 }
-
 type IPAMPoolMonitor interface {
 	Start(ctx context.Context, poolMonitorRefreshMilliseconds int) error
-	UpdatePoolMonitor(scalarUnits ScalarUnits) error
-}
-
-type ScalarUnits struct {
-	BatchSize               int64
-	RequestThresholdPercent int64
-	ReleaseThresholdPercent int64
+	Update(nodeConfig nnc.NodeNetworkConfig) error
 }
 
 // Response describes generic response from CNS.
