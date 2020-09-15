@@ -677,8 +677,6 @@ func startService() {
 		}
 	}
 
-	service.(*HTTPRestService).PoolMonitor = fakes.NewIPAMPoolMonitorFake()
-
 	// Get the internal http mux as test hook.
 	mux = service.(*HTTPRestService).Listener.GetMux()
 }

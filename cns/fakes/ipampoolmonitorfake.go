@@ -3,7 +3,7 @@ package fakes
 import (
 	"context"
 
-	"github.com/Azure/azure-container-networking/cns"
+	nnc "github.com/Azure/azure-container-networking/nodenetworkconfig/api/v1alpha"
 )
 
 type IPAMPoolMonitorFake struct{}
@@ -16,7 +16,7 @@ func (ipm *IPAMPoolMonitorFake) Start(ctx context.Context, poolMonitorRefreshMil
 	return nil
 }
 
-func (ipm *IPAMPoolMonitorFake) UpdatePoolMonitor(scalarUnits cns.ScalarUnits) error {
+func (ipm *IPAMPoolMonitorFake) Update(nnc nnc.NodeNetworkConfig) error {
 	return nil
 }
 

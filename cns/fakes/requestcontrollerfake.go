@@ -10,35 +10,26 @@ import (
 )
 
 type RequestControllerFake struct {
-	fakecns         *HTTPServiceFake
-	testScalarUnits cns.ScalarUnits
-	desiredSpec     nnc.NodeNetworkConfigSpec
-	currentStatus   nnc.NodeNetworkConfigStatus
-	ip              net.IP
+	fakecns   *HTTPServiceFake
+	cachedCRD nnc.NodeNetworkConfig
+	ip        net.IP
 }
 
-func NewRequestControllerFake(cnsService *HTTPServiceFake, scalarUnits cns.ScalarUnits, numberOfIPConfigs int) *RequestControllerFake {
+func NewRequestControllerFake(cnsService *HTTPServiceFake, ipamPoolMonitor cns.IPAMPoolMonitor, scalar nnc.Scaler, subnetAddressSpace string, numberOfIPConfigs int) *RequestControllerFake {
 	rc := &RequestControllerFake{
-		fakecns:         cnsService,
-		testScalarUnits: scalarUnits,
-		currentStatus: nnc.NodeNetworkConfigStatus{Scaler: nnc.Scaler{
-			BatchSize:               scalarUnits.BatchSize,
-			RequestThresholdPercent: scalarUnits.RequestThresholdPercent,
-			ReleaseThresholdPercent: scalarUnits.ReleaseThresholdPercent,
-		},
-			NetworkContainers: []nnc.NetworkContainer{
-				{
-					IPAssignments:      []nnc.IPAssignment{},
-					SubnetAddressSpace: "10.0.0.0/8",
-				},
+		fakecns: cnsService,
+		cachedCRD: nnc.NodeNetworkConfig{
+			Spec: nnc.NodeNetworkConfigSpec{},
+			Status: nnc.NodeNetworkConfigStatus{
+				Scaler: scalar,
+				NetworkContainers: []nnc.NetworkContainer{nnc.NetworkContainer{
+					SubnetAddressSpace: subnetAddressSpace,
+				}},
 			},
-		},
-		desiredSpec: nnc.NodeNetworkConfigSpec{
-			RequestedIPCount: int64(numberOfIPConfigs),
 		},
 	}
 
-	rc.ip, _, _ = net.ParseCIDR(rc.currentStatus.NetworkContainers[0].SubnetAddressSpace)
+	rc.ip, _, _ = net.ParseCIDR(subnetAddressSpace)
 
 	return rc
 }
@@ -51,7 +42,7 @@ func (rc *RequestControllerFake) CarveIPConfigsAndAddToStatusAndCNS(numberOfIPCo
 			Name: uuid.New().String(),
 			IP:   rc.ip.String(),
 		}
-		rc.currentStatus.NetworkContainers[0].IPAssignments = append(rc.currentStatus.NetworkContainers[0].IPAssignments, ipconfigCRD)
+		rc.cachedCRD.Status.NetworkContainers[0].IPAssignments = append(rc.cachedCRD.Status.NetworkContainers[0].IPAssignments, ipconfigCRD)
 
 		ipconfigCNS := cns.IPConfigurationStatus{
 			ID:        ipconfigCRD.Name,
@@ -64,7 +55,7 @@ func (rc *RequestControllerFake) CarveIPConfigsAndAddToStatusAndCNS(numberOfIPCo
 	}
 
 	rc.fakecns.IPStateManager.AddIPConfigs(cnsIPConfigs)
-	rc.desiredSpec.RequestedIPCount = int64(len(cnsIPConfigs))
+	rc.cachedCRD.Spec.RequestedIPCount = int64(len(cnsIPConfigs))
 
 	return cnsIPConfigs
 }
@@ -74,7 +65,7 @@ func (rc *RequestControllerFake) StartRequestController(exitChan <-chan struct{}
 }
 
 func (rc *RequestControllerFake) UpdateCRDSpec(cntxt context.Context, desiredSpec nnc.NodeNetworkConfigSpec) error {
-	rc.desiredSpec = desiredSpec
+	rc.cachedCRD.Spec = desiredSpec
 
 	return nil
 }
@@ -85,7 +76,7 @@ func remove(slice []nnc.IPAssignment, s int) []nnc.IPAssignment {
 
 func (rc *RequestControllerFake) Reconcile() error {
 
-	diff := int(rc.desiredSpec.RequestedIPCount) - len(rc.fakecns.GetPodIPConfigState())
+	diff := int(rc.cachedCRD.Spec.RequestedIPCount) - len(rc.fakecns.GetPodIPConfigState())
 
 	if diff > 0 {
 		// carve the difference of test IPs and add them to CNS, assume dnc has populated the CRD status
@@ -96,29 +87,29 @@ func (rc *RequestControllerFake) Reconcile() error {
 		// Assume DNC has removed the IPConfigs from the status
 
 		// mimic DNC removing IPConfigs from the CRD
-		for _, notInUseIPConfigName := range rc.desiredSpec.IPsNotInUse {
+		for _, notInUseIPConfigName := range rc.cachedCRD.Spec.IPsNotInUse {
 
 			// remove ipconfig from status
 			index := 0
-			for _, ipconfig := range rc.currentStatus.NetworkContainers[0].IPAssignments {
+			for _, ipconfig := range rc.cachedCRD.Status.NetworkContainers[0].IPAssignments {
 				if notInUseIPConfigName == ipconfig.Name {
 					break
 				}
 				index++
 			}
-			rc.currentStatus.NetworkContainers[0].IPAssignments = remove(rc.currentStatus.NetworkContainers[0].IPAssignments, index)
+			rc.cachedCRD.Status.NetworkContainers[0].IPAssignments = remove(rc.cachedCRD.Status.NetworkContainers[0].IPAssignments, index)
 
 		}
 
 		// remove ipconfig from CNS
-		rc.fakecns.IPStateManager.RemovePendingReleaseIPConfigs(rc.desiredSpec.IPsNotInUse)
+		rc.fakecns.IPStateManager.RemovePendingReleaseIPConfigs(rc.cachedCRD.Spec.IPsNotInUse)
 
 		// empty the not in use ip's from the spec
-		rc.desiredSpec.IPsNotInUse = []string{}
+		rc.cachedCRD.Spec.IPsNotInUse = []string{}
 	}
 
 	// update
-	rc.fakecns.PoolMonitor.UpdatePoolMonitor(rc.testScalarUnits)
+	rc.fakecns.PoolMonitor.Update(rc.cachedCRD)
 
 	return nil
 }

@@ -43,7 +43,6 @@ type HTTPRestService struct {
 	PodIPConfigState             map[string]cns.IPConfigurationStatus // seondaryipid(uuid) is key
 	AllocatedIPCount             map[string]allocatedIPCount          // key - ncid
 	routingTable                 *routes.RoutingTable
-	PoolMonitor                  cns.IPAMPoolMonitor
 	store                        store.KeyValueStore
 	state                        *httpRestServiceState
 	sync.RWMutex
