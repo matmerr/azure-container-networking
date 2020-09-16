@@ -5,6 +5,7 @@ package restserver
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -17,6 +18,10 @@ import (
 	"github.com/Azure/azure-container-networking/common"
 	"github.com/Azure/azure-container-networking/log"
 	nnc "github.com/Azure/azure-container-networking/nodenetworkconfig/api/v1alpha"
+)
+
+var (
+	poolIPAMRefreshRateInMilliseconds = 1000
 )
 
 // This file contains the internal functions called by either HTTP APIs (api.go) or
@@ -191,6 +196,13 @@ func (service *HTTPRestService) ReconcileNCState(ncRequest *cns.CreateNetworkCon
 		}
 	}
 
+	ctx := context.Background()
+	go func() {
+		if err := service.IPAMPoolMonitor.Start(ctx, poolIPAMRefreshRateInMilliseconds); err != nil {
+			logger.Errorf("[Azure CNS] Failed to start pool monitor with err: %v", err)
+		}
+	}()
+
 	return 0
 }
 
@@ -245,6 +257,12 @@ func (service *HTTPRestService) CreateOrUpdateNetworkContainerInternal(req cns.C
 		logger.Errorf(returnMessage)
 	}
 
+	err = service.MarkExistingIPsAsPending(spec.IPsNotInUse)
+	if err != nil {
+		logger.Errorf("[Azure CNS] Error. Failed to mark IP's as pending %v", req)
+		return UnexpectedError
+	}
+
 	if err = service.IPAMPoolMonitor.Update(scalar, spec); err != nil {
 		logger.Errorf("[cns-rc] Error creating or updating IPAM Pool Monitor: %v", err)
 		// requeue
@@ -252,5 +270,4 @@ func (service *HTTPRestService) CreateOrUpdateNetworkContainerInternal(req cns.C
 	}
 
 	return returnCode
-
 }
