@@ -1,13 +1,16 @@
-apiVersion: batch/v1
-kind: Job
+apiVersion: apps/v1
+kind: DaemonSet
 metadata:
   name: azure-cni-installer-agent
 spec:
-  ttlSecondsAfterFinished: 20
+  selector:
+    matchLabels:
+      acn: cni-installer
   template:
+    metadata:
+      labels:
+        acn: cni-installer
     spec:
-      nodeSelector:
-        beta.kubernetes.io/os: linux
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
@@ -21,10 +24,10 @@ spec:
           operator: Exists
       hostNetwork: true
       imagePullSecrets:
-        - name: acndev-acr-latest
+        - name: acndev.azurecr.io-key
       containers:
         - name: azure-cni-installer
-          image: acndev.azurecr.io/azure-cni-installer:bc3eb9f0b19e
+          image: acndev.azurecr.io/azure-cni-installer:07f84fcdbef4
           env:
             - name: CNI_OS
               value: linux
@@ -41,7 +44,7 @@ spec:
               mountPath: /opt/cni/bin
             - name: cni-conflist
               mountPath: /etc/cni/net.d
-      restartPolicy: Never
+      restartPolicy: Always
       volumes:
         - name: cni-bin
           hostPath:
