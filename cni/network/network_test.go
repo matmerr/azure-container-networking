@@ -31,12 +31,12 @@ func TestPlugin(t *testing.T) {
 		Mode:              "bridge",
 		IPsToRouteViaHost: []string{"169.254.20.10"},
 		Ipam: struct {
-			Type          string "json:\"type\""
-			Environment   string "json:\"environment,omitempty\""
-			AddrSpace     string "json:\"addressSpace,omitempty\""
-			Subnet        string "json:\"subnet,omitempty\""
-			Address       string "json:\"ipAddress,omitempty\""
-			QueryInterval string "json:\"queryInterval,omitempty\""
+			Type          string `json:"type"`
+			Environment   string `json:"environment,omitempty"`
+			AddrSpace     string `json:"addressSpace,omitempty"`
+			Subnet        string `json:"subnet,omitempty"`
+			Address       string `json:"ipAddress,omitempty"`
+			QueryInterval string `json:"queryInterval,omitempty"`
 		}{
 			Type: "azure-cns",
 		},

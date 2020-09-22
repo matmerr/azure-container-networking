@@ -1,13 +1,13 @@
 package network
 
 import (
+	"fmt"
 	"net"
 
 	"github.com/Azure/azure-container-networking/cni"
 	"github.com/Azure/azure-container-networking/common"
 	"github.com/Azure/azure-container-networking/log"
 	"github.com/Azure/azure-container-networking/network"
-	cniSkel "github.com/containernetworking/cni/pkg/skel"
 	cniTypesCurr "github.com/containernetworking/cni/pkg/types/current"
 )
 
@@ -23,7 +23,7 @@ func NewAzureIpamInvoker(plugin *netPlugin, nwInfo *network.NetworkInfo) *AzureI
 	}
 }
 
-func (invoker *AzureIPAMInvoker) Add(args *cniSkel.CmdArgs, nwCfg *cni.NetworkConfig, subnetPrefix *net.IPNet, options map[string]interface{}) (*cniTypesCurr.Result, *cniTypesCurr.Result, error) {
+func (invoker *AzureIPAMInvoker) Add(nwCfg *cni.NetworkConfig, subnetPrefix *net.IPNet, options map[string]interface{}) (*cniTypesCurr.Result, *cniTypesCurr.Result, error) {
 	var (
 		result   *cniTypesCurr.Result
 		resultV6 *cniTypesCurr.Result
@@ -38,12 +38,16 @@ func (invoker *AzureIPAMInvoker) Add(args *cniSkel.CmdArgs, nwCfg *cni.NetworkCo
 	result, err = invoker.plugin.DelegateAdd(nwCfg.Ipam.Type, nwCfg)
 	if err != nil {
 		err = invoker.plugin.Errorf("Failed to allocate pool: %v", err)
-		return result, resultV6, err
+		return nil, nil, err
 	}
 
 	defer func() {
 		if err != nil {
-			invoker.plugin.ipamInvoker.Delete(result.IPs[0].Address, nwCfg, options)
+			if len(result.IPs) > 0 {
+				invoker.plugin.ipamInvoker.Delete(result.IPs[0].Address, nwCfg, options)
+			} else {
+				err = fmt.Errorf("No IP's to delete on error: %v", err)
+			}
 		}
 	}()
 
@@ -53,6 +57,7 @@ func (invoker *AzureIPAMInvoker) Add(args *cniSkel.CmdArgs, nwCfg *cni.NetworkCo
 		nwCfg6.Ipam.Type = ipamV6
 
 		if len(invoker.nwInfo.Subnets) > 1 {
+			// ipv6 is the second subnet of the slice
 			nwCfg6.Ipam.Subnet = invoker.nwInfo.Subnets[1].Prefix.String()
 		}
 
@@ -62,16 +67,18 @@ func (invoker *AzureIPAMInvoker) Add(args *cniSkel.CmdArgs, nwCfg *cni.NetworkCo
 		}
 	}
 
+	subnetPrefix = &result.IPs[0].Address
+
 	return result, resultV6, err
 }
 
 func (invoker *AzureIPAMInvoker) Delete(address net.IPNet, nwCfg *cni.NetworkConfig, options map[string]interface{}) error {
 	var err error
 
-	if address.IP.To4() != nil {
+	if len(address.IP.To4()) == 4 {
 
 		// cleanup pool
-		if options[optKeyCleanupDependency] == optValPool {
+		if options[optReleasePool] == optValPool {
 			nwCfg.Ipam.Address = ""
 		}
 
@@ -82,7 +89,7 @@ func (invoker *AzureIPAMInvoker) Delete(address net.IPNet, nwCfg *cni.NetworkCon
 			log.Printf("Failed to release ipv4 address: %v", err)
 			err = invoker.plugin.Errorf("Failed to release ipv4 address: %v", err)
 		}
-	} else {
+	} else if len(address.IP.To16()) == 16 {
 		nwCfgIpv6 := *nwCfg
 		nwCfgIpv6.Ipam.Environment = common.OptEnvironmentIPv6NodeIpam
 		nwCfgIpv6.Ipam.Type = ipamV6

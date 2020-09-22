@@ -68,9 +68,17 @@ func main() {
 	if _, err := os.Stat(envs.dstBinDir); os.IsNotExist(err) {
 		os.MkdirAll(envs.dstBinDir, binPerm)
 	}
+	if err != nil {
+		fmt.Printf("Failed to create destination bin %v directory: %v", envs.dstBinDir, err)
+		os.Exit(1)
+	}
 
 	if _, err := os.Stat(envs.dstConflistDir); os.IsNotExist(err) {
 		os.MkdirAll(envs.dstConflistDir, conflistPerm)
+	}
+	if err != nil {
+		fmt.Printf("Failed to create destination conflist %v directory: %v with err %v", envs.dstConflistDir, envs.dstBinDir, err)
+		os.Exit(1)
 	}
 
 	binaries, conflists, err := getFiles(envs.srcDir)
@@ -102,10 +110,10 @@ func main() {
 
 func modifyConflists(conflistpath string, envs environmentalVariables, perm os.FileMode) error {
 	jsonFile, err := os.Open(conflistpath)
-	defer jsonFile.Close()
 	if err != nil {
 		return err
 	}
+	defer jsonFile.Close()
 
 	var conflist rawConflist
 	byteValue, err := ioutil.ReadAll(jsonFile)
@@ -139,12 +147,7 @@ func modifyConflists(conflistpath string, envs environmentalVariables, perm os.F
 	}
 
 	fmt.Printf("Installing %v...\n", dstFile)
-	err = ioutil.WriteFile(dstFile, filebytes, perm)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return ioutil.WriteFile(dstFile, filebytes, perm)
 }
 
 func modifyConf(conf interface{}, envs environmentalVariables) (interface{}, error) {
@@ -187,7 +190,7 @@ func getDirectoriesFromEnv() (environmentalVariables, error) {
 	if strings.EqualFold(osVersion, linux) || strings.EqualFold(osVersion, windows) {
 		osVersion = fmt.Sprintf("%s_%s", osVersion, amd64)
 	} else {
-		return envs, fmt.Errorf("No target OS version supplied, please set \"%s\" env and try again", envCNIOS)
+		return envs, fmt.Errorf("No target OS version supplied, please set %q env and try again", envCNIOS)
 	}
 
 	// get paths for singletenancy and multitenancy
@@ -197,7 +200,7 @@ func getDirectoriesFromEnv() (environmentalVariables, error) {
 	case strings.EqualFold(cniType, singletenancy):
 		cniType = cni
 	default:
-		return envs, fmt.Errorf("No CNI type supplied, please set \"%s\" env to either \"%s\" or \"%s\" and try again", envCNITYPE, singletenancy, multitenancy)
+		return envs, fmt.Errorf("No CNI type supplied, please set %q env to either %q or %q and try again", envCNITYPE, singletenancy, multitenancy)
 	}
 
 	// set the source directory where bins and conflist(s) are
@@ -218,7 +221,7 @@ func getDirectoriesFromEnv() (environmentalVariables, error) {
 	}
 	envs.dstConflistDir = dstConflistDirectory
 
-	// set excempt binaries to skip installing
+	// set exempt binaries to skip installing
 	// convert to all lower case, strip whitespace, and split on comma
 	exempt := strings.Split(strings.Replace(strings.ToLower(envCNIExemptBins), " ", "", -1), ",")
 	for _, binName := range exempt {
@@ -261,7 +264,7 @@ func copyBinaries(filePaths []string, envs environmentalVariables, perm os.FileM
 		if exempt, ok := envs.exemptBins[fileName]; ok && exempt {
 			fmt.Printf("Skipping %s, marked as exempt\n", fileName)
 		} else {
-			err := copy(path, envs.dstBinDir+fileName, perm)
+			err := copyFile(path, envs.dstBinDir+fileName, perm)
 			fmt.Printf("Installing %v...\n", envs.dstBinDir+fileName)
 			if err != nil {
 				return err
@@ -273,7 +276,7 @@ func copyBinaries(filePaths []string, envs environmentalVariables, perm os.FileM
 	return nil
 }
 
-func copy(src string, dst string, perm os.FileMode) error {
+func copyFile(src string, dst string, perm os.FileMode) error {
 	data, err := ioutil.ReadFile(src)
 	if err != nil {
 		return err

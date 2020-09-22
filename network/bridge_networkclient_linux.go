@@ -80,7 +80,7 @@ func (client *LinuxBridgeClient) AddRoutes(nwInfo *NetworkInfo, interfaceName st
 			return fmt.Errorf("Failed to parse SNAT IP from options %v", client.nwInfo.Options)
 		}
 
-		epcommon.SNATPrivateIPSpaceWithIP(ncPrimaryIP, client.nwInfo.PodSubnet.Prefix)
+		epcommon.SNATfromSubnetToDNSWithNCPrimaryIP(ncPrimaryIP, client.nwInfo.PodSubnet.Prefix)
 	}
 	return nil
 }
