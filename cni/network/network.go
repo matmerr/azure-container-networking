@@ -455,7 +455,6 @@ func (plugin *netPlugin) Add(args *cniSkel.CmdArgs) error {
 					}
 				}
 			}()
-
 		}
 
 		gateway := result.IPs[0].Gateway

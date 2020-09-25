@@ -67,7 +67,8 @@ func (invoker *AzureIPAMInvoker) Add(nwCfg *cni.NetworkConfig, subnetPrefix *net
 		}
 	}
 
-	subnetPrefix = &result.IPs[0].Address
+	sub := &result.IPs[0].Address
+	*subnetPrefix = *sub
 
 	return result, resultV6, err
 }
@@ -103,6 +104,8 @@ func (invoker *AzureIPAMInvoker) Delete(address net.IPNet, nwCfg *cni.NetworkCon
 			log.Printf("Failed to release ipv6 address: %v", err)
 			err = invoker.plugin.Errorf("Failed to release ipv6 address: %v", err)
 		}
+	} else {
+		err = fmt.Errorf("Address is of invalid type: raw %s", address.String())
 	}
 
 	return err
