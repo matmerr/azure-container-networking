@@ -5,6 +5,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -38,11 +39,12 @@ import (
 
 const (
 	// Service name.
-	name                            = "azure-cns"
-	pluginName                      = "azure-vnet"
-	defaultCNINetworkConfigFileName = "10-azure.conflist"
-	configFileName                  = "config.json"
-	dncApiVersion                   = "?api-version=2018-03-01"
+	name                              = "azure-cns"
+	pluginName                        = "azure-vnet"
+	defaultCNINetworkConfigFileName   = "10-azure.conflist"
+	configFileName                    = "config.json"
+	dncApiVersion                     = "?api-version=2018-03-01"
+	poolIPAMRefreshRateInMilliseconds = 1000
 )
 
 // Version is populated by make during build.
@@ -472,6 +474,13 @@ func main() {
 			if err := requestController.StartRequestController(requestControllerStopChannel); err != nil {
 				logger.Errorf("[Azure CNS] Failed to start request controller: %v", err)
 				return
+			}
+		}()
+
+		ctx := context.Background()
+		go func() {
+			if err := httpRestServiceImplementation.IPAMPoolMonitor.Start(ctx, poolIPAMRefreshRateInMilliseconds); err != nil {
+				logger.Errorf("[Azure CNS] Failed to start pool monitor with err: %v", err)
 			}
 		}()
 	}

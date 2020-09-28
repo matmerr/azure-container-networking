@@ -208,7 +208,7 @@ func (service *HTTPRestService) MarkExistingIPsAsPending(pendingIPIDs []string) 
 			ipconfig.State = cns.PendingRelease
 			service.PodIPConfigState[id] = ipconfig
 		} else {
-			return fmt.Errorf("Inconsistent state, ipconfig with ID [%v] marked as pending release, but does not exist in state", id)
+			logger.Errorf("Inconsistent state, ipconfig with ID [%v] marked as pending release, but does not exist in state", id)
 		}
 	}
 	return nil
