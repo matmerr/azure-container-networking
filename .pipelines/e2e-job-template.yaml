@@ -35,7 +35,7 @@ stages:
           - template: e2e-step-template.yaml
             parameters:
               name: ${{ parameters.name }}
-              cniVariant: ${{ parameters.cniVariant }}- # add '-' so it's a valid url in the step
+              cniVariant: ${{ parameters.cniVariant }}
               clusterDefinition: ${{ parameters.clusterDefinition }}
               clusterDefinitionCniTypeKey: ${{ parameters.clusterDefinitionCniTypeKey }}
               clusterDefinitionCniBuildOS: ${{ parameters.clusterDefinitionCniBuildOS }}
