@@ -218,6 +218,17 @@ stages:
 
   - template: e2e-job-template.yaml
     parameters:
+      name: "ubuntu_18_04_linux_e2e_transparent"
+      displayName: Ubuntu 18.04 Transparent
+      pipelineBuildImage: "$(BUILD_IMAGE)"
+      cniVariant: "transparent"
+      clusterDefinition: "cniLinux1804.json"
+      clusterDefinitionCniTypeKey: "azureCNIURLLinux"
+      clusterDefinitionCniBuildOS: "linux"
+      clusterDefinitionCniBuildExt: ".tgz"
+
+  - template: e2e-job-template.yaml
+    parameters:
       name: "windows_18_09_e2e"
       displayName: "Windows 1809"
       pipelineBuildImage: "$(BUILD_IMAGE)"
