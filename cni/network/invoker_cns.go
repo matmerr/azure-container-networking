@@ -82,7 +82,7 @@ func (invoker *CNSIPAMInvoker) Add(nwCfg *cni.NetworkConfig, subnetPrefix *net.I
 	// set host gateway in options
 	options[network.HostGWKey] = resultIPv4.hostGateway
 
-	log.Printf("Received result %+v for pod %v", resultIPv4, podInfo)
+	log.Printf("Received IP %v for pod %v", resultIPv4.podIPAddress, podInfo)
 
 	result, err := getCNIIPv4Result(resultIPv4, subnetPrefix)
 	if err != nil {
