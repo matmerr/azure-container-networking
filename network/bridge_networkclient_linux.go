@@ -52,7 +52,7 @@ func (client *LinuxBridgeClient) AddRoutes(nwInfo *NetworkInfo, interfaceName st
 	if client.nwInfo.IPAMType == AzureCNS {
 
 		// Add snat Rules
-		gwIP := client.nwInfo.Options[SNATIPKey]
+		gwIP := client.nwInfo.Options[HostGWKey]
 		if gwIP == nil {
 			return fmt.Errorf("Host gateway IP in Options not set")
 		}
@@ -61,6 +61,7 @@ func (client *LinuxBridgeClient) AddRoutes(nwInfo *NetworkInfo, interfaceName st
 		if gatewayIP == nil {
 			return fmt.Errorf("Invalid host gateway IP: %+v", gwIP)
 		}
+
 		// add pod subnet to host
 		devIf, _ := net.InterfaceByName(interfaceName)
 		ifIndex := devIf.Index
