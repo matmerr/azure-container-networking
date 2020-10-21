@@ -2,10 +2,9 @@ parameters:
   name: ""
   displayName: ""
   pipelineBuildImage: "$(BUILD_IMAGE)"
-  cniVariant: ""
+  clusterDefinitionCniArchiveBaseName: ""
   clusterDefinition: ""
   clusterDefinitionCniTypeKey: ""
-  clusterDefinitionCniBuildOS: ""
   clusterDefinitionCniBuildExt: ""
 
 stages:
@@ -38,5 +37,5 @@ stages:
               cniVariant: ${{ parameters.cniVariant }}
               clusterDefinition: ${{ parameters.clusterDefinition }}
               clusterDefinitionCniTypeKey: ${{ parameters.clusterDefinitionCniTypeKey }}
-              clusterDefinitionCniBuildOS: ${{ parameters.clusterDefinitionCniBuildOS }}
+              clusterDefinitionCniArchiveBaseName: ${{ parameters.clusterDefinitionCniArchiveBaseName }}
               clusterDefinitionCniBuildExt: ${{ parameters.clusterDefinitionCniBuildExt }}

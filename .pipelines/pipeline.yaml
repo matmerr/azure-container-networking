@@ -202,8 +202,7 @@ stages:
       displayName: Ubuntu 16.04
       pipelineBuildImage: "$(BUILD_IMAGE)"
       clusterDefinition: "cniLinux1604.json"
-      clusterDefinitionCniTypeKey: "azureCNIURLLinux"
-      clusterDefinitionCniBuildOS: "linux"
+      clusterDefinitionCniArchiveBaseName: azure-vnet-cni-linux-amd64
       clusterDefinitionCniBuildExt: ".tgz"
 
   - template: e2e-job-template.yaml
@@ -213,7 +212,7 @@ stages:
       pipelineBuildImage: "$(BUILD_IMAGE)"
       clusterDefinition: "cniLinux1804.json"
       clusterDefinitionCniTypeKey: "azureCNIURLLinux"
-      clusterDefinitionCniBuildOS: "linux"
+      clusterDefinitionCniArchiveBaseName: azure-vnet-cni-linux-amd64
       clusterDefinitionCniBuildExt: ".tgz"
 
   - template: e2e-job-template.yaml
@@ -221,10 +220,9 @@ stages:
       name: "ubuntu_18_04_linux_e2e_transparent"
       displayName: Ubuntu 18.04 Transparent
       pipelineBuildImage: "$(BUILD_IMAGE)"
-      cniVariant: "transparent"
       clusterDefinition: "cniLinux1804.json"
       clusterDefinitionCniTypeKey: "azureCNIURLLinux"
-      clusterDefinitionCniBuildOS: "linux"
+      clusterDefinitionCniArchiveBaseName: azure-vnet-cni-transparent-linux-amd64
       clusterDefinitionCniBuildExt: ".tgz"
 
   - template: e2e-job-template.yaml
@@ -234,7 +232,7 @@ stages:
       pipelineBuildImage: "$(BUILD_IMAGE)"
       clusterDefinition: "cniWindows1809.json"
       clusterDefinitionCniTypeKey: "azureCNIURLWindows"
-      clusterDefinitionCniBuildOS: "windows"
+      clusterDefinitionCniArchiveBaseName: azure-vnet-cni-windows-amd64
       clusterDefinitionCniBuildExt: ".zip"
 
   - template: e2e-job-template.yaml
@@ -244,7 +242,7 @@ stages:
       pipelineBuildImage: "$(BUILD_IMAGE)"
       clusterDefinition: "cniWindows1903.json"
       clusterDefinitionCniTypeKey: "azureCNIURLWindows"
-      clusterDefinitionCniBuildOS: "windows"
+      clusterDefinitionCniArchiveBaseName: azure-vnet-cni-windows-amd64
       clusterDefinitionCniBuildExt: ".zip"
 
   - stage: cleanup
@@ -252,6 +250,7 @@ stages:
     dependsOn:
       - "ubuntu_16_04_linux_e2e"
       - "ubuntu_18_04_linux_e2e"
+      - "ubuntu_18_04_linux_e2e_transparent"
       - "windows_18_09_e2e"
       - "windows_19_03_e2e"
     jobs:
