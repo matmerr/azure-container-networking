@@ -29,7 +29,7 @@ spec:
                   operator: In
                   values:
                   - goldpinger
-            topologyKey: "kubernetes.io/hostname"
+              topologyKey: "kubernetes.io/hostname"
       containers:
         - name: goldpinger
           env:
