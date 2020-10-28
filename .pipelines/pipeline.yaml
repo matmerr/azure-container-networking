@@ -181,7 +181,7 @@ stages:
               pathtoPublish: "$(Build.ArtifactStagingDirectory)"
             condition: succeeded()
 
-          - publish: $(modulePath)/test/e2e/kubernetes/
+          - publish: $(modulePath)/test/apimodels/
             artifact: clusterdefinitions
 
           - task: AzureCLI@1
