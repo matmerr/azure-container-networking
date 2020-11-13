@@ -111,7 +111,7 @@ func (invoker *CNSIPAMInvoker) Add(nwCfg *cni.NetworkConfig, hostSubnetPrefix *n
 	}
 
 	// set subnet prefix for host vm
-	err = SetHostOptions(nwCfg, hostSubnetPrefix, ncipnet, options, info)
+	err = setHostOptions(nwCfg, hostSubnetPrefix, ncipnet, options, info)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -120,7 +120,7 @@ func (invoker *CNSIPAMInvoker) Add(nwCfg *cni.NetworkConfig, hostSubnetPrefix *n
 	return result, nil, nil
 }
 
-func SetHostOptions(nwCfg *cni.NetworkConfig, hostSubnetPrefix *net.IPNet, ncSubnetPrefix *net.IPNet, options map[string]interface{}, info IPv4ResultInfo) error {
+func setHostOptions(nwCfg *cni.NetworkConfig, hostSubnetPrefix *net.IPNet, ncSubnetPrefix *net.IPNet, options map[string]interface{}, info IPv4ResultInfo) error {
 	// get the name of the primary IP address
 	_, hostIPNet, err := net.ParseCIDR(info.hostSubnet)
 	if err != nil {
@@ -150,8 +150,8 @@ func SetHostOptions(nwCfg *cni.NetworkConfig, hostSubnetPrefix *net.IPNet, ncSub
 	}
 
 	azureDNSMatch := fmt.Sprintf(" -m addrtype ! --dst-type local -s %s -d %s -p %s --dport %d", ncSubnetPrefix.String(), iptables.AzureDNS, iptables.UDP, iptables.DNSPort)
-	snatPrimaryIPJump := fmt.Sprintf("%s --to %s", iptables.Snat, info.podIPAddress)
-	options[network.IPTablesKey] = []iptables.IpTableEntry{
+	snatPrimaryIPJump := fmt.Sprintf("%s --to %s", iptables.Snat, info.ncPrimaryIP)
+	options[network.IPTablesKey] = []iptables.IPTableEntry{
 		iptables.GetCreateChainCmd(iptables.V4, iptables.Nat, iptables.Swift),
 		iptables.GetAppendIptableRuleCmd(iptables.V4, iptables.Nat, iptables.Postrouting, "", iptables.Swift),
 		iptables.GetInsertIptableRuleCmd(iptables.V4, iptables.Nat, iptables.Swift, azureDNSMatch, snatPrimaryIPJump),

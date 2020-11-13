@@ -97,7 +97,7 @@ func handleCommonOptions(ifname string, nwInfo *NetworkInfo) error {
 	}
 
 	if iptcmds, exists := nwInfo.Options[IPTablesKey]; exists {
-		err = AddToIptables(iptcmds.([]iptables.IpTableEntry))
+		err = AddToIptables(iptcmds.([]iptables.IPTableEntry))
 		if err != nil {
 			return err
 		}
@@ -497,14 +497,14 @@ func (nm *networkManager) disconnectExternalInterface(extIf *externalInterface, 
 	log.Printf("[net] Disconnected interface %v.", extIf.Name)
 }
 
-func AddToIptables(cmds []iptables.IpTableEntry) error {
+func AddToIptables(cmds []iptables.IPTableEntry) error {
 	log.Printf("Adding additional iptable rules...")
 	for _, cmd := range cmds {
 		err := iptables.RunCmd(cmd.Version, cmd.Params)
-		log.Printf("Succesfully run iptables rule %v", cmd)
 		if err != nil {
 			return err
 		}
+		log.Printf("Succesfully run iptables rule %v", cmd)
 	}
 	return nil
 }

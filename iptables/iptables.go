@@ -85,7 +85,7 @@ var (
 	DisableIPTableLock bool
 )
 
-type IpTableEntry struct {
+type IPTableEntry struct {
 	Version string
 	Params  string
 }
@@ -121,8 +121,8 @@ func ChainExists(version, tableName, chainName string) bool {
 
 	return true
 }
-func GetCreateChainCmd(version, tableName, chainName string) IpTableEntry {
-	return IpTableEntry{
+func GetCreateChainCmd(version, tableName, chainName string) IPTableEntry {
+	return IPTableEntry{
 		Version: version,
 		Params:  fmt.Sprintf("-t %s -N %s", tableName, chainName),
 	}
@@ -151,8 +151,8 @@ func RuleExists(version, tableName, chainName, match, target string) bool {
 	return true
 }
 
-func GetInsertIptableRuleCmd(version, tableName, chainName, match, target string) IpTableEntry {
-	return IpTableEntry{
+func GetInsertIptableRuleCmd(version, tableName, chainName, match, target string) IPTableEntry {
+	return IPTableEntry{
 		Version: version,
 		Params:  fmt.Sprintf("-t %s -I %s 1 %s -j %s", tableName, chainName, match, target),
 	}
@@ -169,8 +169,8 @@ func InsertIptableRule(version, tableName, chainName, match, target string) erro
 	return RunCmd(version, cmd.Params)
 }
 
-func GetAppendIptableRuleCmd(version, tableName, chainName, match, target string) IpTableEntry {
-	return IpTableEntry{
+func GetAppendIptableRuleCmd(version, tableName, chainName, match, target string) IPTableEntry {
+	return IPTableEntry{
 		Version: version,
 		Params:  fmt.Sprintf("-t %s -A %s %s -j %s", tableName, chainName, match, target),
 	}
