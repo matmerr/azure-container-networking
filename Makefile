@@ -432,4 +432,4 @@ endif
 # run all tests
 .PHONY: test-all
 test-all:
-	go test -v -race -covermode atomic -coverprofile=coverage.out ./...
+	./scripts/ginkgo.coverage.sh --codecov
