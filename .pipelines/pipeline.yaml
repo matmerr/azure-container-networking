@@ -75,6 +75,8 @@ stages:
               go get github.com/axw/gocov/gocov
               go get github.com/AlekSi/gocov-xml
               go get github.com/matm/gocov-html
+              go install ./vendor/github.com/onsi/ginkgo
+              go install ./vendor/github.com/onsi/gomega
             workingDirectory: "$(modulePath)"
             name: "GoDependencies"
             displayName: "Install Go dependencies"
