@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	c "github.com/Azure/azure-container-networking/acncli/api"
+	c "github.com/Azure/azure-container-networking/hack/acncli/api"
 )
 
 type InstallerConfig struct {
