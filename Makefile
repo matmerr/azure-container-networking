@@ -397,11 +397,12 @@ cnm-archive:
 # Create a CNM archive for the target platform.
 .PHONY: acncli-archive
 acncli-archive:
+ifeq ($(GOOS),linux)
 	mkdir -p $(ACNCLI_BUILD_DIR)
 	chmod 0755 $(ACNCLI_BUILD_DIR)/acn$(EXE_EXT)
 	cd $(ACNCLI_BUILD_DIR) && $(ARCHIVE_CMD) $(ACNCLI_ARCHIVE_NAME) acn$(EXE_EXT)
 	chown $(BUILD_USER):$(BUILD_USER) $(ACNCLI_BUILD_DIR)/$(ACNCLI_ARCHIVE_NAME)
-
+endif
 
 # Create a CNS archive for the target platform.
 .PHONY: cns-archive
