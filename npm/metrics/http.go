@@ -27,8 +27,12 @@ func StartHTTP(delayAmountAfterStart int) {
 
 	http.Handle(nodeMetricsPath, getHandler(true))
 	http.Handle(clusterMetricsPath, getHandler(false))
-	log.Logf("Starting Prometheus HTTP Server")
-	go http.ListenAndServe(httpPort, nil)
+	log.Logf("Starting Prometheus HTTP Server on %v", httpPort)
+	go func() {
+		if err := http.ListenAndServe(httpPort, nil); err != nil {
+			log.Printf("Failed to start Prometheus server with err: %v", err)
+		}
+	}()
 	time.Sleep(time.Second * time.Duration(delayAmountAfterStart))
 }
 
