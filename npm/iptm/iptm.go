@@ -407,6 +407,10 @@ func (iptMgr *IptablesManager) Run(entry *IptEntry) (int, error) {
 	}
 
 	_, err := exec.Command(cmdName, cmdArgs...).Output()
+	if err != nil {
+		log.Printf("DEBUG ERROR %+v\n", err)
+	}
+
 	if msg, failed := err.(*exec.ExitError); failed {
 		errCode := msg.Sys().(syscall.WaitStatus).ExitStatus()
 		if errCode > 0 && iptMgr.OperationFlag != util.IptablesCheckFlag {

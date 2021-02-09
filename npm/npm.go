@@ -5,6 +5,7 @@ package npm
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"os"
 	"sync"
 	"time"
@@ -163,8 +164,14 @@ func (npMgr *NetworkPolicyManager) backup() {
 	}
 }
 
+func startProfiling() {
+	log.Logf("Started profiling endpoint")
+	log.Logf("+v", http.ListenAndServe(":8081", nil))
+}
+
 // Start starts shared informers and waits for the shared informer cache to sync.
 func (npMgr *NetworkPolicyManager) Start(stopCh <-chan struct{}) error {
+	go startProfiling()
 	// Starts all informers manufactured by npMgr's informerFactory.
 	npMgr.informerFactory.Start(stopCh)
 

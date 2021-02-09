@@ -3,6 +3,7 @@
 package main
 
 import (
+	_ "net/http/pprof" // expose pprof endpoint
 	"time"
 
 	"github.com/Azure/azure-container-networking/log"
@@ -31,6 +32,7 @@ func initLogging() error {
 }
 
 func main() {
+
 	var err error
 
 	defer func() {
@@ -44,6 +46,7 @@ func main() {
 	}
 
 	metrics.InitializeAll()
+	metrics.StartHTTP(0)
 
 	// Creates the in-cluster config
 	config, err := rest.InClusterConfig()
@@ -63,14 +66,12 @@ func main() {
 	npMgr := npm.NewNetworkPolicyManager(clientset, factory, version)
 	metrics.CreateTelemetryHandle(npMgr.GetAppVersion(), npm.GetAIMetadata())
 
-	go npMgr.SendClusterMetrics()
+	//go npMgr.SendClusterMetrics()
 
 	if err = npMgr.Start(wait.NeverStop); err != nil {
 		log.Logf("npm failed with error %v.", err)
 		panic(err.Error)
 	}
-
-	metrics.StartHTTP(0)
 
 	select {}
 }
