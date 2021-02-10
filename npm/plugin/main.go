@@ -6,6 +6,8 @@ import (
 	_ "net/http/pprof" // expose pprof endpoint
 	"time"
 
+	restserver "github.com/Azure/azure-container-networking/npm/http/server"
+
 	"github.com/Azure/azure-container-networking/log"
 	"github.com/Azure/azure-container-networking/npm"
 	"github.com/Azure/azure-container-networking/npm/metrics"
@@ -46,7 +48,6 @@ func main() {
 	}
 
 	metrics.InitializeAll()
-	metrics.StartHTTP(0)
 
 	// Creates the in-cluster config
 	config, err := rest.InClusterConfig()
@@ -65,6 +66,9 @@ func main() {
 
 	npMgr := npm.NewNetworkPolicyManager(clientset, factory, version)
 	metrics.CreateTelemetryHandle(npMgr.GetAppVersion(), npm.GetAIMetadata())
+	restserver := restserver.NewNpmRestServer(npMgr)
+	log.Debugf("Starting NPM Rest server from main thread...")
+	go restserver.NPMRestServerListenAndServe(npMgr)
 
 	//go npMgr.SendClusterMetrics()
 

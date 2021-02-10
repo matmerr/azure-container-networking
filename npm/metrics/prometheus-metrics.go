@@ -75,13 +75,13 @@ func InitializeAll() {
 }
 
 func register(collector prometheus.Collector, name string, isNodeLevel bool) {
-	err := getRegistry(isNodeLevel).Register(collector)
+	err := GetRegistry(isNodeLevel).Register(collector)
 	if err != nil {
 		log.Errorf("Error creating metric %s", name)
 	}
 }
 
-func getRegistry(isNodeLevel bool) *prometheus.Registry {
+func GetRegistry(isNodeLevel bool) *prometheus.Registry {
 	registry := clusterLevelRegistry
 	if isNodeLevel {
 		registry = nodeLevelRegistry

@@ -47,7 +47,7 @@ func TestAllNsList(t *testing.T) {
 
 func TestAddNamespace(t *testing.T) {
 	npMgr := &NetworkPolicyManager{
-		nsMap:            make(map[string]*namespace),
+		NsMap:            make(map[string]*Namespace),
 		TelemetryEnabled: false,
 	}
 
@@ -55,7 +55,7 @@ func TestAddNamespace(t *testing.T) {
 	if err != nil {
 		panic(err.Error)
 	}
-	npMgr.nsMap[util.KubeAllNamespacesFlag] = allNs
+	npMgr.NsMap[util.KubeAllNamespacesFlag] = allNs
 
 	ipsMgr := ipsm.NewIpsetManager()
 	if err := ipsMgr.Save(util.IpsetTestConfigFile); err != nil {
@@ -70,9 +70,9 @@ func TestAddNamespace(t *testing.T) {
 
 	nsObj := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "test-namespace",
+			Name: "test-Namespace",
 			Labels: map[string]string{
-				"app": "test-namespace",
+				"app": "test-Namespace",
 			},
 		},
 	}
@@ -86,7 +86,7 @@ func TestAddNamespace(t *testing.T) {
 
 func TestUpdateNamespace(t *testing.T) {
 	npMgr := &NetworkPolicyManager{
-		nsMap:            make(map[string]*namespace),
+		NsMap:            make(map[string]*Namespace),
 		TelemetryEnabled: false,
 	}
 
@@ -94,7 +94,7 @@ func TestUpdateNamespace(t *testing.T) {
 	if err != nil {
 		panic(err.Error)
 	}
-	npMgr.nsMap[util.KubeAllNamespacesFlag] = allNs
+	npMgr.NsMap[util.KubeAllNamespacesFlag] = allNs
 
 	ipsMgr := ipsm.NewIpsetManager()
 	if err := ipsMgr.Save(util.IpsetTestConfigFile); err != nil {
@@ -109,18 +109,18 @@ func TestUpdateNamespace(t *testing.T) {
 
 	oldNsObj := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "old-test-namespace",
+			Name: "old-test-Namespace",
 			Labels: map[string]string{
-				"app": "old-test-namespace",
+				"app": "old-test-Namespace",
 			},
 		},
 	}
 
 	newNsObj := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "new-test-namespace",
+			Name: "new-test-Namespace",
 			Labels: map[string]string{
-				"app": "new-test-namespace",
+				"app": "new-test-Namespace",
 			},
 		},
 	}
@@ -255,7 +255,7 @@ func TestDeleteandUpdateNamespaceLabel(t *testing.T) {
 
 func TestDeleteNamespace(t *testing.T) {
 	npMgr := &NetworkPolicyManager{
-		nsMap:            make(map[string]*namespace),
+		NsMap:            make(map[string]*Namespace),
 		TelemetryEnabled: false,
 	}
 
@@ -263,7 +263,7 @@ func TestDeleteNamespace(t *testing.T) {
 	if err != nil {
 		panic(err.Error)
 	}
-	npMgr.nsMap[util.KubeAllNamespacesFlag] = allNs
+	npMgr.NsMap[util.KubeAllNamespacesFlag] = allNs
 
 	ipsMgr := ipsm.NewIpsetManager()
 	if err := ipsMgr.Save(util.IpsetTestConfigFile); err != nil {
@@ -278,9 +278,9 @@ func TestDeleteNamespace(t *testing.T) {
 
 	nsObj := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "test-namespace",
+			Name: "test-Namespace",
 			Labels: map[string]string{
-				"app": "test-namespace",
+				"app": "test-Namespace",
 			},
 		},
 	}

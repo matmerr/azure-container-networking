@@ -21,7 +21,7 @@ import (
 )
 
 // This file contains the initialization of RestServer.
-// all HTTP APIs - api.go and/or ipam.go
+// all HTTP APIs - server.go and/or ipam.go
 // APIs for internal consumption - internalapi.go
 // All helper/utility functions - util.go
 // Constants - const.go
