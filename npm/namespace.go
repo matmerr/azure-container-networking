@@ -143,7 +143,7 @@ func (npMgr *NetworkPolicyManager) AddNamespace(nsObj *corev1.Namespace) error {
 
 	// Append all labels to the cache NS obj
 	ns.labelsMap = util.AppendMap(ns.labelsMap, nsLabel)
-	npMgr.nsMap[nsName] = ns
+	npMgr.NsMap[nsName] = ns
 
 	return nil
 }
@@ -178,7 +178,7 @@ func (npMgr *NetworkPolicyManager) UpdateNamespace(oldNsObj *corev1.Namespace, n
 
 	// If orignal AddNamespace failed for some reason, then NS will not be found
 	// in nsMap, resulting in retry of ADD.
-	curNsObj, exists := npMgr.nsMap[newNsNs]
+	curNsObj, exists := npMgr.NsMap[newNsNs]
 	if !exists {
 		if newNsObj.ObjectMeta.DeletionTimestamp == nil && newNsObj.ObjectMeta.DeletionGracePeriodSeconds == nil {
 			if err = npMgr.AddNamespace(newNsObj); err != nil {
@@ -202,7 +202,7 @@ func (npMgr *NetworkPolicyManager) UpdateNamespace(oldNsObj *corev1.Namespace, n
 	toAddNsLabels, toDeleteNsLabels := util.CompareMapDiff(curNsObj.labelsMap, newNsLabel)
 
 	// Delete the namespace from its label's ipset list.
-	ipsMgr := npMgr.nsMap[util.KubeAllNamespacesFlag].ipsMgr
+	ipsMgr := npMgr.NsMap[util.KubeAllNamespacesFlag].ipsMgr
 	for nsLabelKey, nsLabelVal := range toDeleteNsLabels {
 		labelKey := "ns-" + nsLabelKey
 		log.Logf("Deleting namespace %s from ipset list %s", oldNsNs, labelKey)
@@ -238,7 +238,7 @@ func (npMgr *NetworkPolicyManager) UpdateNamespace(oldNsObj *corev1.Namespace, n
 
 	// Append all labels to the cache NS obj
 	curNsObj.labelsMap = util.ClearAndAppendMap(curNsObj.labelsMap, newNsLabel)
-	npMgr.nsMap[newNsNs] = curNsObj
+	npMgr.NsMap[newNsNs] = curNsObj
 
 	return nil
 }
