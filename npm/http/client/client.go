@@ -25,7 +25,7 @@ func NewNPMHttpClient(endpoint string) *NPMHttpClient {
 }
 
 func (n *NPMHttpClient) GetNpmMgr() (*npm.NetworkPolicyManager, error) {
-	url := n.endpoint + api.InformersPath
+	url := n.endpoint + api.NPMMgrPath
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return nil, err

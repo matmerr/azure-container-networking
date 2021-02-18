@@ -1,8 +1,11 @@
 package metrics
 
 import (
+	"net/http"
+
 	"github.com/Azure/azure-container-networking/log"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 const namespace = "npm"
@@ -72,6 +75,11 @@ func InitializeAll() {
 		log.Logf("Finished initializing all Prometheus metrics")
 		haveInitialized = true
 	}
+}
+
+// getHandler returns the HTTP handler for the metrics endpoint
+func GetHandler(isNodeLevel bool) http.Handler {
+	return promhttp.HandlerFor(GetRegistry(isNodeLevel), promhttp.HandlerOpts{})
 }
 
 func register(collector prometheus.Collector, name string, isNodeLevel bool) {

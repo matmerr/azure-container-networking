@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"reflect"
 	"testing"
 
 	"github.com/Azure/azure-container-networking/npm/http/api"
+	"github.com/stretchr/testify/assert"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -18,6 +18,7 @@ import (
 )
 
 func TestGetNpmMgrHandler(t *testing.T) {
+	assert := assert.New(t)
 	npMgr := &npm.NetworkPolicyManager{
 		NsMap: map[string]*npm.Namespace{
 			"test": &npm.Namespace{
@@ -34,10 +35,10 @@ func TestGetNpmMgrHandler(t *testing.T) {
 			},
 		},
 	}
-	n := NewNpmRestServer(npMgr)
-	handler := n.GetNpmMgr()
+	n := NewNpmRestServer()
+	handler := n.GetNpmMgr(npMgr)
 
-	req, err := http.NewRequest("GET", api.InformersPath, nil)
+	req, err := http.NewRequest(http.MethodGet, api.NPMMgrPath, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -56,7 +57,5 @@ func TestGetNpmMgrHandler(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if !reflect.DeepEqual(ns, npMgr) {
-		t.Fatalf("Expected: %+v,\n actual %+v", ns, npMgr)
-	}
+	assert.Exactly(&ns, npMgr)
 }

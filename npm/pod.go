@@ -57,7 +57,7 @@ func (npMgr *NetworkPolicyManager) AddPod(podObj *corev1.Pod) error {
 
 	log.Logf("POD CREATING: [%s%s/%s/%s%+v%s]", podUid, podNs, podName, podNodeName, podLabels, podIP)
 
-	// Add pod Namespace if it doesn't exist
+	// Add pod namespace if it doesn't exist
 	if _, exists := npMgr.NsMap[podNs]; !exists {
 		log.Logf("Creating set: %v, hashedSet: %v", podNs, util.GetHashedName(podNs))
 		if err = ipsMgr.CreateSet(podNs, append([]string{util.IpsetNetHashFlag})); err != nil {
@@ -71,10 +71,10 @@ func (npMgr *NetworkPolicyManager) AddPod(podObj *corev1.Pod) error {
 		return nil
 	}
 
-	// Add the pod to its Namespace's ipset.
+	// Add the pod to its namespace's ipset.
 	log.Logf("Adding pod %s to ipset %s", podIP, podNs)
 	if err = ipsMgr.AddToSet(podNs, podIP, util.IpsetNetHashFlag, podUid); err != nil {
-		log.Errorf("Error: failed to add pod to Namespace ipset.")
+		log.Errorf("Error: failed to add pod to namespace ipset.")
 	}
 
 	// Add the pod to its label's ipset.
@@ -207,7 +207,7 @@ func (npMgr *NetworkPolicyManager) DeletePod(podObj *corev1.Pod) error {
 
 	log.Logf("POD DELETING: [%s/%s%s/%s%+v%s]", podNs, podName, podUid, podNodeName, podLabels, cachedPodIp)
 
-	// Delete the pod from its Namespace's ipset.
+	// Delete the pod from its namespace's ipset.
 	if err = ipsMgr.DeleteFromSet(podNs, cachedPodIp, podUid); err != nil {
 		log.Errorf("Error: failed to delete pod from Namespace ipset.")
 	}

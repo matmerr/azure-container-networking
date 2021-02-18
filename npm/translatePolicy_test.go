@@ -372,7 +372,7 @@ func TestCraftPartialIptablesCommentFromSelector(t *testing.T) {
 	comment = craftPartialIptablesCommentFromSelector("", nsSelector, true)
 	expectedComment = "ns-k0:v0-AND-ns-k1:v10-AND-ns-k1:v11-AND-ns-!k2"
 	if comment != expectedComment {
-		t.Errorf("TestCraftPartialIptablesCommentFromSelector failed @ Namespace selector comparison")
+		t.Errorf("TestCraftPartialIptablesCommentFromSelector failed @ namespace selector comparison")
 		t.Errorf("comment:\n%v", comment)
 		t.Errorf("expectedComment:\n%v", expectedComment)
 	}
@@ -1451,7 +1451,7 @@ func TestDenyAllToAppFrontend(t *testing.T) {
 }
 
 func TestNamespaceToFrontend(t *testing.T) {
-	allowNsTestNamespaceToFrontendPolicy, err := readPolicyYaml("testpolicies/allow-ns-test-Namespace-to-frontend.yaml")
+	allowNsTestNamespaceToFrontendPolicy, err := readPolicyYaml("testpolicies/allow-ns-test-namespace-to-frontend.yaml")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1732,18 +1732,18 @@ func TestAllowNamespaceDevToAppFrontend(t *testing.T) {
 		"ns-testnamespace",
 	}
 	if !reflect.DeepEqual(sets, expectedSets) {
-		t.Errorf("translatedPolicy failed @ ALLOW-ns-Namespace:dev-AND-!ns-Namespace:test0-AND-!ns-Namespace:test1-TO-app:frontend-policy sets comparison")
+		t.Errorf("translatedPolicy failed @ ALLOW-ns-namespace:dev-AND-!ns-namespace:test0-AND-!ns-namespace:test1-TO-app:frontend-policy sets comparison")
 		t.Errorf("sets: %v", sets)
 		t.Errorf("expectedSets: %v", expectedSets)
 	}
 
 	expectedLists := []string{
-		"ns-Namespace:dev",
-		"ns-Namespace:test0",
-		"ns-Namespace:test1",
+		"ns-namespace:dev",
+		"ns-namespace:test0",
+		"ns-namespace:test1",
 	}
 	if !reflect.DeepEqual(lists, expectedLists) {
-		t.Errorf("translatedPolicy failed @ ALLOW-ns-Namespace:dev-AND-!ns-Namespace:test0-AND-!ns-Namespace:test1-TO-app:frontend-policy lists comparison")
+		t.Errorf("translatedPolicy failed @ ALLOW-ns-namespace:dev-AND-!ns-namespace:test0-AND-!ns-namespace:test1-TO-app:frontend-policy lists comparison")
 		t.Errorf("lists: %v", lists)
 		t.Errorf("expectedLists: %v", expectedLists)
 	}
@@ -1756,19 +1756,19 @@ func TestAllowNamespaceDevToAppFrontend(t *testing.T) {
 				util.IptablesModuleFlag,
 				util.IptablesSetModuleFlag,
 				util.IptablesMatchSetFlag,
-				util.GetHashedName("ns-Namespace:dev"),
+				util.GetHashedName("ns-namespace:dev"),
 				util.IptablesSrcFlag,
 				util.IptablesModuleFlag,
 				util.IptablesSetModuleFlag,
 				util.IptablesNotFlag,
 				util.IptablesMatchSetFlag,
-				util.GetHashedName("ns-Namespace:test0"),
+				util.GetHashedName("ns-namespace:test0"),
 				util.IptablesSrcFlag,
 				util.IptablesModuleFlag,
 				util.IptablesSetModuleFlag,
 				util.IptablesNotFlag,
 				util.IptablesMatchSetFlag,
-				util.GetHashedName("ns-Namespace:test1"),
+				util.GetHashedName("ns-namespace:test1"),
 				util.IptablesSrcFlag,
 				util.IptablesModuleFlag,
 				util.IptablesSetModuleFlag,
@@ -1787,7 +1787,7 @@ func TestAllowNamespaceDevToAppFrontend(t *testing.T) {
 				util.IptablesModuleFlag,
 				util.IptablesCommentModuleFlag,
 				util.IptablesCommentFlag,
-				"ALLOW-ns-Namespace:dev-AND-ns-!Namespace:test0-AND-ns-!Namespace:test1-TO-app:frontend-IN-ns-testnamespace",
+				"ALLOW-ns-namespace:dev-AND-ns-!namespace:test0-AND-ns-!namespace:test1-TO-app:frontend-IN-ns-testnamespace",
 			},
 		},
 		&iptm.IptEntry{
@@ -1862,7 +1862,7 @@ func TestAllowNamespaceDevToAppFrontend(t *testing.T) {
 	expectedIptEntries = append(expectedIptEntries, nonKubeSystemEntries...)
 	expectedIptEntries = append(expectedIptEntries, getDefaultDropEntries("testnamespace", allowNsDevToFrontendPolicy.Spec.PodSelector, false, false)...)
 	if !reflect.DeepEqual(iptEntries, expectedIptEntries) {
-		t.Errorf("translatedPolicy failed @ ALLOW-ns-Namespace:dev-AND-!ns-Namespace:test0-AND-!ns-Namespace:test1-TO-app:frontend-policy policy comparison")
+		t.Errorf("translatedPolicy failed @ ALLOW-ns-namespace:dev-AND-!ns-namespace:test0-AND-!ns-namespace:test1-TO-app:frontend-policy policy comparison")
 		marshalledIptEntries, _ := json.Marshal(iptEntries)
 		marshalledExpectedIptEntries, _ := json.Marshal(expectedIptEntries)
 		t.Errorf("iptEntries: %s", marshalledIptEntries)

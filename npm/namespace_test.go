@@ -70,9 +70,9 @@ func TestAddNamespace(t *testing.T) {
 
 	nsObj := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "test-Namespace",
+			Name: "test-namespace",
 			Labels: map[string]string{
-				"app": "test-Namespace",
+				"app": "test-namespace",
 			},
 		},
 	}
@@ -109,18 +109,18 @@ func TestUpdateNamespace(t *testing.T) {
 
 	oldNsObj := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "old-test-Namespace",
+			Name: "old-test-namespace",
 			Labels: map[string]string{
-				"app": "old-test-Namespace",
+				"app": "old-test-namespace",
 			},
 		},
 	}
 
 	newNsObj := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "new-test-Namespace",
+			Name: "new-test-namespace",
 			Labels: map[string]string{
-				"app": "new-test-Namespace",
+				"app": "new-test-namespace",
 			},
 		},
 	}
@@ -278,9 +278,9 @@ func TestDeleteNamespace(t *testing.T) {
 
 	nsObj := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "test-Namespace",
+			Name: "test-namespace",
 			Labels: map[string]string{
-				"app": "test-Namespace",
+				"app": "test-namespace",
 			},
 		},
 	}

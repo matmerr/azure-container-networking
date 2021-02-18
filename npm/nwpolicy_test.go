@@ -58,7 +58,7 @@ func TestAddNetworkPolicy(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "test-nwpolicy",
 			Labels: map[string]string{
-				"app": "test-Namespace",
+				"app": "test-namespace",
 			},
 		},
 	}
@@ -202,7 +202,7 @@ func TestUpdateNetworkPolicy(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "test-nwpolicy",
 			Labels: map[string]string{
-				"app": "test-Namespace",
+				"app": "test-namespace",
 			},
 		},
 	}
@@ -314,7 +314,7 @@ func TestDeleteNetworkPolicy(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "test-nwpolicy",
 			Labels: map[string]string{
-				"app": "test-Namespace",
+				"app": "test-namespace",
 			},
 		},
 	}

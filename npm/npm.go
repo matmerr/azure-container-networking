@@ -5,7 +5,6 @@ package npm
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"os"
 	"sync"
 	"time"
@@ -39,7 +38,7 @@ const (
 	reconcileChainTimeInMinutes   = 5
 )
 
-// NetworkPolicyManager contains informers for pod, Namespace and networkpolicy.
+// NetworkPolicyManager contains informers for pod, namespace and networkpolicy.
 type NetworkPolicyManager struct {
 	sync.Mutex
 	clientset *kubernetes.Clientset
@@ -164,11 +163,6 @@ func (npMgr *NetworkPolicyManager) backup() {
 	}
 }
 
-func startProfiling() {
-	log.Logf("Started profiling endpoint")
-	log.Logf("+v", http.ListenAndServe(":8081", nil))
-}
-
 // Start starts shared informers and waits for the shared informer cache to sync.
 func (npMgr *NetworkPolicyManager) Start(stopCh <-chan struct{}) error {
 
@@ -199,8 +193,6 @@ func (npMgr *NetworkPolicyManager) Start(stopCh <-chan struct{}) error {
 
 // NewNetworkPolicyManager creates a NetworkPolicyManager
 func NewNetworkPolicyManager(clientset *kubernetes.Clientset, informerFactory informers.SharedInformerFactory, npmVersion string) *NetworkPolicyManager {
-	go startProfiling()
-
 	// Clear out left over iptables states
 	log.Logf("Azure-NPM creating, cleaning iptables")
 	iptMgr := iptm.NewIptablesManager()
@@ -259,10 +251,10 @@ func NewNetworkPolicyManager(clientset *kubernetes.Clientset, informerFactory in
 	allNs, _ := newNs(util.KubeAllNamespacesFlag)
 	npMgr.NsMap[util.KubeAllNamespacesFlag] = allNs
 
-	// Create ipset for the Namespace.
+	// Create ipset for the namespace.
 	kubeSystemNs := "ns-" + util.KubeSystemFlag
 	if err := allNs.ipsMgr.CreateSet(kubeSystemNs, append([]string{util.IpsetNetHashFlag})); err != nil {
-		metrics.SendErrorLogAndMetric(util.NpmID, "Error: failed to create ipset for Namespace %s.", kubeSystemNs)
+		metrics.SendErrorLogAndMetric(util.NpmID, "Error: failed to create ipset for namespace %s.", kubeSystemNs)
 	}
 
 	podInformer.Informer().AddEventHandler(
