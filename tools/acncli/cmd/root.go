@@ -3,15 +3,11 @@ package cmd
 import (
 	"fmt"
 
-<<<<<<< HEAD:tools/acncli/cmd/root.go
+	"github.com/Azure/azure-container-networking/tools/acncli/cmd/npm"
+
+	"github.com/Azure/azure-container-networking/tools/acncli/cmd/cni"
+
 	c "github.com/Azure/azure-container-networking/tools/acncli/api"
-=======
-	"github.com/Azure/azure-container-networking/hack/acncli/cmd/npm"
-
-	"github.com/Azure/azure-container-networking/hack/acncli/cmd/cni"
-
-	c "github.com/Azure/azure-container-networking/hack/acncli/api"
->>>>>>> f84e1f2d (add npm debug api and add to acncli):hack/acncli/cmd/root.go
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )

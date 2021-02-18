@@ -1,9 +1,9 @@
 package get
 
 import (
-	"github.com/Azure/azure-container-networking/hack/acncli/api"
 	"github.com/Azure/azure-container-networking/log"
 	npm "github.com/Azure/azure-container-networking/npm/http/client"
+	"github.com/Azure/azure-container-networking/tools/acncli/api"
 	"github.com/spf13/cobra"
 )
 

@@ -1,7 +1,7 @@
 package cni
 
 import (
-	c "github.com/Azure/azure-container-networking/hack/acncli/api"
+	c "github.com/Azure/azure-container-networking/tools/acncli/api"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )

@@ -5,9 +5,9 @@ import (
 
 	"github.com/Azure/azure-container-networking/npm/http/api"
 
-	c "github.com/Azure/azure-container-networking/hack/acncli/api"
-	"github.com/Azure/azure-container-networking/hack/acncli/cmd/npm/get"
 	npm "github.com/Azure/azure-container-networking/npm/http/client"
+	c "github.com/Azure/azure-container-networking/tools/acncli/api"
+	"github.com/Azure/azure-container-networking/tools/acncli/cmd/npm/get"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
