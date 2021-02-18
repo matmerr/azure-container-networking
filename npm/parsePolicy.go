@@ -28,7 +28,7 @@ func isSamePolicy(old, new *networkingv1.NetworkPolicy) bool {
 
 // addPolicy merges policies based on labels.
 func addPolicy(old, new *networkingv1.NetworkPolicy) (*networkingv1.NetworkPolicy, error) {
-	// if Namespace matches && podSelector matches, then merge
+	// if namespace matches && podSelector matches, then merge
 	// else return as is.
 	if !reflect.DeepEqual(old.TypeMeta, new.TypeMeta) {
 		return nil, fmt.Errorf("Old and new networkpolicies don't have the same TypeMeta")
@@ -73,14 +73,14 @@ func addPolicy(old, new *networkingv1.NetworkPolicy) (*networkingv1.NetworkPolic
 
 // deductPolicy deduct one policy from the other.
 func deductPolicy(old, new *networkingv1.NetworkPolicy) (*networkingv1.NetworkPolicy, error) {
-	// if Namespace matches && podSelector matches, then merge
+	// if namespace matches && podSelector matches, then merge
 	// else return as is.
 	if !reflect.DeepEqual(old.TypeMeta, new.TypeMeta) {
 		return nil, fmt.Errorf("Old and new networkpolicy don't have the same TypeMeta")
 	}
 
 	if old.ObjectMeta.Namespace != new.ObjectMeta.Namespace {
-		return nil, fmt.Errorf("Old and new networkpolicy don't have the same Namespace")
+		return nil, fmt.Errorf("Old and new networkpolicy don't have the same namespace")
 	}
 
 	if !reflect.DeepEqual(old.Spec.PodSelector, new.Spec.PodSelector) {

@@ -80,7 +80,7 @@ func craftPartialIptEntrySpecFromOpAndLabel(op, label, srcOrDstFlag string, isNa
 	return util.DropEmptyFields(partialSpec)
 }
 
-// craftPartialIptablesCommentFromSelector :- ns must be "" for Namespace selectors
+// craftPartialIptablesCommentFromSelector :- ns must be "" for namespace selectors
 func craftPartialIptEntrySpecFromOpsAndLabels(ns string, ops, labels []string, srcOrDstFlag string, isNamespaceSelector bool) []string {
 	var spec []string
 
@@ -119,14 +119,14 @@ func craftPartialIptEntrySpecFromOpsAndLabels(ns string, ops, labels []string, s
 	return spec
 }
 
-// craftPartialIptEntrySpecFromSelector :- ns must be "" for Namespace selectors
+// craftPartialIptEntrySpecFromSelector :- ns must be "" for namespace selectors
 func craftPartialIptEntrySpecFromSelector(ns string, selector *metav1.LabelSelector, srcOrDstFlag string, isNamespaceSelector bool) []string {
 	labelsWithOps, _, _ := parseSelector(selector)
 	ops, labels := GetOperatorsAndLabels(labelsWithOps)
 	return craftPartialIptEntrySpecFromOpsAndLabels(ns, ops, labels, srcOrDstFlag, isNamespaceSelector)
 }
 
-// craftPartialIptablesCommentFromSelector :- ns must be "" for Namespace selectors
+// craftPartialIptablesCommentFromSelector :- ns must be "" for namespace selectors
 func craftPartialIptablesCommentFromSelector(ns string, selector *metav1.LabelSelector, isNamespaceSelector bool) string {
 	if selector == nil {
 		return "none"
@@ -430,7 +430,7 @@ func translateIngress(ns string, policyName string, targetSelector metav1.LabelS
 					nsLabelsWithoutOps[0] = util.KubeAllNamespacesFlag
 				} else {
 					for i, _ := range nsLabelsWithoutOps {
-						// Add namespaces prefix to distinguish Namespace ipset lists and pod ipsets
+						// Add namespaces prefix to distinguish namespace ipset lists and pod ipsets
 						nsLabelsWithoutOps[i] = "ns-" + nsLabelsWithoutOps[i]
 					}
 				}
@@ -642,7 +642,7 @@ func translateIngress(ns string, policyName string, targetSelector metav1.LabelS
 
 			nsLabelsWithOps, _, _ := parseSelector(fromRule.NamespaceSelector)
 			_, nsLabelsWithoutOps := GetOperatorsAndLabels(nsLabelsWithOps)
-			// Add namespaces prefix to distinguish Namespace ipsets and pod ipsets
+			// Add namespaces prefix to distinguish namespace ipsets and pod ipsets
 			for i, _ := range nsLabelsWithoutOps {
 				nsLabelsWithoutOps[i] = "ns-" + nsLabelsWithoutOps[i]
 			}
@@ -652,7 +652,7 @@ func translateIngress(ns string, policyName string, targetSelector metav1.LabelS
 			_, podLabelsWithoutOps := GetOperatorsAndLabels(podLabelsWithOps)
 			sets = append(sets, podLabelsWithoutOps...)
 
-			// we pass empty ns for the podspec and comment here because it's a combo of both selectors and not limited to network policy Namespace
+			// we pass empty ns for the podspec and comment here because it's a combo of both selectors and not limited to network policy namespace
 			iptPartialNsSpec := craftPartialIptEntrySpecFromSelector("", fromRule.NamespaceSelector, util.IptablesSrcFlag, true)
 			iptPartialPodSpec := craftPartialIptEntrySpecFromSelector("", fromRule.PodSelector, util.IptablesSrcFlag, false)
 			iptPartialNsComment := craftPartialIptablesCommentFromSelector("", fromRule.NamespaceSelector, true)
@@ -1121,7 +1121,7 @@ func translateEgress(ns string, policyName string, targetSelector metav1.LabelSe
 					nsLabelsWithoutOps[0] = util.KubeAllNamespacesFlag
 				} else {
 					for i, _ := range nsLabelsWithoutOps {
-						// Add namespaces prefix to distinguish Namespace ipset lists and pod ipsets
+						// Add namespaces prefix to distinguish namespace ipset lists and pod ipsets
 						nsLabelsWithoutOps[i] = "ns-" + nsLabelsWithoutOps[i]
 					}
 				}
@@ -1333,7 +1333,7 @@ func translateEgress(ns string, policyName string, targetSelector metav1.LabelSe
 
 			nsLabelsWithOps, _, _ := parseSelector(toRule.NamespaceSelector)
 			_, nsLabelsWithoutOps := GetOperatorsAndLabels(nsLabelsWithOps)
-			// Add namespaces prefix to distinguish Namespace ipsets and pod ipsets
+			// Add namespaces prefix to distinguish namespace ipsets and pod ipsets
 			for i, _ := range nsLabelsWithoutOps {
 				nsLabelsWithoutOps[i] = "ns-" + nsLabelsWithoutOps[i]
 			}
@@ -1343,7 +1343,7 @@ func translateEgress(ns string, policyName string, targetSelector metav1.LabelSe
 			_, podLabelsWithoutOps := GetOperatorsAndLabels(podLabelsWithOps)
 			sets = append(sets, podLabelsWithoutOps...)
 
-			// we pass true for the podspec and comment here because it's a combo of both selectors and not limited to network policy Namespace
+			// we pass true for the podspec and comment here because it's a combo of both selectors and not limited to network policy namespace
 			iptPartialNsSpec := craftPartialIptEntrySpecFromSelector("", toRule.NamespaceSelector, util.IptablesDstFlag, true)
 			iptPartialPodSpec := craftPartialIptEntrySpecFromSelector("", toRule.PodSelector, util.IptablesDstFlag, false)
 			iptPartialNsComment := craftPartialIptablesCommentFromSelector("", toRule.NamespaceSelector, true)

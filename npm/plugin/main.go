@@ -3,13 +3,13 @@
 package main
 
 import (
-	_ "net/http/pprof" // expose pprof endpoint
 	"time"
 
-	restserver "github.com/Azure/azure-container-networking/npm/http/server"
+	_ "net/http/pprof"
 
 	"github.com/Azure/azure-container-networking/log"
 	"github.com/Azure/azure-container-networking/npm"
+	restserver "github.com/Azure/azure-container-networking/npm/http/server"
 	"github.com/Azure/azure-container-networking/npm/metrics"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/informers"
@@ -34,7 +34,6 @@ func initLogging() error {
 }
 
 func main() {
-
 	var err error
 
 	defer func() {
@@ -66,8 +65,9 @@ func main() {
 
 	npMgr := npm.NewNetworkPolicyManager(clientset, factory, version)
 	metrics.CreateTelemetryHandle(npMgr.GetAppVersion(), npm.GetAIMetadata())
-	restserver := restserver.NewNpmRestServer(npMgr)
-	log.Debugf("Starting NPM Rest server from main thread...")
+
+	// start NPM HTTP endpoint for Prometheus, pprof and debugging
+	restserver := restserver.NewNpmRestServer(restserver.DefaultHTTPListeningAddress)
 	go restserver.NPMRestServerListenAndServe(npMgr)
 
 	//go npMgr.SendClusterMetrics()

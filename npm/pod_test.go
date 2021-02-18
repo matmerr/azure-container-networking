@@ -61,7 +61,7 @@ func TestAddPod(t *testing.T) {
 	podObj := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-pod",
-			Namespace: "test-Namespace",
+			Namespace: "test-namespace",
 			Labels: map[string]string{
 				"app": "test-pod",
 			},
@@ -118,7 +118,7 @@ func TestUpdatePod(t *testing.T) {
 	oldPodObj := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "old-test-pod",
-			Namespace: "test-Namespace",
+			Namespace: "test-namespace",
 			Labels: map[string]string{
 				"app": "old-test-pod",
 			},
@@ -132,7 +132,7 @@ func TestUpdatePod(t *testing.T) {
 	newPodObj := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "new-test-pod",
-			Namespace: "test-Namespace",
+			Namespace: "test-namespace",
 			Labels: map[string]string{
 				"app": "new-test-pod",
 			},
@@ -181,7 +181,7 @@ func TestDeletePod(t *testing.T) {
 	podObj := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-pod",
-			Namespace: "test-Namespace",
+			Namespace: "test-namespace",
 			Labels: map[string]string{
 				"app": "test-pod",
 			},
@@ -230,7 +230,7 @@ func TestAddHostNetworkPod(t *testing.T) {
 	podObj := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-pod",
-			Namespace: "test-Namespace",
+			Namespace: "test-namespace",
 			Labels: map[string]string{
 				"app": "test-pod",
 			},
@@ -284,7 +284,7 @@ func TestUpdateHostNetworkPod(t *testing.T) {
 	oldPodObj := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "old-test-pod",
-			Namespace: "test-Namespace",
+			Namespace: "test-namespace",
 			Labels: map[string]string{
 				"app": "old-test-pod",
 			},
@@ -301,7 +301,7 @@ func TestUpdateHostNetworkPod(t *testing.T) {
 	newPodObj := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "new-test-pod",
-			Namespace: "test-Namespace",
+			Namespace: "test-namespace",
 			Labels: map[string]string{
 				"app": "new-test-pod",
 			},
@@ -354,7 +354,7 @@ func TestDeleteHostNetworkPod(t *testing.T) {
 	podObj := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-pod",
-			Namespace: "test-Namespace",
+			Namespace: "test-namespace",
 			Labels: map[string]string{
 				"app": "test-pod",
 			},

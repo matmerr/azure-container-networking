@@ -118,7 +118,7 @@ func (npMgr *NetworkPolicyManager) AddNetworkPolicy(npObj *networkingv1.NetworkP
 		}
 	}
 	if err = npMgr.InitAllNsList(); err != nil {
-		log.Logf("Error initializing all-Namespace ipset list.")
+		log.Logf("Error initializing all-namespace ipset list.")
 	}
 	createCidrsRule("in", npObj.ObjectMeta.Name, npObj.ObjectMeta.Namespace, ingressIPCidrs, ipsMgr)
 	createCidrsRule("out", npObj.ObjectMeta.Name, npObj.ObjectMeta.Namespace, egressIPCidrs, ipsMgr)
@@ -160,7 +160,7 @@ func (npMgr *NetworkPolicyManager) DeleteNetworkPolicy(npObj *networkingv1.Netwo
 	if ns, exists = npMgr.NsMap[npNs]; !exists {
 		ns, err = newNs(npName)
 		if err != nil {
-			log.Logf("Error creating Namespace %s", npNs)
+			log.Logf("Error creating namespace %s", npNs)
 		}
 		npMgr.NsMap[npNs] = ns
 	}

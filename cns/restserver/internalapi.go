@@ -22,7 +22,7 @@ import (
 	nnc "github.com/Azure/azure-container-networking/nodenetworkconfig/api/v1alpha"
 )
 
-// This file contains the internal functions called by either HTTP APIs (server.go) or
+// This file contains the internal functions called by either HTTP APIs (api.go) or
 // internal APIs (definde in internalapi.go).
 // This will be used internally (say by RequestController in case of AKS)
 
