@@ -35,7 +35,7 @@ func TestGetNpmMgrHandler(t *testing.T) {
 			},
 		},
 	}
-	n := NewNpmRestServer()
+	n := NewNpmRestServer("")
 	handler := n.GetNpmMgr(npMgr)
 
 	req, err := http.NewRequest(http.MethodGet, api.NPMMgrPath, nil)
