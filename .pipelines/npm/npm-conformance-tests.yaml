@@ -122,6 +122,7 @@ jobs:
         --network-plugin azure
 
 - job: Run_test
+  timeoutInMinutes: 360
   displayName: "Run Kubernetes Network Policy Test Suite"
   pool:
     name: Networking-ContainerNetworking
