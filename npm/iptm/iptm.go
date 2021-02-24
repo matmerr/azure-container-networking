@@ -27,6 +27,7 @@ const (
 var (
 	// IptablesAzureChainList contains list of all NPM chains
 	IptablesAzureChainList = []string{
+		util.IptablesAzureChain,
 		util.IptablesAzureIngressPortChain,
 		util.IptablesAzureIngressFromChain,
 		util.IptablesAzureEgressPortChain,
@@ -37,6 +38,8 @@ var (
 
 // IptEntry represents an iptables rule.
 type IptEntry struct {
+	Command               string
+	Name                  string
 	Chain                 string
 	Flag                  string
 	LockWaitTimeInSeconds string
@@ -403,10 +406,6 @@ func (iptMgr *IptablesManager) Run(entry *IptEntry) (int, error) {
 	}
 
 	_, err := exec.Command(cmdName, cmdArgs...).Output()
-	if err != nil {
-		log.Printf("DEBUG ERROR %+v\n", err)
-	}
-
 	if msg, failed := err.(*exec.ExitError); failed {
 		errCode := msg.Sys().(syscall.WaitStatus).ExitStatus()
 		if errCode > 0 && iptMgr.OperationFlag != util.IptablesCheckFlag {
