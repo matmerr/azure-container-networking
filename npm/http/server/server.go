@@ -5,8 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/pprof"
-	_ "net/http/pprof" // expose pprof endpoint
-	"time"
+	_ "net/http/pprof"
 
 	"github.com/Azure/azure-container-networking/log"
 
@@ -34,11 +33,15 @@ func (n *NPMRestServer) NPMRestServerListenAndServe(npMgr *npm.NetworkPolicyMana
 	n.router.Handle(api.NodeMetricsPath, metrics.GetHandler(true))
 	n.router.Handle(api.ClusterMetricsPath, metrics.GetHandler(false))
 
-	// ACN CLI debug handlers
+	// ACN CLI debug handlerss
 	n.router.Handle(api.NPMMgrPath, n.GetNpmMgr(npMgr)).Methods(http.MethodGet)
 
-	// add pprof handlers to the pprof prefix
-	n.router.PathPrefix("/debug/pprof/").HandlerFunc(pprof.Index)
+	n.router.PathPrefix("/debug/").Handler(http.DefaultServeMux)
+	n.router.HandleFunc("/debug/pprof/", pprof.Index)
+	n.router.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+	n.router.HandleFunc("/debug/pprof/profile", pprof.Profile)
+	n.router.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+	n.router.HandleFunc("/debug/pprof/trace", pprof.Trace)
 
 	// use default listening address if none is specified
 	if n.listeningAddress == "" {
@@ -46,13 +49,11 @@ func (n *NPMRestServer) NPMRestServerListenAndServe(npMgr *npm.NetworkPolicyMana
 	}
 
 	srv := &http.Server{
-		Handler:      n.router,
-		Addr:         n.listeningAddress,
-		WriteTimeout: 15 * time.Second,
-		ReadTimeout:  15 * time.Second,
+		Handler: n.router,
+		Addr:    n.listeningAddress,
 	}
 
-	log.Logf("Starting NPM HTTP API on %s...", n.listeningAddress)
+	log.Logf("Starting NPM HTTP API on %s... ", n.listeningAddress)
 	log.Errorf("Failed to start NPM HTTP Server with error: %+v", srv.ListenAndServe())
 }
 
