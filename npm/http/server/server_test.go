@@ -9,11 +9,6 @@ import (
 	"github.com/Azure/azure-container-networking/npm/http/api"
 	"github.com/stretchr/testify/assert"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/types"
-
 	"github.com/Azure/azure-container-networking/npm"
 )
 
@@ -22,14 +17,9 @@ func TestGetNpmMgrHandler(t *testing.T) {
 	npMgr := &npm.NetworkPolicyManager{
 		NsMap: map[string]*npm.Namespace{
 			"test": &npm.Namespace{
-				PodMap: map[types.UID]*corev1.Pod{
-					"": &corev1.Pod{
-						TypeMeta: metav1.TypeMeta{},
-						ObjectMeta: metav1.ObjectMeta{
-							Name: "testpod",
-						},
-						Spec:   corev1.PodSpec{},
-						Status: corev1.PodStatus{},
+				PodMap: map[string]*npm.NpmPod{
+					"": &npm.NpmPod{
+						Name: "testpod",
 					},
 				},
 			},
