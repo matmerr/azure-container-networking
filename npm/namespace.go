@@ -134,7 +134,7 @@ func (npMgr *NetworkPolicyManager) AddNamespace(nsObj *corev1.Namespace) error {
 	}
 
 	if err = ipsMgr.AddToList(util.KubeAllNamespacesFlag, nsName); err != nil {
-		log.Errorf("Error: failed to add %s to all-namespace ipset list.", nsName)
+		log.Errorf("Error: failed to add %s to all-namespace ipset list with err %v", nsName, err)
 		return err
 	}
 
@@ -158,7 +158,7 @@ func (npMgr *NetworkPolicyManager) AddNamespace(nsObj *corev1.Namespace) error {
 
 	ns, err := newNs(nsName)
 	if err != nil {
-		log.Errorf("Error: failed to create namespace %s", nsName)
+		log.Errorf("Error: failed to create namespace %s with err %v", nsName, err)
 	}
 	setResourceVersion(ns, nsObj.GetObjectMeta().GetResourceVersion())
 
